@@ -7,6 +7,7 @@ import { authRoutes } from "./routes/authRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { workspaceRoutes } from "./routes/workspaceRoutes";
+import { renderLandingPage } from "./views/landingPage";
 
 export function createApp() {
   const app = express();
@@ -20,6 +21,10 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
   app.use(morgan("dev"));
+
+  app.get("/", (_req, res) => {
+    res.type("html").send(renderLandingPage());
+  });
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true, name: "YARA AI API" });
