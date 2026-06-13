@@ -13,7 +13,7 @@ import { sendError } from "../utils/http";
 export const authRoutes = Router();
 
 const authSchema = z.object({
-  identifier: z.string().min(3),
+  identifier: z.string().email(),
   password: z.string().min(6)
 });
 
@@ -22,7 +22,7 @@ authRoutes.post("/register", async (req, res) => {
     .object({
       name: z.string().min(2),
       email: z.string().email(),
-      phone: z.string().min(8),
+      phone: z.string().optional(),
       password: z.string().min(6),
       confirmPassword: z.string().min(6)
     })
@@ -33,7 +33,7 @@ authRoutes.post("/register", async (req, res) => {
     .safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, 400, "Dados de cadastro invalidos.");
+    return sendError(res, 400, "Dados de cadastro inválidos.");
   }
 
   try {
@@ -54,7 +54,7 @@ authRoutes.post("/login", async (req, res) => {
   const parsed = authSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, 400, "Email/telefone e senha sao obrigatorios.");
+    return sendError(res, 400, "E-mail e senha são obrigatórios.");
   }
 
   try {
@@ -66,14 +66,14 @@ authRoutes.post("/login", async (req, res) => {
 
 authRoutes.get("/me", authRequired, (req, res) => {
   const user = getUserById(req.user!.id);
-  return user ? res.json({ user }) : sendError(res, 404, "Usuario nao encontrado.");
+  return user ? res.json({ user }) : sendError(res, 404, "Usuário não encontrado.");
 });
 
 authRoutes.post("/forgot-password", async (req, res) => {
-  const parsed = z.object({ identifier: z.string().min(3) }).safeParse(req.body);
+  const parsed = z.object({ identifier: z.string().email() }).safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, 400, "Informe email ou telefone para recuperar a senha.");
+    return sendError(res, 400, "Informe seu e-mail para recuperar a senha.");
   }
 
   return res.json(await requestPasswordReset(parsed.data));
@@ -94,7 +94,7 @@ authRoutes.post("/reset-password", async (req, res) => {
     .safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, 400, "Dados invalidos para redefinir senha.");
+    return sendError(res, 400, "Dados inválidos para redefinir senha.");
   }
 
   try {

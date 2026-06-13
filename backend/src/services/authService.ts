@@ -54,7 +54,11 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function normalizePhone(phone: string) {
+function normalizePhone(phone?: string | null) {
+  if (!phone) {
+    return "";
+  }
+
   return phone.replace(/\D/g, "");
 }
 
@@ -62,16 +66,16 @@ function hashResetToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function registerUser(input: { name: string; email: string; phone: string; password: string }) {
+export async function registerUser(input: { name: string; email: string; phone?: string; password: string }) {
   const db = getDatabase();
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phone);
-  const existing = db
-    .prepare("select id from users where email = ? or phone = ?")
-    .get(email, phone);
+  const existing = phone
+    ? db.prepare("select id from users where email = ? or phone = ?").get(email, phone)
+    : db.prepare("select id from users where email = ?").get(email);
 
   if (existing) {
-    throw new Error("Email ou telefone ja cadastrado.");
+    throw new Error(phone ? "E-mail ou telefone já cadastrado." : "E-mail já cadastrado.");
   }
 
   const count = db.prepare("select count(*) as total from users").get() as { total: number };
@@ -79,7 +83,7 @@ export async function registerUser(input: { name: string; email: string; phone: 
     id: uuid(),
     name: input.name.trim(),
     email,
-    phone,
+    phone: phone || null,
     password_hash: await bcrypt.hash(input.password, 12),
     role: count.total === 0 ? "admin" : "user"
   };
@@ -103,7 +107,7 @@ export async function loginUser(input: { identifier: string; password: string })
     .get(identifier, phone) as UserRow | undefined;
 
   if (!user || !(await bcrypt.compare(input.password, user.password_hash))) {
-    throw new Error("Email ou senha invalidos.");
+    throw new Error("E-mail ou senha inválidos.");
   }
 
   return {
@@ -123,10 +127,9 @@ export function getUserById(userId: string) {
 export async function requestPasswordReset(input: { identifier: string }) {
   const db = getDatabase();
   const identifier = input.identifier.trim().toLowerCase();
-  const phone = normalizePhone(identifier);
   const user = db
-    .prepare("select * from users where email = ? or phone = ?")
-    .get(identifier, phone) as UserRow | undefined;
+    .prepare("select * from users where email = ?")
+    .get(identifier) as UserRow | undefined;
 
   if (user) {
     const resetToken = crypto.randomBytes(24).toString("hex");
@@ -143,7 +146,7 @@ export async function requestPasswordReset(input: { identifier: string }) {
   }
 
   return {
-    message: "Se os dados informados estiverem cadastrados, enviaremos instrucoes de recuperacao em breve."
+    message: "Se o e-mail informado estiver cadastrado, enviaremos instruções de recuperação em breve."
   };
 }
 
@@ -166,7 +169,7 @@ export async function resetPassword(input: {
     .get(identifier, phone, tokenHash, new Date().toISOString()) as UserRow | undefined;
 
   if (!user) {
-    throw new Error("Codigo de recuperacao invalido ou expirado.");
+    throw new Error("Código de recuperação inválido ou expirado.");
   }
 
   const passwordHash = await bcrypt.hash(input.password, 12);
@@ -180,6 +183,6 @@ export async function resetPassword(input: {
   ).run(passwordHash, user.id);
 
   return {
-    message: "Senha atualizada com sucesso. Voce ja pode entrar na YARA AI."
+    message: "Senha atualizada com sucesso. Você já pode entrar na YARA AI."
   };
 }

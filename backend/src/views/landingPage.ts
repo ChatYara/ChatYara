@@ -6,7 +6,7 @@ export function renderLandingPage() {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="YARA AI e a plataforma oficial de inteligencia artificial para conversar, gerar sistemas, organizar projetos e acelerar ideias."
+      content="YARA AI é a plataforma oficial de inteligência artificial para conversar, criar sistemas, organizar projetos e acelerar ideias."
     />
     <title>YARA AI | Plataforma oficial</title>
     <style>
@@ -968,9 +968,9 @@ export function renderLandingPage() {
           <a href="#recursos">Recursos</a>
           <a href="#gerador">Gerador</a>
           <a href="#status">Status</a>
-          <a href="#documentacao">Documentacao</a>
+        <a href="#documentacao">Documentação</a>
         </div>
-        <button class="button primary" type="button" data-open-auth="login">Comecar Agora</button>
+        <button class="button primary" type="button" data-open-auth="register">Criar minha conta</button>
       </nav>
     </header>
 
@@ -979,19 +979,19 @@ export function renderLandingPage() {
         <div>
           <div class="badge"><span class="dot"></span>YARA Online</div>
           <h1 id="hero-title">YARA AI</h1>
-          <div class="hero-kicker">Sua Inteligencia. Sem Limites.</div>
+          <div class="hero-kicker">Sua inteligência. Sem limites.</div>
           <p class="hero-copy">
-            Uma plataforma de inteligencia artificial criada para conversar, gerar sistemas,
-            organizar projetos e acelerar ideias com seguranca via backend oficial Render.
+            A YARA AI ajuda você a conversar, criar sistemas, organizar projetos e transformar
+            ideias em soluções reais com inteligência artificial.
           </p>
           <div class="hero-actions">
-            <button class="button primary" type="button" data-open-auth="login">Comecar Agora</button>
-            <a class="button" href="/api/health">Ver Status da API</a>
+            <button class="button primary" type="button" data-open-auth="register">Criar minha conta</button>
+            <button class="button" type="button" data-open-auth="login">Entrar</button>
           </div>
           <div class="hero-metrics" aria-label="Indicadores da plataforma">
-            <div class="metric"><strong>24/7</strong><span>Backend oficial online</span></div>
-            <div class="metric"><strong>IA</strong><span>Gemini via servidor</span></div>
-            <div class="metric"><strong>API</strong><span>Health check publico</span></div>
+            <div class="metric"><strong>Ideias</strong><span>Da conversa ao plano de ação</span></div>
+            <div class="metric"><strong>Sistemas</strong><span>Estrutura para produtos reais</span></div>
+            <div class="metric"><strong>Projetos</strong><span>Organização para evoluir</span></div>
           </div>
         </div>
 
@@ -1001,7 +1001,7 @@ export function renderLandingPage() {
             <aside class="mock-sidebar" aria-label="Menu do app YARA AI">
               <div class="mock-logo"><span class="mock-dot">AI</span><span>Console YARA</span></div>
               <div class="side-item active"><span class="side-icon">+</span>Nova Conversa</div>
-              <div class="side-item"><span class="side-icon">M</span>Memoria</div>
+              <div class="side-item"><span class="side-icon">M</span>Memória</div>
               <div class="side-item"><span class="side-icon">G</span>Gerador de Sistemas</div>
               <div class="side-item"><span class="side-icon">P</span>Projetos</div>
             </aside>
@@ -1009,12 +1009,12 @@ export function renderLandingPage() {
               <div class="mock-topbar">
                 <div class="mock-title">
                   <strong>Chat YARA AI</strong>
-                  <span>Conversa segura roteada pelo backend Render</span>
+                  <span>Experiência inteligente para criar e organizar ideias</span>
                 </div>
                 <div class="mini-status"><span class="dot"></span>Online</div>
               </div>
               <div class="message user">
-                <small>Usuario</small>
+                <small>Usuário</small>
                 Crie um sistema de estoque para minha empresa.
               </div>
               <div class="message">
@@ -1023,7 +1023,7 @@ export function renderLandingPage() {
               </div>
               <div class="message">
                 <small>YARA</small>
-                Tambem posso organizar os modulos, regras de acesso, endpoints REST e roteiro de deploy.
+                Também posso organizar os módulos, regras de acesso, telas principais e próximos passos.
               </div>
               <div class="fake-input">
                 <span>Digite sua mensagem...</span>
@@ -1039,19 +1039,19 @@ export function renderLandingPage() {
           <span class="eyebrow">Recursos</span>
           <h2 id="resources-title">Tudo para transformar ideias em sistemas.</h2>
           <p>
-            A YARA AI combina chat, memoria, geracao de sistemas e organizacao de projetos
-            em uma experiencia pensada para produtividade real.
+            A YARA AI combina chat, memória, geração de sistemas e organização de projetos
+            em uma experiência pensada para produtividade real.
           </p>
         </div>
         <div class="grid">
-          <article class="card"><span class="feature-icon">C</span><h3>Chat IA</h3><p>Converse com a YARA para planejar, criar e evoluir produtos digitais.</p></article>
-          <article class="card"><span class="feature-icon">M</span><h3>Memoria inteligente</h3><p>Contexto persistente para respostas mais alinhadas ao seu projeto.</p></article>
-          <article class="card"><span class="feature-icon">G</span><h3>Gerador de Sistemas</h3><p>Crie arquiteturas, modulos, bancos e APIs a partir de um briefing.</p></article>
-          <article class="card"><span class="feature-icon">P</span><h3>Meus Projetos</h3><p>Centralize ideias, escopos, geracoes e historico de evolucao.</p></article>
-          <article class="card"><span class="feature-icon">D</span><h3>Dashboard</h3><p>Base visual para acompanhar status, operacao e proximas entregas.</p></article>
-          <article class="card"><span class="feature-icon">R</span><h3>API REST</h3><p>Backend estruturado para autenticar, conversar e integrar recursos.</p></article>
-          <article class="card"><span class="feature-icon">A</span><h3>Mobile App</h3><p>Experiencia Android conectada ao backend oficial da plataforma.</p></article>
-          <article class="card"><span class="feature-icon">S</span><h3>Seguranca</h3><p>Chaves protegidas no servidor, sem segredos no APK ou no GitHub.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("chat")}</span><h3>Chat IA</h3><p>Converse com a YARA para planejar, criar e evoluir produtos digitais.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("brain")}</span><h3>Memória inteligente</h3><p>Contexto persistente para respostas mais alinhadas ao seu projeto.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("code")}</span><h3>Gerador de Sistemas</h3><p>Crie arquiteturas, módulos e experiências completas a partir de um briefing.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("folder")}</span><h3>Meus Projetos</h3><p>Centralize ideias, escopos, gerações e histórico de evolução.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("dashboard")}</span><h3>Dashboard</h3><p>Visualize sua operação, progresso e próximos passos com clareza.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("spark")}</span><h3>Automação</h3><p>Acelere tarefas repetitivas e transforme processos em fluxos inteligentes.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("mobile")}</span><h3>Mobile App</h3><p>Acesse uma experiência pensada para produtividade no Android.</p></article>
+          <article class="card"><span class="feature-icon">${landingIcon("shield")}</span><h3>Segurança</h3><p>Conta protegida e informações tratadas por uma camada segura.</p></article>
         </div>
       </section>
 
@@ -1060,17 +1060,17 @@ export function renderLandingPage() {
           <span class="eyebrow">Gerador de Sistemas</span>
           <h2 id="generator-title">A YARA cria sistemas completos com IA.</h2>
           <p>
-            Descreva o objetivo, publico e regras. A plataforma ajuda a estruturar entregas
+            Descreva o objetivo, público e regras. A plataforma ajuda a estruturar entregas
             profissionais de ponta a ponta.
           </p>
         </div>
         <div class="generator-grid">
-          <div class="generator-card"><strong>Web App</strong><span>Interfaces modernas, fluxos de usuario e telas responsivas.</span></div>
-          <div class="generator-card"><strong>API REST</strong><span>Endpoints, autenticacao, contratos e regras de negocio.</span></div>
-          <div class="generator-card"><strong>Dashboard</strong><span>Paineis operacionais para leitura, decisao e acompanhamento.</span></div>
-          <div class="generator-card"><strong>Banco de Dados</strong><span>Modelagem, tabelas, relacoes e persistencia segura.</span></div>
-          <div class="generator-card"><strong>Mobile App</strong><span>Aplicativos conectados ao backend oficial da YARA AI.</span></div>
-          <div class="generator-card"><strong>Automacao</strong><span>Rotinas, processos e integracoes para acelerar operacoes.</span></div>
+          <div class="generator-card"><strong>Web App</strong><span>Interfaces modernas, fluxos de usuário e telas responsivas.</span></div>
+          <div class="generator-card"><strong>Aplicações</strong><span>Contratos, regras de negócio e experiências conectadas.</span></div>
+          <div class="generator-card"><strong>Dashboard</strong><span>Painéis operacionais para leitura, decisão e acompanhamento.</span></div>
+          <div class="generator-card"><strong>Banco de Dados</strong><span>Modelagem, tabelas, relações e persistência segura.</span></div>
+          <div class="generator-card"><strong>Mobile App</strong><span>Aplicativos conectados à plataforma YARA AI.</span></div>
+          <div class="generator-card"><strong>Automação</strong><span>Rotinas, processos e integrações para acelerar operações.</span></div>
         </div>
       </section>
 
@@ -1078,20 +1078,19 @@ export function renderLandingPage() {
         <div class="status-panel">
           <div class="section-heading">
             <span class="eyebrow">Status da plataforma</span>
-            <h2 id="status-title">Online em producao.</h2>
+            <h2 id="status-title">Tudo pronto para criar.</h2>
             <p>
-              O backend oficial esta ativo no Render e fornece o ponto unico de comunicacao
-              para o app YARA AI.
+              A YARA AI está disponível para login, criação de conta e organização dos seus projetos.
             </p>
-            <a class="button primary" href="/api/health">Verificar API</a>
+            <button class="button primary" type="button" data-open-auth="register">Criar minha conta</button>
           </div>
           <div class="status-list">
-            <div class="status-item"><span>API</span><strong>Online</strong></div>
-            <div class="status-item"><span>Backend</span><strong>Render</strong></div>
-            <div class="status-item"><span>Provedor IA</span><strong>Gemini</strong></div>
-            <div class="status-item"><span>Ambiente</span><strong>Producao</strong></div>
-            <div class="status-item"><span>Health Check</span><strong>/api/health</strong></div>
+            <div class="status-item"><span>Conta</span><strong>Autenticação segura</strong></div>
+            <div class="status-item"><span>Projetos</span><strong>Organização inteligente</strong></div>
+            <div class="status-item"><span>Criação</span><strong>Sistemas com IA</strong></div>
             <div class="status-item"><span>Status</span><strong>YARA Online</strong></div>
+            <div class="status-item"><span>Experiência</span><strong>Web e mobile</strong></div>
+            <div class="status-item"><span>Plataforma</span><strong>Em evolução</strong></div>
           </div>
         </div>
       </section>
@@ -1099,19 +1098,19 @@ export function renderLandingPage() {
       <section class="shell" aria-labelledby="security-title">
         <div class="security-panel">
           <div class="security-copy">
-            <span class="eyebrow">Seguranca</span>
+            <span class="eyebrow">Segurança</span>
             <h2 id="security-title">Arquitetura protegida por design.</h2>
             <p>
-              A landing page e apenas visual e institucional. O app e o site nao chamam Gemini
-              diretamente; tudo passa pelo backend oficial.
+              Sua conta, seus projetos e suas informações são tratados com uma camada segura
+              desenhada para proteger a experiência da plataforma.
             </p>
           </div>
           <ul class="secure-list">
-            <li><span class="check">OK</span>Chaves de IA ficam apenas no servidor.</li>
-            <li><span class="check">OK</span>O APK nunca acessa Gemini diretamente.</li>
-            <li><span class="check">OK</span>Comunicacao via backend Render.</li>
-            <li><span class="check">OK</span>Variaveis de ambiente protegidas.</li>
-            <li><span class="check">OK</span>Nenhum segredo exposto no GitHub.</li>
+            <li><span class="check">OK</span>Seus dados protegidos com segurança.</li>
+            <li><span class="check">OK</span>Sua conta com autenticação segura.</li>
+            <li><span class="check">OK</span>Suas informações não ficam expostas no aplicativo.</li>
+            <li><span class="check">OK</span>A IA é acessada por uma camada segura do servidor.</li>
+            <li><span class="check">OK</span>Credenciais sensíveis permanecem protegidas.</li>
           </ul>
         </div>
       </section>
@@ -1119,24 +1118,24 @@ export function renderLandingPage() {
       <section class="shell" aria-labelledby="roadmap-title">
         <div class="section-heading">
           <span class="eyebrow">Roadmap</span>
-          <h2 id="roadmap-title">Proximos recursos da plataforma.</h2>
+          <h2 id="roadmap-title">Próximos recursos da plataforma.</h2>
           <p>
-            A YARA AI esta evoluindo para uma experiencia completa de criacao, memoria e
+            A YARA AI está evoluindo para uma experiência completa de criação, memória e
             entrega de sistemas com IA.
           </p>
         </div>
         <div class="roadmap-grid">
           <ul class="roadmap-list">
-            <li><span class="check">1</span>Chat real com Gemini</li>
+            <li><span class="check">1</span>Chat inteligente completo</li>
             <li><span class="check">2</span>Login e cadastro</li>
-            <li><span class="check">3</span>Historico de conversas</li>
+            <li><span class="check">3</span>Histórico de conversas</li>
             <li><span class="check">4</span>Favoritos</li>
           </ul>
           <ul class="roadmap-list">
-            <li><span class="check">5</span>Memoria personalizada</li>
-            <li><span class="check">6</span>Geracao de APK</li>
+            <li><span class="check">5</span>Memória personalizada</li>
+            <li><span class="check">6</span>Geração de APK</li>
             <li><span class="check">7</span>Painel administrativo</li>
-            <li><span class="check">8</span>Deploys e automacoes</li>
+            <li><span class="check">8</span>Deploys e automações</li>
           </ul>
         </div>
       </section>
@@ -1146,11 +1145,11 @@ export function renderLandingPage() {
           <div>
             <span class="eyebrow">Comece agora</span>
             <h2 id="cta-title">Comece agora com a YARA AI</h2>
-            <p>Entre na plataforma oficial e acompanhe a evolucao da YARA AI conectada ao backend Render.</p>
+            <p>Entre na plataforma oficial e transforme suas ideias em projetos com uma experiência moderna e segura.</p>
           </div>
           <div class="cta-actions">
-            <button class="button primary" type="button" data-open-auth="login">Abrir plataforma</button>
-            <a id="documentacao" class="button" href="https://github.com/ChatYara/ChatYara">Ver documentacao</a>
+            <button class="button primary" type="button" data-open-auth="register">Criar minha conta</button>
+            <a id="documentacao" class="button" href="https://github.com/ChatYara/ChatYara">Ver documentação</a>
           </div>
         </div>
       </section>
@@ -1162,8 +1161,7 @@ export function renderLandingPage() {
           <span class="eyebrow">Acesso YARA AI</span>
           <h2 id="authTitle">Entre na plataforma oficial.</h2>
           <p>
-            Login, cadastro e recuperacao usam somente o backend Render. Nenhuma chave de IA
-            e exposta no navegador, APK ou GitHub.
+            Acesse sua conta, organize projetos e continue criando com a YARA AI em um ambiente seguro.
           </p>
           <div class="status" style="margin-top: 24px;"><span class="dot"></span>YARA Online</div>
         </section>
@@ -1177,8 +1175,8 @@ export function renderLandingPage() {
 
           <form class="auth-form active" id="loginForm">
             <div class="field">
-              <label for="loginIdentifier">E-mail ou telefone</label>
-              <input id="loginIdentifier" name="identifier" autocomplete="username" required />
+              <label for="loginIdentifier">E-mail</label>
+              <input id="loginIdentifier" name="identifier" type="email" autocomplete="username" required />
             </div>
             <div class="field">
               <label for="loginPassword">Senha</label>
@@ -1191,7 +1189,7 @@ export function renderLandingPage() {
 
           <form class="auth-form" id="registerForm">
             <div class="field">
-              <label for="registerName">Nome completo</label>
+              <label for="registerName">Como você quer ser chamado?</label>
               <input id="registerName" name="name" autocomplete="name" required />
             </div>
             <div class="field">
@@ -1199,8 +1197,8 @@ export function renderLandingPage() {
               <input id="registerEmail" name="email" type="email" autocomplete="email" required />
             </div>
             <div class="field">
-              <label for="registerPhone">Telefone</label>
-              <input id="registerPhone" name="phone" inputmode="tel" autocomplete="tel" required />
+              <label for="registerPhone">Telefone (opcional)</label>
+              <input id="registerPhone" name="phone" inputmode="tel" autocomplete="tel" />
             </div>
             <div class="field">
               <label for="registerPassword">Senha</label>
@@ -1212,18 +1210,19 @@ export function renderLandingPage() {
             </div>
             <label class="terms">
               <input id="registerTerms" type="checkbox" required />
-              Aceito usar a YARA AI com comunicacao segura via backend oficial.
+              Aceito os termos e quero criar minha conta na YARA AI.
             </label>
             <button class="button primary" type="submit">Criar conta</button>
-            <button class="auth-link" type="button" data-auth-tab="login">Ja tenho conta</button>
+            <button class="auth-link" type="button" data-auth-tab="login">Já tenho conta</button>
           </form>
 
           <form class="auth-form" id="forgotForm">
             <div class="field">
-              <label for="forgotIdentifier">E-mail ou telefone</label>
-              <input id="forgotIdentifier" name="identifier" autocomplete="username" required />
+              <label for="forgotIdentifier">E-mail</label>
+              <input id="forgotIdentifier" name="identifier" type="email" autocomplete="username" required />
             </div>
-            <button class="button primary" type="submit">Enviar instrucoes</button>
+            <p style="margin: 0 0 4px; color: var(--muted); font-size: 14px;">Informe seu e-mail para receber as instruções de recuperação.</p>
+            <button class="button primary" type="submit">Enviar instruções</button>
             <button class="auth-link" type="button" data-auth-tab="login">Voltar para login</button>
           </form>
           <div class="auth-message" id="authMessage" aria-live="polite"></div>
@@ -1239,7 +1238,7 @@ export function renderLandingPage() {
         </div>
         <div class="footer-links">
           <a href="https://github.com/ChatYara/ChatYara">GitHub</a>
-          <a href="/api/health">API</a>
+          <a href="/api/health">Status técnico</a>
           <span>Status: Online</span>
           <span>Copyright 2026 YARA AI</span>
         </div>
@@ -1359,13 +1358,13 @@ export function renderLandingPage() {
 
       document.getElementById("forgotForm").addEventListener("submit", async (event) => {
         event.preventDefault();
-        setAuthMessage("Preparando instrucoes...");
+        setAuthMessage("Preparando instruções...");
         const form = new FormData(event.currentTarget);
         try {
           const data = await api("/api/auth/forgot-password", {
             identifier: String(form.get("identifier") || "")
           });
-          setAuthMessage(data.message || "Se os dados estiverem cadastrados, enviaremos instrucoes.");
+          setAuthMessage(data.message || "Se os dados estiverem cadastrados, enviaremos instruções.");
         } catch (error) {
           setAuthMessage(error.message, true);
         }
@@ -1377,4 +1376,21 @@ export function renderLandingPage() {
     </script>
   </body>
 </html>`;
+}
+
+type LandingIconName = "chat" | "brain" | "code" | "folder" | "dashboard" | "spark" | "mobile" | "shield";
+
+function landingIcon(name: LandingIconName) {
+  const icons: Record<LandingIconName, string> = {
+    chat: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 6.5A3.5 3.5 0 0 1 8.5 3h7A3.5 3.5 0 0 1 19 6.5v4A3.5 3.5 0 0 1 15.5 14H11l-4.5 4v-4A3.5 3.5 0 0 1 3 10.5v-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+    brain: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4.5A3 3 0 0 0 6 7.5v.2A3.4 3.4 0 0 0 4 11a3.4 3.4 0 0 0 2 3.1v.4A3 3 0 0 0 9 17.5h1V4.5H9Zm6 0a3 3 0 0 1 3 3v.2A3.4 3.4 0 0 1 20 11a3.4 3.4 0 0 1-2 3.1v.4a3 3 0 0 1-3 3h-1V4.5h1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h2m4 0h2M8 13h2m4 0h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    code: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 8-4 4 4 4m8-8 4 4-4 4m-2.5-10-3 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    folder: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 18 18H6a2.5 2.5 0 0 1-2.5-2.5v-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+    dashboard: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z" stroke="currentColor" stroke-width="1.8"/><path d="M8 16V10m4 6V8m4 8v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    spark: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    mobile: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3.5h8A2.5 2.5 0 0 1 18.5 6v12A2.5 2.5 0 0 1 16 20.5H8A2.5 2.5 0 0 1 5.5 18V6A2.5 2.5 0 0 1 8 3.5Z" stroke="currentColor" stroke-width="1.8"/><path d="M10 17.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    shield: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 19 6v5.2c0 4.2-2.8 7.7-7 9.3-4.2-1.6-7-5.1-7-9.3V6l7-2.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+
+  return icons[name];
 }

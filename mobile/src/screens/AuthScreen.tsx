@@ -70,7 +70,7 @@ export function AuthScreen({
             <Bot color="#7DD3FC" size={42} />
           </View>
           <Text className="text-4xl font-black tracking-normal text-sky-50">YARA AI</Text>
-          <Text className="mt-2 text-center text-slate-400">Assistente neural para criar sistemas e projetos.</Text>
+          <Text className="mt-2 text-center text-slate-400">Sua inteligência. Sem limites.</Text>
           <Text className={`mt-3 text-sm font-semibold ${online ? "text-emerald-300" : "text-rose-300"}`}>
             {online ? "YARA Online" : "YARA Offline"}
           </Text>
@@ -81,12 +81,12 @@ export function AuthScreen({
             {mode === "login" ? "Entrar" : mode === "register" ? "Criar conta" : "Recuperar senha"}
           </Text>
           {mode === "register" ? (
-            <TextField value={name} onChangeText={setName} placeholder="Nome" autoCapitalize="words" />
+            <TextField value={name} onChangeText={setName} placeholder="Como você quer ser chamado?" autoCapitalize="words" />
           ) : null}
           {mode === "login" || mode === "forgot" ? (
             <>
               <View className="h-3" />
-              <TextField value={identifier} onChangeText={setIdentifier} placeholder="Email ou telefone" autoCapitalize="none" />
+              <TextField value={identifier} onChangeText={setIdentifier} placeholder="E-mail" autoCapitalize="none" keyboardType="email-address" />
             </>
           ) : null}
           {mode === "register" ? (
@@ -94,7 +94,7 @@ export function AuthScreen({
               <View className="h-3" />
               <TextField value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" />
               <View className="h-3" />
-              <TextField value={phone} onChangeText={setPhone} placeholder="Telefone" keyboardType="phone-pad" />
+              <TextField value={phone} onChangeText={setPhone} placeholder="Telefone (opcional)" keyboardType="phone-pad" />
             </>
           ) : null}
           {mode !== "forgot" ? (
@@ -114,13 +114,13 @@ export function AuthScreen({
                 >
                   {acceptedTerms ? "OK" : ""}
                 </Text>
-                <Text className="flex-1 text-sm text-slate-300">Aceito usar a YARA AI com comunicacao segura via backend oficial.</Text>
+                <Text className="flex-1 text-sm text-slate-300">Aceito os termos e quero criar minha conta na YARA AI.</Text>
               </View>
             </>
           ) : null}
           <View className="h-5" />
           <NeonButton loading={loading} onPress={submit}>
-            {mode === "login" ? "Acessar YARA" : mode === "register" ? "Cadastrar" : "Enviar instrucoes"}
+            {mode === "login" ? "Acessar YARA" : mode === "register" ? "Cadastrar" : "Enviar instruções"}
           </NeonButton>
           {mode === "login" ? (
             <NeonButton variant="ghost" className="mt-3" onPress={() => setMode("forgot")}>
