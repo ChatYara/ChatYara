@@ -8,11 +8,22 @@ import { chatRoutes } from "./routes/chatRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { workspaceRoutes } from "./routes/workspaceRoutes";
 import { renderLandingPage } from "./views/landingPage";
+import { renderPlatformPage } from "./views/platformPage";
 
 export function createApp() {
   const app = express();
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "script-src": ["'self'", "'unsafe-inline'"],
+          "style-src": ["'self'", "'unsafe-inline'"]
+        }
+      }
+    })
+  );
   app.use(
     cors({
       origin: env.clientOrigin === "*" ? true : env.clientOrigin,
@@ -24,6 +35,10 @@ export function createApp() {
 
   app.get("/", (_req, res) => {
     res.type("html").send(renderLandingPage());
+  });
+
+  app.get("/app", (_req, res) => {
+    res.type("html").send(renderPlatformPage());
   });
 
   app.get("/health", (_req, res) => {

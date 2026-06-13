@@ -15,20 +15,43 @@ export function AuthScreen({
   online: boolean;
   onAuth: (data: { token: string; user: User }) => void;
 }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [name, setName] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function submit() {
     try {
       setLoading(true);
+
+      if (mode === "forgot") {
+        const data = await apiRequest<{ message: string }>("/api/auth/forgot-password", {
+          method: "POST",
+          body: { identifier }
+        });
+        Alert.alert("YARA AI", data.message);
+        setMode("login");
+        return;
+      }
+
+      if (mode === "register" && !acceptedTerms) {
+        Alert.alert("YARA AI", "Aceite os termos para criar sua conta.");
+        return;
+      }
+
       const data = await apiRequest<{ token: string; user: User }>(
         mode === "login" ? "/api/auth/login" : "/api/auth/register",
         {
           method: "POST",
-          body: mode === "login" ? { email, password } : { name, email, password }
+          body:
+            mode === "login"
+              ? { identifier, password }
+              : { name, email, phone, password, confirmPassword }
         }
       );
       onAuth(data);
@@ -54,24 +77,62 @@ export function AuthScreen({
         </View>
 
         <GlassCard>
-          <Text className="mb-4 text-xl font-bold text-sky-50">{mode === "login" ? "Entrar" : "Criar conta"}</Text>
+          <Text className="mb-4 text-xl font-bold text-sky-50">
+            {mode === "login" ? "Entrar" : mode === "register" ? "Criar conta" : "Recuperar senha"}
+          </Text>
           {mode === "register" ? (
             <TextField value={name} onChangeText={setName} placeholder="Nome" autoCapitalize="words" />
           ) : null}
-          <View className="h-3" />
-          <TextField value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" />
-          <View className="h-3" />
-          <TextField value={password} onChangeText={setPassword} placeholder="Senha" secureTextEntry />
+          {mode === "login" || mode === "forgot" ? (
+            <>
+              <View className="h-3" />
+              <TextField value={identifier} onChangeText={setIdentifier} placeholder="Email ou telefone" autoCapitalize="none" />
+            </>
+          ) : null}
+          {mode === "register" ? (
+            <>
+              <View className="h-3" />
+              <TextField value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" />
+              <View className="h-3" />
+              <TextField value={phone} onChangeText={setPhone} placeholder="Telefone" keyboardType="phone-pad" />
+            </>
+          ) : null}
+          {mode !== "forgot" ? (
+            <>
+              <View className="h-3" />
+              <TextField value={password} onChangeText={setPassword} placeholder="Senha" secureTextEntry />
+            </>
+          ) : null}
+          {mode === "register" ? (
+            <>
+              <View className="h-3" />
+              <TextField value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirmar senha" secureTextEntry />
+              <View className="mt-3 flex-row items-start gap-2">
+                <Text
+                  onPress={() => setAcceptedTerms((value) => !value)}
+                  className={`h-5 w-5 rounded border text-center text-xs ${acceptedTerms ? "border-sky-300 bg-sky-400/30 text-sky-50" : "border-slate-600 text-slate-600"}`}
+                >
+                  {acceptedTerms ? "OK" : ""}
+                </Text>
+                <Text className="flex-1 text-sm text-slate-300">Aceito usar a YARA AI com comunicacao segura via backend oficial.</Text>
+              </View>
+            </>
+          ) : null}
           <View className="h-5" />
           <NeonButton loading={loading} onPress={submit}>
-            {mode === "login" ? "Acessar YARA" : "Cadastrar"}
+            {mode === "login" ? "Acessar YARA" : mode === "register" ? "Cadastrar" : "Enviar instrucoes"}
           </NeonButton>
+          {mode === "login" ? (
+            <NeonButton variant="ghost" className="mt-3" onPress={() => setMode("forgot")}>
+              Esqueci minha senha
+            </NeonButton>
+          ) : null}
           <NeonButton
             variant="ghost"
             className="mt-3"
             onPress={() => setMode(mode === "login" ? "register" : "login")}
           >
-            {mode === "login" ? "Criar nova conta" : "Ja tenho conta"}
+            {mode === "login" ? "Criar nova conta" : "Voltar para login"}
           </NeonButton>
         </GlassCard>
       </KeyboardAvoidingView>

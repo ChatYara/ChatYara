@@ -2,6 +2,7 @@ export type User = {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
   role: "admin" | "user";
 };
 
@@ -33,4 +34,3 @@ export type SystemStatus = {
   database: boolean;
   api: boolean;
 };
-

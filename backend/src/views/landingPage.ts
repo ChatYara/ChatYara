@@ -700,6 +700,157 @@ export function renderLandingPage() {
         color: var(--neon-strong);
       }
 
+      .auth-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: none;
+        place-items: center;
+        padding: 20px;
+        background: rgba(2, 6, 23, 0.78);
+        backdrop-filter: blur(18px);
+      }
+
+      .auth-overlay.open {
+        display: grid;
+      }
+
+      .auth-modal {
+        width: min(100%, 980px);
+        max-height: calc(100vh - 40px);
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        overflow: hidden;
+        border: 1px solid rgba(125, 211, 252, 0.28);
+        border-radius: 18px;
+        background: rgba(2, 6, 23, 0.94);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.48), 0 0 46px rgba(56, 189, 248, 0.18);
+      }
+
+      .auth-panel {
+        padding: clamp(24px, 4vw, 42px);
+        background:
+          radial-gradient(circle at 20% 16%, rgba(56, 189, 248, 0.2), transparent 18rem),
+          rgba(15, 23, 42, 0.62);
+      }
+
+      .auth-panel h2 {
+        margin-bottom: 14px;
+      }
+
+      .auth-panel p {
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .auth-card {
+        padding: clamp(22px, 4vw, 36px);
+        overflow-y: auto;
+      }
+
+      .auth-close {
+        float: right;
+        width: 38px;
+        height: 38px;
+        border: 1px solid rgba(125, 211, 252, 0.24);
+        border-radius: 8px;
+        color: #e0f2fe;
+        background: rgba(15, 23, 42, 0.72);
+        cursor: pointer;
+        font-weight: 950;
+      }
+
+      .auth-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 18px 0 22px;
+      }
+
+      .auth-tab {
+        min-height: 42px;
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        border-radius: 8px;
+        color: var(--muted);
+        background: rgba(15, 23, 42, 0.48);
+        cursor: pointer;
+        font-weight: 900;
+      }
+
+      .auth-tab.active {
+        color: #00111f;
+        border-color: rgba(125, 211, 252, 0.8);
+        background: linear-gradient(135deg, #7dd3fc, #38bdf8);
+      }
+
+      .auth-form {
+        display: none;
+        gap: 12px;
+      }
+
+      .auth-form.active {
+        display: grid;
+      }
+
+      .field {
+        display: grid;
+        gap: 7px;
+      }
+
+      .field label,
+      .terms {
+        color: #dbeafe;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .field input {
+        min-height: 48px;
+        width: 100%;
+        border: 1px solid rgba(125, 211, 252, 0.22);
+        border-radius: 8px;
+        padding: 0 14px;
+        color: #f0f9ff;
+        background: rgba(15, 23, 42, 0.7);
+        outline: none;
+      }
+
+      .field input:focus {
+        border-color: rgba(125, 211, 252, 0.72);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+      }
+
+      .terms {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        line-height: 1.5;
+      }
+
+      .terms input {
+        margin-top: 3px;
+      }
+
+      .auth-message {
+        min-height: 24px;
+        color: #bae6fd;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .auth-message.error {
+        color: #fecdd3;
+      }
+
+      .auth-link {
+        border: 0;
+        padding: 0;
+        color: #7dd3fc;
+        background: transparent;
+        cursor: pointer;
+        font-weight: 900;
+      }
+
       @media (max-width: 980px) {
         .nav-links {
           display: none;
@@ -728,6 +879,10 @@ export function renderLandingPage() {
           display: flex;
           flex-wrap: wrap;
           gap: 12px;
+        }
+
+        .auth-modal {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -815,7 +970,7 @@ export function renderLandingPage() {
           <a href="#status">Status</a>
           <a href="#documentacao">Documentacao</a>
         </div>
-        <a class="button primary" href="#cta">Comecar Agora</a>
+        <button class="button primary" type="button" data-open-auth="login">Comecar Agora</button>
       </nav>
     </header>
 
@@ -830,7 +985,7 @@ export function renderLandingPage() {
             organizar projetos e acelerar ideias com seguranca via backend oficial Render.
           </p>
           <div class="hero-actions">
-            <a class="button primary" href="#cta">Comecar Agora</a>
+            <button class="button primary" type="button" data-open-auth="login">Comecar Agora</button>
             <a class="button" href="/api/health">Ver Status da API</a>
           </div>
           <div class="hero-metrics" aria-label="Indicadores da plataforma">
@@ -994,12 +1149,87 @@ export function renderLandingPage() {
             <p>Entre na plataforma oficial e acompanhe a evolucao da YARA AI conectada ao backend Render.</p>
           </div>
           <div class="cta-actions">
-            <a class="button primary" href="#inicio">Abrir plataforma</a>
+            <button class="button primary" type="button" data-open-auth="login">Abrir plataforma</button>
             <a id="documentacao" class="button" href="https://github.com/ChatYara/ChatYara">Ver documentacao</a>
           </div>
         </div>
       </section>
     </main>
+
+    <div class="auth-overlay" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="auth-modal">
+        <section class="auth-panel">
+          <span class="eyebrow">Acesso YARA AI</span>
+          <h2 id="authTitle">Entre na plataforma oficial.</h2>
+          <p>
+            Login, cadastro e recuperacao usam somente o backend Render. Nenhuma chave de IA
+            e exposta no navegador, APK ou GitHub.
+          </p>
+          <div class="status" style="margin-top: 24px;"><span class="dot"></span>YARA Online</div>
+        </section>
+        <section class="auth-card">
+          <button class="auth-close" id="authClose" type="button" aria-label="Fechar">X</button>
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab active" type="button" data-auth-tab="login">Login</button>
+            <button class="auth-tab" type="button" data-auth-tab="register">Cadastro</button>
+            <button class="auth-tab" type="button" data-auth-tab="forgot">Senha</button>
+          </div>
+
+          <form class="auth-form active" id="loginForm">
+            <div class="field">
+              <label for="loginIdentifier">E-mail ou telefone</label>
+              <input id="loginIdentifier" name="identifier" autocomplete="username" required />
+            </div>
+            <div class="field">
+              <label for="loginPassword">Senha</label>
+              <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
+            </div>
+            <button class="button primary" type="submit">Entrar</button>
+            <button class="auth-link" type="button" data-auth-tab="forgot">Esqueci minha senha</button>
+            <button class="auth-link" type="button" data-auth-tab="register">Criar conta</button>
+          </form>
+
+          <form class="auth-form" id="registerForm">
+            <div class="field">
+              <label for="registerName">Nome completo</label>
+              <input id="registerName" name="name" autocomplete="name" required />
+            </div>
+            <div class="field">
+              <label for="registerEmail">E-mail</label>
+              <input id="registerEmail" name="email" type="email" autocomplete="email" required />
+            </div>
+            <div class="field">
+              <label for="registerPhone">Telefone</label>
+              <input id="registerPhone" name="phone" inputmode="tel" autocomplete="tel" required />
+            </div>
+            <div class="field">
+              <label for="registerPassword">Senha</label>
+              <input id="registerPassword" name="password" type="password" autocomplete="new-password" required />
+            </div>
+            <div class="field">
+              <label for="registerConfirmPassword">Confirmar senha</label>
+              <input id="registerConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required />
+            </div>
+            <label class="terms">
+              <input id="registerTerms" type="checkbox" required />
+              Aceito usar a YARA AI com comunicacao segura via backend oficial.
+            </label>
+            <button class="button primary" type="submit">Criar conta</button>
+            <button class="auth-link" type="button" data-auth-tab="login">Ja tenho conta</button>
+          </form>
+
+          <form class="auth-form" id="forgotForm">
+            <div class="field">
+              <label for="forgotIdentifier">E-mail ou telefone</label>
+              <input id="forgotIdentifier" name="identifier" autocomplete="username" required />
+            </div>
+            <button class="button primary" type="submit">Enviar instrucoes</button>
+            <button class="auth-link" type="button" data-auth-tab="login">Voltar para login</button>
+          </form>
+          <div class="auth-message" id="authMessage" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
 
     <footer class="footer">
       <div class="shell footer-content">
@@ -1015,6 +1245,136 @@ export function renderLandingPage() {
         </div>
       </div>
     </footer>
+    <script>
+      const authOverlay = document.getElementById("authOverlay");
+      const authClose = document.getElementById("authClose");
+      const authMessage = document.getElementById("authMessage");
+      const tabs = Array.from(document.querySelectorAll("[data-auth-tab]"));
+      const forms = {
+        login: document.getElementById("loginForm"),
+        register: document.getElementById("registerForm"),
+        forgot: document.getElementById("forgotForm")
+      };
+
+      function setAuthMessage(message, isError = false) {
+        authMessage.textContent = message;
+        authMessage.classList.toggle("error", isError);
+      }
+
+      function showAuthTab(tab) {
+        for (const item of tabs) {
+          item.classList.toggle("active", item.dataset.authTab === tab);
+        }
+        for (const [key, form] of Object.entries(forms)) {
+          form.classList.toggle("active", key === tab);
+        }
+        setAuthMessage("");
+      }
+
+      function openAuth(tab = "login") {
+        authOverlay.classList.add("open");
+        showAuthTab(tab);
+      }
+
+      function closeAuth() {
+        authOverlay.classList.remove("open");
+      }
+
+      async function api(path, body) {
+        const response = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data?.error?.message || "Nao foi possivel concluir a solicitacao.");
+        }
+
+        return data;
+      }
+
+      for (const button of document.querySelectorAll("[data-open-auth]")) {
+        button.addEventListener("click", () => {
+          if (localStorage.getItem("yaraToken")) {
+            window.location.href = "/app";
+            return;
+          }
+          openAuth(button.dataset.openAuth || "login");
+        });
+      }
+
+      for (const tab of tabs) {
+        tab.addEventListener("click", () => showAuthTab(tab.dataset.authTab));
+      }
+
+      authClose.addEventListener("click", closeAuth);
+      authOverlay.addEventListener("click", (event) => {
+        if (event.target === authOverlay) closeAuth();
+      });
+
+      document.getElementById("loginForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setAuthMessage("Entrando...");
+        const form = new FormData(event.currentTarget);
+        try {
+          const data = await api("/api/auth/login", {
+            identifier: String(form.get("identifier") || ""),
+            password: String(form.get("password") || "")
+          });
+          localStorage.setItem("yaraToken", data.token);
+          localStorage.setItem("yaraUser", JSON.stringify(data.user));
+          window.location.href = "/app";
+        } catch (error) {
+          setAuthMessage(error.message, true);
+        }
+      });
+
+      document.getElementById("registerForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const terms = document.getElementById("registerTerms");
+        if (!terms.checked) {
+          setAuthMessage("Aceite os termos para criar sua conta.", true);
+          return;
+        }
+
+        setAuthMessage("Criando conta...");
+        const form = new FormData(event.currentTarget);
+        try {
+          const data = await api("/api/auth/register", {
+            name: String(form.get("name") || ""),
+            email: String(form.get("email") || ""),
+            phone: String(form.get("phone") || ""),
+            password: String(form.get("password") || ""),
+            confirmPassword: String(form.get("confirmPassword") || "")
+          });
+          localStorage.setItem("yaraToken", data.token);
+          localStorage.setItem("yaraUser", JSON.stringify(data.user));
+          window.location.href = "/app";
+        } catch (error) {
+          setAuthMessage(error.message, true);
+        }
+      });
+
+      document.getElementById("forgotForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setAuthMessage("Preparando instrucoes...");
+        const form = new FormData(event.currentTarget);
+        try {
+          const data = await api("/api/auth/forgot-password", {
+            identifier: String(form.get("identifier") || "")
+          });
+          setAuthMessage(data.message || "Se os dados estiverem cadastrados, enviaremos instrucoes.");
+        } catch (error) {
+          setAuthMessage(error.message, true);
+        }
+      });
+
+      if (new URLSearchParams(window.location.search).get("auth")) {
+        openAuth("login");
+      }
+    </script>
   </body>
 </html>`;
 }

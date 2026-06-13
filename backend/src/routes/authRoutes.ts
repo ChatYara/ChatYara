@@ -1,20 +1,34 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
-import { getUserById, loginUser, registerUser } from "../services/authService";
+import {
+  getUserById,
+  loginUser,
+  registerUser,
+  requestPasswordReset,
+  resetPassword
+} from "../services/authService";
 import { sendError } from "../utils/http";
 
 export const authRoutes = Router();
 
 const authSchema = z.object({
-  email: z.string().email(),
+  identifier: z.string().min(3),
   password: z.string().min(6)
 });
 
 authRoutes.post("/register", async (req, res) => {
-  const parsed = authSchema
-    .extend({
-      name: z.string().min(2)
+  const parsed = z
+    .object({
+      name: z.string().min(2),
+      email: z.string().email(),
+      phone: z.string().min(8),
+      password: z.string().min(6),
+      confirmPassword: z.string().min(6)
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "As senhas nao conferem.",
+      path: ["confirmPassword"]
     })
     .safeParse(req.body);
 
@@ -23,7 +37,14 @@ authRoutes.post("/register", async (req, res) => {
   }
 
   try {
-    return res.status(201).json(await registerUser(parsed.data));
+    return res.status(201).json(
+      await registerUser({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        phone: parsed.data.phone,
+        password: parsed.data.password
+      })
+    );
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Erro ao cadastrar.");
   }
@@ -33,7 +54,7 @@ authRoutes.post("/login", async (req, res) => {
   const parsed = authSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    return sendError(res, 400, "Email e senha sao obrigatorios.");
+    return sendError(res, 400, "Email/telefone e senha sao obrigatorios.");
   }
 
   try {
@@ -48,3 +69,43 @@ authRoutes.get("/me", authRequired, (req, res) => {
   return user ? res.json({ user }) : sendError(res, 404, "Usuario nao encontrado.");
 });
 
+authRoutes.post("/forgot-password", async (req, res) => {
+  const parsed = z.object({ identifier: z.string().min(3) }).safeParse(req.body);
+
+  if (!parsed.success) {
+    return sendError(res, 400, "Informe email ou telefone para recuperar a senha.");
+  }
+
+  return res.json(await requestPasswordReset(parsed.data));
+});
+
+authRoutes.post("/reset-password", async (req, res) => {
+  const parsed = z
+    .object({
+      identifier: z.string().min(3),
+      token: z.string().min(8),
+      password: z.string().min(6),
+      confirmPassword: z.string().min(6)
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "As senhas nao conferem.",
+      path: ["confirmPassword"]
+    })
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    return sendError(res, 400, "Dados invalidos para redefinir senha.");
+  }
+
+  try {
+    return res.json(
+      await resetPassword({
+        identifier: parsed.data.identifier,
+        token: parsed.data.token,
+        password: parsed.data.password
+      })
+    );
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Erro ao redefinir senha.");
+  }
+});

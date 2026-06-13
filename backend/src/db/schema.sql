@@ -2,10 +2,18 @@ create table if not exists users (
   id text primary key,
   name text not null,
   email text not null unique,
+  phone text,
   password_hash text not null,
   role text not null default 'user',
-  created_at text not null default current_timestamp
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  reset_password_token_hash text,
+  reset_password_expires_at text
 );
+
+create unique index if not exists users_phone_unique
+  on users(phone)
+  where phone is not null and phone <> '';
 
 create table if not exists conversations (
   id text primary key,
@@ -55,4 +63,3 @@ create table if not exists projects (
   created_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
-
