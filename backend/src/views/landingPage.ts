@@ -4,58 +4,176 @@ export function renderLandingPage() {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>YARA AI</title>
+    <meta
+      name="description"
+      content="YARA AI e a plataforma oficial de inteligencia artificial para conversar, gerar sistemas, organizar projetos e acelerar ideias."
+    />
+    <title>YARA AI | Plataforma oficial</title>
     <style>
       :root {
         color-scheme: dark;
         --bg: #020617;
-        --panel: rgba(15, 23, 42, 0.76);
-        --line: rgba(56, 189, 248, 0.34);
-        --text: #e0f2fe;
-        --muted: #94a3b8;
+        --bg-soft: #07182f;
+        --panel: rgba(15, 23, 42, 0.72);
+        --panel-strong: rgba(2, 6, 23, 0.84);
+        --line: rgba(125, 211, 252, 0.26);
+        --line-strong: rgba(56, 189, 248, 0.54);
+        --text: #f0f9ff;
+        --muted: #9fb2c8;
+        --soft: #dbeafe;
         --neon: #38bdf8;
+        --neon-strong: #7dd3fc;
         --ok: #34d399;
+        --warning: #a5f3fc;
+        --shadow: rgba(56, 189, 248, 0.24);
+        --radius: 8px;
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
         margin: 0;
         min-height: 100vh;
-        display: grid;
-        place-items: center;
         background:
-          radial-gradient(circle at 22% 18%, rgba(14, 165, 233, 0.22), transparent 32rem),
-          radial-gradient(circle at 82% 80%, rgba(37, 99, 235, 0.16), transparent 28rem),
-          linear-gradient(135deg, #020617 0%, #061b33 48%, #020617 100%);
+          radial-gradient(circle at 18% 8%, rgba(14, 165, 233, 0.24), transparent 30rem),
+          radial-gradient(circle at 86% 18%, rgba(37, 99, 235, 0.18), transparent 32rem),
+          radial-gradient(circle at 48% 92%, rgba(8, 145, 178, 0.14), transparent 34rem),
+          linear-gradient(140deg, #020617 0%, #06162b 46%, #020617 100%);
         color: var(--text);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        overflow-x: hidden;
       }
 
-      main {
-        width: min(92vw, 760px);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: clamp(28px, 6vw, 56px);
-        background: var(--panel);
-        box-shadow: 0 0 48px rgba(56, 189, 248, 0.2);
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(125, 211, 252, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(125, 211, 252, 0.045) 1px, transparent 1px);
+        background-size: 54px 54px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 78%);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+      }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid rgba(125, 211, 252, 0.12);
+        background: rgba(2, 6, 23, 0.78);
         backdrop-filter: blur(18px);
       }
 
-      .status {
+      .nav {
+        min-height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .brand,
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        color: #e0f2fe;
+        background: linear-gradient(145deg, rgba(56, 189, 248, 0.28), rgba(15, 23, 42, 0.88));
+        box-shadow: 0 0 24px var(--shadow), inset 0 0 18px rgba(125, 211, 252, 0.12);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .nav-links a:hover {
+        color: var(--neon-strong);
+      }
+
+      .button {
+        min-height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border: 1px solid rgba(125, 211, 252, 0.42);
+        border-radius: var(--radius);
+        padding: 12px 18px;
+        color: #e0f2fe;
+        font-size: 14px;
+        font-weight: 900;
+        background: rgba(14, 165, 233, 0.14);
+        box-shadow: 0 0 28px rgba(56, 189, 248, 0.18);
+        transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(125, 211, 252, 0.82);
+        background: rgba(14, 165, 233, 0.22);
+      }
+
+      .button.primary {
+        color: #00111f;
+        border-color: rgba(125, 211, 252, 0.9);
+        background: linear-gradient(135deg, #7dd3fc, #38bdf8);
+        box-shadow: 0 0 34px rgba(56, 189, 248, 0.34);
+      }
+
+      .hero {
+        min-height: calc(100vh - 76px);
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+        align-items: center;
+        gap: clamp(28px, 5vw, 68px);
+        padding: clamp(42px, 7vw, 84px) 0 62px;
+      }
+
+      .badge {
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 24px;
+        margin-bottom: 22px;
         padding: 8px 12px;
         border: 1px solid rgba(52, 211, 153, 0.34);
         border-radius: 999px;
         color: #bbf7d0;
-        background: rgba(6, 78, 59, 0.3);
-        font-size: 14px;
-        font-weight: 700;
+        background: rgba(6, 78, 59, 0.28);
+        font-size: 13px;
+        font-weight: 900;
       }
 
       .dot {
@@ -63,69 +181,840 @@ export function renderLandingPage() {
         height: 9px;
         border-radius: 999px;
         background: var(--ok);
-        box-shadow: 0 0 16px var(--ok);
+        box-shadow: 0 0 18px var(--ok);
+        animation: pulse 1.9s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.35);
+          opacity: 0.72;
+        }
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
       }
 
       h1 {
-        margin: 0;
-        font-size: clamp(46px, 12vw, 96px);
-        line-height: 0.9;
+        margin-bottom: 18px;
+        font-size: clamp(64px, 11vw, 132px);
+        line-height: 0.86;
         letter-spacing: 0;
-        color: #f0f9ff;
-        text-shadow: 0 0 28px rgba(56, 189, 248, 0.4);
+        color: #f8fbff;
+        text-shadow: 0 0 36px rgba(56, 189, 248, 0.38);
       }
 
-      p {
-        margin: 20px 0 0;
-        max-width: 54ch;
+      .hero-kicker {
+        margin-bottom: 18px;
+        color: #bae6fd;
+        font-size: clamp(26px, 4vw, 48px);
+        line-height: 1.02;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+
+      .hero-copy {
+        max-width: 660px;
         color: var(--muted);
-        font-size: clamp(16px, 2.4vw, 19px);
-        line-height: 1.7;
+        font-size: clamp(17px, 2vw, 20px);
+        line-height: 1.72;
       }
 
-      .actions {
+      .hero-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 14px;
         margin-top: 34px;
       }
 
-      a,
-      .badge {
-        min-height: 48px;
+      .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 34px;
+      }
+
+      .metric {
+        min-height: 88px;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        border-radius: var(--radius);
+        padding: 14px;
+        background: rgba(15, 23, 42, 0.5);
+      }
+
+      .metric strong {
+        display: block;
+        color: #e0f2fe;
+        font-size: 22px;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .chat-stage {
+        position: relative;
+      }
+
+      .glow-frame {
+        position: absolute;
+        inset: -18px;
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 30% 16%, rgba(125, 211, 252, 0.2), transparent 22rem),
+          linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(37, 99, 235, 0.04));
+        filter: blur(2px);
+        opacity: 0.9;
+      }
+
+      .chat-mockup {
+        position: relative;
+        min-height: 560px;
+        display: grid;
+        grid-template-columns: 178px minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(2, 6, 23, 0.76);
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.36), 0 0 42px rgba(56, 189, 248, 0.18);
+        backdrop-filter: blur(20px);
+        animation: floatCard 6s ease-in-out infinite;
+      }
+
+      @keyframes floatCard {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      .mock-sidebar {
+        border-right: 1px solid rgba(125, 211, 252, 0.16);
+        padding: 18px;
+        background: rgba(15, 23, 42, 0.58);
+      }
+
+      .mock-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
+        color: #e0f2fe;
+        font-weight: 900;
+      }
+
+      .mock-dot {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        color: #03111f;
+        background: #7dd3fc;
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .side-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 42px;
+        margin-bottom: 8px;
+        border: 1px solid rgba(125, 211, 252, 0.1);
+        border-radius: var(--radius);
+        padding: 10px;
+        color: var(--muted);
+        background: rgba(2, 6, 23, 0.28);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .side-item.active {
+        color: #e0f2fe;
+        border-color: rgba(125, 211, 252, 0.34);
+        background: rgba(14, 165, 233, 0.16);
+      }
+
+      .side-icon,
+      .feature-icon {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 8px;
+        border: 1px solid rgba(125, 211, 252, 0.22);
+        color: #bae6fd;
+        background: rgba(14, 165, 233, 0.12);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .mock-chat {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+      }
+
+      .mock-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .mock-title {
+        min-width: 0;
+      }
+
+      .mock-title strong {
+        display: block;
+        color: #f0f9ff;
+      }
+
+      .mock-title span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .mini-status {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        border: 1px solid rgba(125, 211, 252, 0.38);
-        padding: 12px 18px;
+        gap: 8px;
+        white-space: nowrap;
+        border: 1px solid rgba(52, 211, 153, 0.28);
+        border-radius: 999px;
+        padding: 7px 10px;
+        color: #bbf7d0;
+        background: rgba(6, 78, 59, 0.24);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .message {
+        max-width: 84%;
+        margin-bottom: 14px;
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        border-radius: 14px;
+        padding: 14px;
+        color: #dbeafe;
+        line-height: 1.55;
+        background: rgba(15, 23, 42, 0.58);
+      }
+
+      .message.user {
+        align-self: flex-end;
+        border-color: rgba(125, 211, 252, 0.3);
+        background: rgba(14, 165, 233, 0.16);
+      }
+
+      .message small {
+        display: block;
+        margin-bottom: 7px;
+        color: #7dd3fc;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .fake-input {
+        min-height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-top: auto;
+        border: 1px solid rgba(125, 211, 252, 0.22);
+        border-radius: 14px;
+        padding: 10px 10px 10px 16px;
+        color: #64748b;
+        background: rgba(2, 6, 23, 0.72);
+      }
+
+      .send-button {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 10px;
+        color: #00111f;
+        background: linear-gradient(135deg, #7dd3fc, #38bdf8);
+        font-weight: 950;
+      }
+
+      section {
+        padding: clamp(54px, 8vw, 96px) 0;
+      }
+
+      .section-heading {
+        max-width: 780px;
+        margin-bottom: 34px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        color: #7dd3fc;
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin-bottom: 16px;
+        color: #f8fbff;
+        font-size: clamp(34px, 5vw, 58px);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .section-heading p,
+      .security-copy p,
+      .cta p {
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.72;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        min-height: 194px;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        border-radius: var(--radius);
+        padding: 20px;
+        background: rgba(15, 23, 42, 0.56);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.22);
+        transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+      }
+
+      .card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(125, 211, 252, 0.62);
+        background: rgba(15, 23, 42, 0.76);
+      }
+
+      .card h3 {
+        margin: 16px 0 8px;
         color: #e0f2fe;
-        text-decoration: none;
+        font-size: 18px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .generator-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .generator-card {
+        min-height: 132px;
+        border: 1px solid rgba(125, 211, 252, 0.18);
+        border-radius: var(--radius);
+        padding: 16px;
+        background:
+          linear-gradient(145deg, rgba(14, 165, 233, 0.12), rgba(15, 23, 42, 0.68)),
+          rgba(2, 6, 23, 0.52);
+      }
+
+      .generator-card strong {
+        display: block;
+        margin-bottom: 10px;
+        color: #e0f2fe;
+      }
+
+      .generator-card span {
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 14px;
+      }
+
+      .status-panel,
+      .security-panel,
+      .cta {
+        border: 1px solid rgba(125, 211, 252, 0.22);
+        border-radius: 18px;
+        background: rgba(2, 6, 23, 0.72);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(18px);
+      }
+
+      .status-panel {
+        display: grid;
+        grid-template-columns: 0.88fr 1.12fr;
+        gap: 26px;
+        padding: clamp(24px, 4vw, 38px);
+      }
+
+      .status-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .status-item {
+        min-height: 98px;
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        border-radius: var(--radius);
+        padding: 16px;
+        background: rgba(15, 23, 42, 0.58);
+      }
+
+      .status-item span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
         font-weight: 800;
-        background: rgba(14, 165, 233, 0.14);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
       }
 
-      a {
-        box-shadow: 0 0 24px rgba(56, 189, 248, 0.22);
+      .status-item strong {
+        display: block;
+        margin-top: 10px;
+        color: #e0f2fe;
+        font-size: 18px;
       }
 
-      .badge {
-        color: #bae6fd;
-        background: rgba(15, 23, 42, 0.78);
+      .security-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 28px;
+        padding: clamp(24px, 4vw, 40px);
+      }
+
+      .secure-list,
+      .roadmap-list {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .secure-list li,
+      .roadmap-list li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 48px;
+        border: 1px solid rgba(125, 211, 252, 0.14);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        color: #dbeafe;
+        background: rgba(15, 23, 42, 0.48);
+      }
+
+      .check {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        color: #022c22;
+        background: #6ee7b7;
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .roadmap-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .roadmap-list li {
+        min-height: 58px;
+      }
+
+      .cta {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 24px;
+        padding: clamp(26px, 5vw, 46px);
+      }
+
+      .cta h2 {
+        margin-bottom: 10px;
+      }
+
+      .footer {
+        border-top: 1px solid rgba(125, 211, 252, 0.12);
+        padding: 34px 0;
+        color: var(--muted);
+        background: rgba(2, 6, 23, 0.64);
+      }
+
+      .footer-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .footer-links a:hover {
+        color: var(--neon-strong);
+      }
+
+      @media (max-width: 980px) {
+        .nav-links {
+          display: none;
+        }
+
+        .hero,
+        .status-panel,
+        .security-panel,
+        .cta {
+          grid-template-columns: 1fr;
+        }
+
+        .chat-mockup {
+          min-height: 520px;
+        }
+
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .generator-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .cta-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .shell {
+          width: min(100% - 24px, 1180px);
+        }
+
+        .nav {
+          min-height: 66px;
+        }
+
+        .button {
+          width: 100%;
+        }
+
+        .hero {
+          min-height: auto;
+          padding-top: 38px;
+        }
+
+        .hero-actions,
+        .hero-metrics,
+        .status-list,
+        .grid,
+        .generator-grid,
+        .roadmap-grid,
+        .footer-content {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-actions,
+        .footer-content {
+          display: grid;
+        }
+
+        .chat-mockup {
+          grid-template-columns: 1fr;
+          min-height: auto;
+        }
+
+        .mock-sidebar {
+          border-right: 0;
+          border-bottom: 1px solid rgba(125, 211, 252, 0.16);
+        }
+
+        .mock-chat {
+          min-height: 420px;
+        }
+
+        .message {
+          max-width: 100%;
+        }
+
+        .section-heading p,
+        .security-copy p,
+        .cta p {
+          font-size: 16px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <div class="status"><span class="dot"></span>Status: Online</div>
-      <h1>YARA AI</h1>
-      <p>Backend oficial da YARA AI. A API esta funcionando e pronta para atender o aplicativo Android com comunicacao segura via Render.</p>
-      <div class="actions">
-        <span class="badge">API funcionando</span>
-        <a href="/api/health">Ver /api/health</a>
-      </div>
+    <header class="site-header">
+      <nav class="shell nav" aria-label="Navegacao principal">
+        <a class="brand" href="#inicio" aria-label="YARA AI inicio">
+          <span class="brand-mark">YA</span>
+          <span>YARA AI</span>
+        </a>
+        <div class="nav-links" aria-label="Secoes">
+          <a href="#inicio">Inicio</a>
+          <a href="#recursos">Recursos</a>
+          <a href="#gerador">Gerador</a>
+          <a href="#status">Status</a>
+          <a href="#documentacao">Documentacao</a>
+        </div>
+        <a class="button primary" href="#cta">Comecar Agora</a>
+      </nav>
+    </header>
+
+    <main id="inicio">
+      <section class="shell hero" aria-labelledby="hero-title">
+        <div>
+          <div class="badge"><span class="dot"></span>YARA Online</div>
+          <h1 id="hero-title">YARA AI</h1>
+          <div class="hero-kicker">Sua Inteligencia. Sem Limites.</div>
+          <p class="hero-copy">
+            Uma plataforma de inteligencia artificial criada para conversar, gerar sistemas,
+            organizar projetos e acelerar ideias com seguranca via backend oficial Render.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#cta">Comecar Agora</a>
+            <a class="button" href="/api/health">Ver Status da API</a>
+          </div>
+          <div class="hero-metrics" aria-label="Indicadores da plataforma">
+            <div class="metric"><strong>24/7</strong><span>Backend oficial online</span></div>
+            <div class="metric"><strong>IA</strong><span>Gemini via servidor</span></div>
+            <div class="metric"><strong>API</strong><span>Health check publico</span></div>
+          </div>
+        </div>
+
+        <div class="chat-stage" aria-label="Mockup da interface YARA AI">
+          <div class="glow-frame"></div>
+          <article class="chat-mockup">
+            <aside class="mock-sidebar" aria-label="Menu do app YARA AI">
+              <div class="mock-logo"><span class="mock-dot">AI</span><span>Console YARA</span></div>
+              <div class="side-item active"><span class="side-icon">+</span>Nova Conversa</div>
+              <div class="side-item"><span class="side-icon">M</span>Memoria</div>
+              <div class="side-item"><span class="side-icon">G</span>Gerador de Sistemas</div>
+              <div class="side-item"><span class="side-icon">P</span>Projetos</div>
+            </aside>
+            <div class="mock-chat">
+              <div class="mock-topbar">
+                <div class="mock-title">
+                  <strong>Chat YARA AI</strong>
+                  <span>Conversa segura roteada pelo backend Render</span>
+                </div>
+                <div class="mini-status"><span class="dot"></span>Online</div>
+              </div>
+              <div class="message user">
+                <small>Usuario</small>
+                Crie um sistema de estoque para minha empresa.
+              </div>
+              <div class="message">
+                <small>YARA</small>
+                Claro. Vou gerar a estrutura completa com frontend, backend, banco de dados e painel administrativo.
+              </div>
+              <div class="message">
+                <small>YARA</small>
+                Tambem posso organizar os modulos, regras de acesso, endpoints REST e roteiro de deploy.
+              </div>
+              <div class="fake-input">
+                <span>Digite sua mensagem...</span>
+                <span class="send-button" aria-hidden="true">></span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="recursos" class="shell" aria-labelledby="resources-title">
+        <div class="section-heading">
+          <span class="eyebrow">Recursos</span>
+          <h2 id="resources-title">Tudo para transformar ideias em sistemas.</h2>
+          <p>
+            A YARA AI combina chat, memoria, geracao de sistemas e organizacao de projetos
+            em uma experiencia pensada para produtividade real.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="card"><span class="feature-icon">C</span><h3>Chat IA</h3><p>Converse com a YARA para planejar, criar e evoluir produtos digitais.</p></article>
+          <article class="card"><span class="feature-icon">M</span><h3>Memoria inteligente</h3><p>Contexto persistente para respostas mais alinhadas ao seu projeto.</p></article>
+          <article class="card"><span class="feature-icon">G</span><h3>Gerador de Sistemas</h3><p>Crie arquiteturas, modulos, bancos e APIs a partir de um briefing.</p></article>
+          <article class="card"><span class="feature-icon">P</span><h3>Meus Projetos</h3><p>Centralize ideias, escopos, geracoes e historico de evolucao.</p></article>
+          <article class="card"><span class="feature-icon">D</span><h3>Dashboard</h3><p>Base visual para acompanhar status, operacao e proximas entregas.</p></article>
+          <article class="card"><span class="feature-icon">R</span><h3>API REST</h3><p>Backend estruturado para autenticar, conversar e integrar recursos.</p></article>
+          <article class="card"><span class="feature-icon">A</span><h3>Mobile App</h3><p>Experiencia Android conectada ao backend oficial da plataforma.</p></article>
+          <article class="card"><span class="feature-icon">S</span><h3>Seguranca</h3><p>Chaves protegidas no servidor, sem segredos no APK ou no GitHub.</p></article>
+        </div>
+      </section>
+
+      <section id="gerador" class="shell" aria-labelledby="generator-title">
+        <div class="section-heading">
+          <span class="eyebrow">Gerador de Sistemas</span>
+          <h2 id="generator-title">A YARA cria sistemas completos com IA.</h2>
+          <p>
+            Descreva o objetivo, publico e regras. A plataforma ajuda a estruturar entregas
+            profissionais de ponta a ponta.
+          </p>
+        </div>
+        <div class="generator-grid">
+          <div class="generator-card"><strong>Web App</strong><span>Interfaces modernas, fluxos de usuario e telas responsivas.</span></div>
+          <div class="generator-card"><strong>API REST</strong><span>Endpoints, autenticacao, contratos e regras de negocio.</span></div>
+          <div class="generator-card"><strong>Dashboard</strong><span>Paineis operacionais para leitura, decisao e acompanhamento.</span></div>
+          <div class="generator-card"><strong>Banco de Dados</strong><span>Modelagem, tabelas, relacoes e persistencia segura.</span></div>
+          <div class="generator-card"><strong>Mobile App</strong><span>Aplicativos conectados ao backend oficial da YARA AI.</span></div>
+          <div class="generator-card"><strong>Automacao</strong><span>Rotinas, processos e integracoes para acelerar operacoes.</span></div>
+        </div>
+      </section>
+
+      <section id="status" class="shell" aria-labelledby="status-title">
+        <div class="status-panel">
+          <div class="section-heading">
+            <span class="eyebrow">Status da plataforma</span>
+            <h2 id="status-title">Online em producao.</h2>
+            <p>
+              O backend oficial esta ativo no Render e fornece o ponto unico de comunicacao
+              para o app YARA AI.
+            </p>
+            <a class="button primary" href="/api/health">Verificar API</a>
+          </div>
+          <div class="status-list">
+            <div class="status-item"><span>API</span><strong>Online</strong></div>
+            <div class="status-item"><span>Backend</span><strong>Render</strong></div>
+            <div class="status-item"><span>Provedor IA</span><strong>Gemini</strong></div>
+            <div class="status-item"><span>Ambiente</span><strong>Producao</strong></div>
+            <div class="status-item"><span>Health Check</span><strong>/api/health</strong></div>
+            <div class="status-item"><span>Status</span><strong>YARA Online</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="shell" aria-labelledby="security-title">
+        <div class="security-panel">
+          <div class="security-copy">
+            <span class="eyebrow">Seguranca</span>
+            <h2 id="security-title">Arquitetura protegida por design.</h2>
+            <p>
+              A landing page e apenas visual e institucional. O app e o site nao chamam Gemini
+              diretamente; tudo passa pelo backend oficial.
+            </p>
+          </div>
+          <ul class="secure-list">
+            <li><span class="check">OK</span>Chaves de IA ficam apenas no servidor.</li>
+            <li><span class="check">OK</span>O APK nunca acessa Gemini diretamente.</li>
+            <li><span class="check">OK</span>Comunicacao via backend Render.</li>
+            <li><span class="check">OK</span>Variaveis de ambiente protegidas.</li>
+            <li><span class="check">OK</span>Nenhum segredo exposto no GitHub.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="shell" aria-labelledby="roadmap-title">
+        <div class="section-heading">
+          <span class="eyebrow">Roadmap</span>
+          <h2 id="roadmap-title">Proximos recursos da plataforma.</h2>
+          <p>
+            A YARA AI esta evoluindo para uma experiencia completa de criacao, memoria e
+            entrega de sistemas com IA.
+          </p>
+        </div>
+        <div class="roadmap-grid">
+          <ul class="roadmap-list">
+            <li><span class="check">1</span>Chat real com Gemini</li>
+            <li><span class="check">2</span>Login e cadastro</li>
+            <li><span class="check">3</span>Historico de conversas</li>
+            <li><span class="check">4</span>Favoritos</li>
+          </ul>
+          <ul class="roadmap-list">
+            <li><span class="check">5</span>Memoria personalizada</li>
+            <li><span class="check">6</span>Geracao de APK</li>
+            <li><span class="check">7</span>Painel administrativo</li>
+            <li><span class="check">8</span>Deploys e automacoes</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="cta" class="shell" aria-labelledby="cta-title">
+        <div class="cta">
+          <div>
+            <span class="eyebrow">Comece agora</span>
+            <h2 id="cta-title">Comece agora com a YARA AI</h2>
+            <p>Entre na plataforma oficial e acompanhe a evolucao da YARA AI conectada ao backend Render.</p>
+          </div>
+          <div class="cta-actions">
+            <a class="button primary" href="#inicio">Abrir plataforma</a>
+            <a id="documentacao" class="button" href="https://github.com/ChatYara/ChatYara">Ver documentacao</a>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <footer class="footer">
+      <div class="shell footer-content">
+        <div class="footer-brand">
+          <span class="brand-mark">YA</span>
+          <span>YARA AI</span>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/ChatYara/ChatYara">GitHub</a>
+          <a href="/api/health">API</a>
+          <span>Status: Online</span>
+          <span>Copyright 2026 YARA AI</span>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>`;
 }
-
