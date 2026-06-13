@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.expo/
+.eas/
+coverage/
+backend/data/
+data/
+mobile/.expo/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

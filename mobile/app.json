@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "YARA AI",
+    "slug": "yara-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#020617"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.yaraai.app"
+    },
+    "extra": {
+      "apiUrl": "http://10.0.2.2:3333"
+    }
+  }
+}

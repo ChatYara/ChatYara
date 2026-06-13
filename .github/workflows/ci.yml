@@ -1,0 +1,41 @@
+name: YARA AI CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate project
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate code
+        run: npm run check
+
+      - name: Execute tests
+        run: npm test
+
+      - name: Validate environment template
+        run: npm run validate:env
+
+      - name: Scan for committed secrets
+        run: npm run security:secrets
+
+      - name: Audit dependencies
+        run: npm run security:audit
+

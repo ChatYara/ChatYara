@@ -1,0 +1,25 @@
+{
+  "name": "yara-ai",
+  "private": true,
+  "version": "1.0.0",
+  "description": "YARA AI Android app with Expo React Native and a secure Express backend.",
+  "scripts": {
+    "install:all": "npm install --workspaces",
+    "dev:backend": "npm run dev -w backend",
+    "dev:mobile": "npm run start -w mobile",
+    "build:backend": "npm run build -w backend",
+    "check": "npm run check -w backend && npm run check -w mobile",
+    "test": "node --test tests/*.test.mjs",
+    "security:audit": "npm audit --audit-level=high",
+    "security:secrets": "node scripts/scan-secrets.mjs",
+    "validate:env": "node scripts/validate-env-example.mjs",
+    "ci": "npm run check && npm test && npm run validate:env && npm run security:secrets && npm run security:audit"
+  },
+  "workspaces": [
+    "backend",
+    "mobile"
+  ],
+  "engines": {
+    "node": ">=24"
+  }
+}
