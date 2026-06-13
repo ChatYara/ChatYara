@@ -5,12 +5,30 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 
 const missing = (name: string) => !process.env[name] || process.env[name]?.trim() === "";
+const allowedProviders = ["gemini", "openai"] as const;
+export type AIProviderName = (typeof allowedProviders)[number];
+
+function readAIProvider(): AIProviderName {
+  const provider = process.env.AI_PROVIDER?.trim().toLowerCase() || "gemini";
+
+  if (!allowedProviders.includes(provider as AIProviderName)) {
+    return "gemini";
+  }
+
+  return provider as AIProviderName;
+}
+
+const aiProvider = readAIProvider();
 
 export function validateEnvironment() {
   const errors: string[] = [];
 
-  if (missing("OPENAI_API_KEY")) {
-    errors.push("OPENAI_API_KEY nao foi configurada.");
+  if (aiProvider === "gemini" && missing("GEMINI_API_KEY")) {
+    errors.push("GEMINI_API_KEY nao foi configurada para AI_PROVIDER=gemini.");
+  }
+
+  if (aiProvider === "openai" && missing("OPENAI_API_KEY")) {
+    errors.push("OPENAI_API_KEY nao foi configurada para AI_PROVIDER=openai.");
   }
 
   if (missing("JWT_SECRET")) {
@@ -21,8 +39,8 @@ export function validateEnvironment() {
     const message = [
       "YARA AI backend nao iniciou por falta de configuracao segura.",
       ...errors,
-      "Crie uma chave no OpenAI Platform e adicione as variaveis no arquivo .env do servidor.",
-      "Nunca coloque a chave no app mobile, no APK ou em arquivos versionados pelo Git."
+      "Configure a chave do provedor de IA escolhido no .env do servidor.",
+      "Nunca coloque chaves de IA no app mobile, no APK ou em arquivos versionados pelo Git."
     ].join("\n");
 
     throw new Error(message);
@@ -31,8 +49,11 @@ export function validateEnvironment() {
 
 export const env = {
   apiPort: Number(process.env.PORT ?? 3333),
+  aiProvider,
   databaseUrl: process.env.DATABASE_URL?.trim() || "sqlite:./data/yara.sqlite",
   jwtSecret: process.env.JWT_SECRET ?? "",
+  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+  geminiModel: process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL?.trim() || "gpt-5.5",
   clientOrigin: process.env.CLIENT_ORIGIN?.trim() || "*"

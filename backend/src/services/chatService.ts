@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
-import { askYara } from "./openaiService";
+import { askYara } from "./ai/aiService";
 
 type ConversationRow = {
   id: string;
@@ -116,6 +116,7 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
 
   return {
     conversationId,
+    provider: ai.provider,
     model: ai.model,
     messages: [
       {
@@ -131,4 +132,3 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
     ]
   };
 }
-

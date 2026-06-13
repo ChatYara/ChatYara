@@ -5,7 +5,9 @@ import test from "node:test";
 test(".env.example contem somente chaves vazias obrigatorias", () => {
   const content = fs.readFileSync(new URL("../.env.example", import.meta.url), "utf8");
 
-  for (const key of ["OPENAI" + "_API_KEY", "DATABASE" + "_URL", "JWT" + "_SECRET"]) {
+  assert.match(content, /^AI_PROVIDER=gemini$/m);
+
+  for (const key of ["GEMINI" + "_API_KEY", "OPENAI" + "_API_KEY", "DATABASE" + "_URL", "JWT" + "_SECRET"]) {
     assert.match(content, new RegExp(`^${key}=$`, "m"));
   }
 

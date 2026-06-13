@@ -9,6 +9,7 @@ const secretPatterns = [
   /sk-proj-[A-Za-z0-9_-]{20,}/,
   /ghp_[A-Za-z0-9_]{20,}/,
   /github_pat_[A-Za-z0-9_]{20,}/,
+  /GEMINI_API_KEY[^\S\r\n]*=[^\S\r\n]*[^\s#]+/,
   /OPENAI_API_KEY[^\S\r\n]*=[^\S\r\n]*[^\s#]+/,
   /JWT_SECRET[^\S\r\n]*=[^\S\r\n]*[^\s#]+/
 ];

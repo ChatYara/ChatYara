@@ -1,6 +1,6 @@
 # YARA AI
 
-Aplicativo Android com Expo React Native, backend Node.js + Express, SQLite, JWT e integracao segura com OpenAI.
+Aplicativo Android com Expo React Native, backend Node.js + Express, SQLite, JWT e integracao segura com provedores de IA.
 
 ## Estrutura
 
@@ -31,18 +31,28 @@ yara-ai/
     tailwind.config.js
 ```
 
-## Seguranca da OpenAI
+## Provedores de IA
 
-- A chave nunca e solicitada dentro do aplicativo.
-- A chave nunca entra no APK.
-- A chave nunca e retornada para o frontend.
-- O backend le `OPENAI_API_KEY` exclusivamente por variavel de ambiente.
-- O backend nao inicia se `OPENAI_API_KEY` ou `JWT_SECRET` estiverem ausentes.
+- O backend seleciona o provedor por `AI_PROVIDER`.
+- `AI_PROVIDER=gemini` usa `GEMINI_API_KEY`.
+- `AI_PROVIDER=openai` usa `OPENAI_API_KEY`.
+- Gemini e o provedor padrao.
+- O app mobile nao muda quando o provedor muda.
+
+## Seguranca das chaves
+
+- Chaves nunca sao solicitadas dentro do aplicativo.
+- Chaves nunca entram no APK.
+- Chaves nunca sao retornadas para o frontend.
+- O backend le chaves exclusivamente por variavel de ambiente.
+- O backend nao inicia se a chave do provedor ativo ou `JWT_SECRET` estiverem ausentes.
 - `.env` e `.env.*` ficam ignorados pelo Git; somente `.env.example` e versionado.
 
 Crie `yara-ai/.env` ou `yara-ai/backend/.env`:
 
 ```env
+AI_PROVIDER=gemini
+GEMINI_API_KEY=
 OPENAI_API_KEY=
 DATABASE_URL=
 JWT_SECRET=
@@ -63,7 +73,7 @@ Endpoints principais:
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/system/status`
-- `POST /api/system/test-openai`
+- `POST /api/system/test-openai` compatibilidade: testa o provedor definido em `AI_PROVIDER`
 - `POST /api/chat`
 - `GET /api/conversations`
 - `GET /api/memories`

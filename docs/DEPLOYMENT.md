@@ -20,12 +20,28 @@ Nunca use `git add` para arquivos `.env`, credenciais, tokens ou chaves.
 Configure as variaveis de ambiente no painel do Render:
 
 ```env
+AI_PROVIDER=gemini
+GEMINI_API_KEY=
 OPENAI_API_KEY=
 DATABASE_URL=sqlite:./data/yara.sqlite
 JWT_SECRET=
 ```
 
-O backend bloqueia a inicializacao se `OPENAI_API_KEY` ou `JWT_SECRET` estiverem ausentes.
+O backend bloqueia a inicializacao se `JWT_SECRET` ou a chave do provedor ativo estiverem ausentes.
+
+Para Gemini, use:
+
+```env
+AI_PROVIDER=gemini
+GEMINI_API_KEY=
+```
+
+Para OpenAI, use:
+
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=
+```
 
 Comandos:
 
@@ -37,11 +53,10 @@ npm run start -w backend
 
 ## APK
 
-O APK nao contem a chave OpenAI. O app conversa com a OpenAI apenas via backend.
+O APK nao contem chaves de IA. O app conversa com Gemini ou OpenAI apenas via backend.
 
 ```bash
 cd mobile
 npx expo start
 eas build -p android --profile preview
 ```
-

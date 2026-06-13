@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
-import { askYara } from "./openaiService";
+import { askYara } from "./ai/aiService";
 
 export function listMemories(userId: string) {
   return getDatabase()
@@ -46,6 +46,7 @@ export async function generateSystem(userId: string, input: { type: string; prom
     type: input.type,
     prompt: input.prompt,
     output: ai.response,
+    provider: ai.provider,
     model: ai.model
   };
 }
@@ -69,4 +70,3 @@ export function addFavorite(userId: string, messageId: string) {
     .run(id, userId, messageId);
   return { id, messageId };
 }
-
