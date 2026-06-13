@@ -1,3 +1,5 @@
+import { logoYaraStyles, renderLogoYara } from "./components/logoYara";
+
 export function renderLandingPage() {
   return `<!doctype html>
 <html lang="pt-BR">
@@ -9,25 +11,32 @@ export function renderLandingPage() {
       content="YARA AI é a plataforma oficial de inteligência artificial para conversar, criar sistemas, organizar projetos e acelerar ideias."
     />
     <title>YARA AI | Plataforma oficial</title>
+    <meta name="theme-color" content="#081120" />
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <link rel="apple-touch-icon" href="/assets/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <style>
       :root {
         color-scheme: dark;
-        --bg: #020617;
-        --bg-soft: #07182f;
+        --bg: #081120;
+        --bg-soft: #0b1b33;
         --panel: rgba(15, 23, 42, 0.72);
         --panel-strong: rgba(2, 6, 23, 0.84);
         --line: rgba(125, 211, 252, 0.26);
         --line-strong: rgba(56, 189, 248, 0.54);
-        --text: #f0f9ff;
-        --muted: #9fb2c8;
+        --text: #ffffff;
+        --muted: #94a3b8;
         --soft: #dbeafe;
         --neon: #38bdf8;
-        --neon-strong: #7dd3fc;
+        --neon-strong: #0a84ff;
+        --brand-secondary: #1e40af;
         --ok: #34d399;
         --warning: #a5f3fc;
         --shadow: rgba(56, 189, 248, 0.24);
         --radius: 8px;
       }
+
+${logoYaraStyles()}
 
       * {
         box-sizing: border-box;
@@ -160,6 +169,10 @@ export function renderLandingPage() {
         align-items: center;
         gap: clamp(28px, 5vw, 68px);
         padding: clamp(42px, 7vw, 84px) 0 62px;
+      }
+
+      .hero-logo {
+        margin-bottom: 22px;
       }
 
       .badge {
@@ -748,6 +761,10 @@ export function renderLandingPage() {
         overflow-y: auto;
       }
 
+      .auth-brand {
+        clear: both;
+      }
+
       .auth-close {
         float: right;
         width: 38px;
@@ -960,8 +977,7 @@ export function renderLandingPage() {
     <header class="site-header">
       <nav class="shell nav" aria-label="Navegacao principal">
         <a class="brand" href="#inicio" aria-label="YARA AI inicio">
-          <span class="brand-mark">YA</span>
-          <span>YARA AI</span>
+          ${renderLogoYara({ variant: "complete", tagline: "Plataforma inteligente" })}
         </a>
         <div class="nav-links" aria-label="Secoes">
           <a href="#inicio">Inicio</a>
@@ -977,6 +993,7 @@ export function renderLandingPage() {
     <main id="inicio">
       <section class="shell hero" aria-labelledby="hero-title">
         <div>
+          ${renderLogoYara({ variant: "icon", className: "logo-yara--hero hero-logo" })}
           <div class="badge"><span class="dot"></span>YARA Online</div>
           <h1 id="hero-title">YARA AI</h1>
           <div class="hero-kicker">Sua inteligência. Sem limites.</div>
@@ -999,7 +1016,7 @@ export function renderLandingPage() {
           <div class="glow-frame"></div>
           <article class="chat-mockup">
             <aside class="mock-sidebar" aria-label="Menu do app YARA AI">
-              <div class="mock-logo"><span class="mock-dot">AI</span><span>Console YARA</span></div>
+              <div class="mock-logo">${renderLogoYara({ variant: "complete", tagline: "Console inteligente" })}</div>
               <div class="side-item active"><span class="side-icon">+</span>Nova Conversa</div>
               <div class="side-item"><span class="side-icon">M</span>Memória</div>
               <div class="side-item"><span class="side-icon">G</span>Gerador de Sistemas</div>
@@ -1158,6 +1175,7 @@ export function renderLandingPage() {
     <div class="auth-overlay" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-modal">
         <section class="auth-panel">
+          ${renderLogoYara({ variant: "complete", className: "auth-brand", tagline: "Sua inteligência. Sem limites." })}
           <span class="eyebrow">Acesso YARA AI</span>
           <h2 id="authTitle">Entre na plataforma oficial.</h2>
           <p>
@@ -1167,6 +1185,7 @@ export function renderLandingPage() {
         </section>
         <section class="auth-card">
           <button class="auth-close" id="authClose" type="button" aria-label="Fechar">X</button>
+          ${renderLogoYara({ variant: "complete", className: "logo-yara--auth", tagline: "Acesse sua plataforma" })}
           <div class="auth-tabs" role="tablist">
             <button class="auth-tab active" type="button" data-auth-tab="login">Login</button>
             <button class="auth-tab" type="button" data-auth-tab="register">Cadastro</button>
@@ -1233,8 +1252,7 @@ export function renderLandingPage() {
     <footer class="footer">
       <div class="shell footer-content">
         <div class="footer-brand">
-          <span class="brand-mark">YA</span>
-          <span>YARA AI</span>
+          ${renderLogoYara({ variant: "complete", tagline: "Sua inteligência. Sem limites." })}
         </div>
         <div class="footer-links">
           <a href="https://github.com/ChatYara/ChatYara">GitHub</a>

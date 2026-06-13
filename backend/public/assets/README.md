@@ -1,3 +1,8 @@
 Static visual assets for the YARA AI web platform.
 
-Place the official logo at `yara-logo.png` when the final brand image is available. The current interface uses a CSS fallback symbol so the platform remains fully functional without a binary asset.
+Required brand files:
+
+- `yara-logo.png`: official YARA AI logo used in the landing page, authentication modal, and platform shell.
+- `favicon.png`: 512x512 browser/PWA icon.
+
+If either file is missing, the interface keeps working with a polished `YA` placeholder. Replace the files in this folder to update the brand without changing code.

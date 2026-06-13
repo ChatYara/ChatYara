@@ -9,6 +9,10 @@ yara-ai/
   .env.example
   package.json
   backend/
+    public/
+      assets/
+        yara-logo.png
+        favicon.png
     src/
       config/
       db/
@@ -30,6 +34,22 @@ yara-ai/
     eas.json
     tailwind.config.js
 ```
+
+## Identidade visual
+
+A plataforma usa a marca oficial em `backend/public/assets/yara-logo.png` e o ícone PWA em `backend/public/assets/favicon.png`.
+
+Se esses arquivos não existirem, a interface exibe automaticamente um placeholder elegante com `YA`. Para substituir a marca no futuro, coloque a nova arte nesses mesmos caminhos, mantendo os nomes dos arquivos.
+
+Paleta principal:
+
+- Primária: `#0A84FF`
+- Secundária: `#1E40AF`
+- Destaque: `#38BDF8`
+- Fundo: `#081120`
+- Cards: `#0F172A`
+- Texto: `#FFFFFF`
+- Texto secundário: `#94A3B8`
 
 ## Provedores de IA
 

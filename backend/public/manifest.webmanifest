@@ -1,0 +1,24 @@
+{
+  "name": "YARA AI",
+  "short_name": "YARA",
+  "description": "Sua inteligência. Sem limites.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#081120",
+  "theme_color": "#0A84FF",
+  "icons": [
+    {
+      "src": "/assets/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/yara-logo.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

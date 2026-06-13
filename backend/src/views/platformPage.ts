@@ -1,3 +1,5 @@
+import { logoYaraStyles, renderLogoYara } from "./components/logoYara";
+
 export function renderPlatformPage() {
   return `<!doctype html>
 <html lang="pt-BR">
@@ -5,22 +7,30 @@ export function renderPlatformPage() {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>YARA AI | Plataforma</title>
+    <meta name="theme-color" content="#081120" />
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <link rel="apple-touch-icon" href="/assets/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <style>
       :root {
         color-scheme: dark;
-        --bg: #020617;
+        --bg: #081120;
         --surface: rgba(8, 14, 30, 0.82);
         --panel: rgba(15, 23, 42, 0.72);
         --panel-strong: rgba(15, 23, 42, 0.9);
         --line: rgba(125, 211, 252, 0.2);
         --line-strong: rgba(125, 211, 252, 0.46);
-        --text: #f1f8ff;
-        --muted: #9cb5cb;
+        --text: #ffffff;
+        --muted: #94a3b8;
+        --primary: #0a84ff;
+        --secondary: #1e40af;
         --neon: #38bdf8;
         --neon-strong: #7dd3fc;
         --ok: #34d399;
         --danger: #fb7185;
       }
+
+${logoYaraStyles()}
 
       * { box-sizing: border-box; }
 
@@ -214,6 +224,27 @@ export function renderPlatformPage() {
         background: rgba(15, 23, 42, 0.48);
       }
 
+      .account-row {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .avatar {
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border: 1px solid rgba(56, 189, 248, 0.38);
+        border-radius: 999px;
+        color: #ffffff;
+        background: linear-gradient(145deg, rgba(10, 132, 255, 0.68), rgba(30, 64, 175, 0.76));
+        box-shadow: 0 0 22px rgba(56, 189, 248, 0.2);
+        font-weight: 900;
+      }
+
       .account strong {
         display: block;
         overflow: hidden;
@@ -242,6 +273,13 @@ export function renderPlatformPage() {
         padding: 18px clamp(18px, 4vw, 34px);
         background: rgba(2, 6, 23, 0.4);
         backdrop-filter: blur(18px);
+      }
+
+      .topbar-title {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
       }
 
       .topbar h1 {
@@ -311,6 +349,12 @@ export function renderPlatformPage() {
         margin: auto;
         max-width: 640px;
         text-align: center;
+      }
+
+      .empty-brand {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
       }
 
       .empty-chat h2 {
@@ -555,6 +599,7 @@ export function renderPlatformPage() {
         }
         .main { min-height: calc(100vh - 92px); }
         .topbar { align-items: flex-start; flex-direction: column; }
+        .topbar-title { align-items: flex-start; }
       }
 
       @media (max-width: 620px) {
@@ -572,17 +617,15 @@ export function renderPlatformPage() {
     <div class="app-shell">
       <aside class="sidebar" id="sidebar">
         <div class="brand">
-          <img class="logo-img" src="/assets/yara-logo.png" alt="YARA AI" onload="this.style.display='block'; this.nextElementSibling.style.display='none';" />
-          <span class="mark">YA</span>
-          <div><strong>YARA AI</strong><span>Plataforma inteligente</span></div>
+          ${renderLogoYara({ variant: "complete", tagline: "Plataforma inteligente" })}
           <button class="icon-button mobile-toggle" id="mobileToggle" type="button" aria-label="Abrir menu">${icon("menu")}</button>
         </div>
         <div class="sidebar-body">
           <button class="primary-action" id="newConversationButton" type="button">${icon("plus")}Nova conversa</button>
           <nav class="nav" aria-label="Navegação">
-            ${navButton("chat", "Chat", "chat", true)}
+            ${navButton("chat", "Nova conversa", "chat", true)}
             ${navButton("memory", "Memória", "brain")}
-            ${navButton("generator", "Gerador", "code")}
+            ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("settings", "Configurações", "settings")}
           </nav>
@@ -591,9 +634,12 @@ export function renderPlatformPage() {
             <div class="conversation-list" id="conversationList"></div>
           </section>
           <section class="account">
-            <div>
-              <strong id="accountName">Usuário</strong>
-              <span id="accountEmail">Conta YARA</span>
+            <div class="account-row">
+              <span class="avatar" id="accountAvatar">YA</span>
+              <div>
+                <strong id="accountName">Usuário</strong>
+                <span id="accountEmail">Conta YARA</span>
+              </div>
             </div>
             <button class="button ghost" id="logoutButton" type="button">${icon("logout")}Sair</button>
           </section>
@@ -602,9 +648,12 @@ export function renderPlatformPage() {
 
       <main class="main">
         <header class="topbar">
-          <div>
-            <h1 id="pageTitle">Bem-vindo</h1>
-            <p id="pageSubtitle">Seu espaço para conversar, criar sistemas e organizar projetos.</p>
+          <div class="topbar-title">
+            ${renderLogoYara({ variant: "compact", className: "logo-yara--topbar" })}
+            <div>
+              <h1 id="pageTitle">Bem-vindo</h1>
+              <p id="pageSubtitle">Seu espaço para conversar, criar sistemas e organizar projetos.</p>
+            </div>
           </div>
           <div class="status"><span class="dot"></span>YARA Online</div>
         </header>
@@ -612,6 +661,7 @@ export function renderPlatformPage() {
         <section class="view chat-view" id="view-chat">
           <div class="messages" id="messages">
             <div class="empty-chat">
+              <div class="empty-brand">${renderLogoYara({ variant: "icon", className: "logo-yara--auth" })}</div>
               <h2>Sua inteligência. Sem limites.</h2>
               <p>Comece uma conversa, peça um plano de sistema ou continue uma ideia salva. A YARA mantém o contexto do seu espaço de trabalho.</p>
             </div>
@@ -721,6 +771,7 @@ export function renderPlatformPage() {
 
       const els = {
         accountName: document.getElementById("accountName"),
+        accountAvatar: document.getElementById("accountAvatar"),
         accountEmail: document.getElementById("accountEmail"),
         pageTitle: document.getElementById("pageTitle"),
         pageSubtitle: document.getElementById("pageSubtitle"),
@@ -915,6 +966,7 @@ export function renderPlatformPage() {
           const data = await api("/api/auth/me");
           currentUser = data.user;
           els.accountName.textContent = data.user.name;
+          els.accountAvatar.textContent = String(data.user.name || "YA").slice(0, 2).toUpperCase();
           els.accountEmail.textContent = data.user.email;
           setView("chat");
           await loadConversations();

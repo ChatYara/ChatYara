@@ -13,6 +13,7 @@ import { renderPlatformPage } from "./views/platformPage";
 
 export function createApp() {
   const app = express();
+  const publicDir = path.resolve(__dirname, "..", "public");
 
   app.use(
     helmet({
@@ -33,7 +34,12 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
   app.use(morgan("dev"));
-  app.use("/assets", express.static(path.resolve(process.cwd(), "public", "assets")));
+  app.use("/assets", express.static(path.join(publicDir, "assets")));
+  app.use(express.static(publicDir, { index: false }));
+
+  app.get("/favicon.ico", (_req, res) => {
+    res.type("png").sendFile(path.join(publicDir, "assets", "favicon.png"));
+  });
 
   app.get("/", (_req, res) => {
     res.type("html").send(renderLandingPage());
