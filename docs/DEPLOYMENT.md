@@ -17,6 +17,12 @@ Nunca use `git add` para arquivos `.env`, credenciais, tokens ou chaves.
 
 ## Backend Render
 
+URL oficial:
+
+```text
+https://yarachat.onrender.com
+```
+
 Configure as variaveis de ambiente no painel do Render:
 
 ```env
@@ -54,6 +60,7 @@ npm run start -w backend
 ## APK
 
 O APK nao contem chaves de IA. O app conversa com Gemini ou OpenAI apenas via backend.
+O backend oficial do app esta configurado em `mobile/app.json` como `https://yarachat.onrender.com`.
 
 ```bash
 cd mobile

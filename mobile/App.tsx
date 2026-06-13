@@ -9,6 +9,7 @@ import { ChatScreen } from "./src/screens/ChatScreen";
 import { GeneratorScreen } from "./src/screens/GeneratorScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { WorkspaceScreen } from "./src/screens/WorkspaceScreen";
+import { checkApiHealth } from "./src/api/client";
 import type { User } from "./src/types";
 
 type Tab = "chat" | "generator" | "workspace" | "settings";
@@ -25,13 +26,16 @@ export default function App() {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [tab, setTab] = useState<Tab>("chat");
+  const [apiOnline, setApiOnline] = useState(false);
 
   useEffect(() => {
     async function loadSession() {
-      const [storedToken, storedUser] = await Promise.all([
+      const [storedToken, storedUser, online] = await Promise.all([
         AsyncStorage.getItem("yara-token"),
-        AsyncStorage.getItem("yara-user")
+        AsyncStorage.getItem("yara-user"),
+        checkApiHealth()
       ]);
+      setApiOnline(online);
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser) as User);
@@ -71,7 +75,7 @@ export default function App() {
   if (!token || !user) {
     return (
       <SafeAreaProvider>
-        <AuthScreen onAuth={handleAuth} />
+        <AuthScreen onAuth={handleAuth} online={apiOnline} />
       </SafeAreaProvider>
     );
   }
@@ -80,10 +84,10 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView className="flex-1 bg-slate-950" edges={["bottom"]}>
         <View className="flex-1">
-          {tab === "chat" ? <ChatScreen token={token} /> : null}
-          {tab === "generator" ? <GeneratorScreen token={token} /> : null}
-          {tab === "workspace" ? <WorkspaceScreen token={token} /> : null}
-          {tab === "settings" ? <SettingsScreen token={token} user={user} onLogout={logout} /> : null}
+          {tab === "chat" ? <ChatScreen token={token} online={apiOnline} /> : null}
+          {tab === "generator" ? <GeneratorScreen token={token} online={apiOnline} /> : null}
+          {tab === "workspace" ? <WorkspaceScreen token={token} online={apiOnline} /> : null}
+          {tab === "settings" ? <SettingsScreen token={token} user={user} online={apiOnline} onLogout={logout} /> : null}
         </View>
 
         <View className="flex-row border-t border-sky-400/20 bg-slate-950 px-2 py-2">
@@ -107,4 +111,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-

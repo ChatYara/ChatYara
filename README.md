@@ -72,6 +72,7 @@ Endpoints principais:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `GET /api/health`
 - `GET /api/system/status`
 - `POST /api/system/test-openai` compatibilidade: testa o provedor definido em `AI_PROVIDER`
 - `POST /api/chat`
@@ -79,11 +80,12 @@ Endpoints principais:
 - `GET /api/memories`
 - `POST /api/generate-system`
 
-O primeiro usuario cadastrado recebe papel `admin` e pode testar a OpenAI pela tela de Configuracoes.
+O primeiro usuario cadastrado recebe papel `admin` e pode testar o provedor de IA pela tela de Configuracoes.
 
 ## Mobile
 
-Em emulador Android, o app usa `http://10.0.2.2:3333`. Em celular fisico, altere `mobile/app.json` em `extra.apiUrl` para o IP local do servidor.
+O app usa o backend oficial Render em `https://yarachat.onrender.com`, configurado em `mobile/app.json` como `extra.apiBaseUrl`.
+Na inicializacao, o app consulta `GET /api/health` e mostra `YARA Online` ou `YARA Offline`.
 
 ```bash
 cd yara-ai/mobile

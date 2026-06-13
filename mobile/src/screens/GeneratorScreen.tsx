@@ -15,7 +15,7 @@ const generatorTypes = [
   "Criar Mobile App"
 ] as const;
 
-export function GeneratorScreen({ token }: { token: string }) {
+export function GeneratorScreen({ token, online }: { token: string; online: boolean }) {
   const [type, setType] = useState<(typeof generatorTypes)[number]>("Criar Web App");
   const [prompt, setPrompt] = useState("");
   const [project, setProject] = useState<Project | null>(null);
@@ -38,7 +38,7 @@ export function GeneratorScreen({ token }: { token: string }) {
   }
 
   return (
-    <Screen title="Gerador" subtitle="Crie sistemas com arquitetura assistida">
+    <Screen title="Gerador" subtitle="Crie sistemas com arquitetura assistida" online={online}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <GlassCard>
           <Text className="mb-3 text-base font-bold text-sky-50">Tipo de sistema</Text>
@@ -71,4 +71,3 @@ export function GeneratorScreen({ token }: { token: string }) {
     </Screen>
   );
 }
-

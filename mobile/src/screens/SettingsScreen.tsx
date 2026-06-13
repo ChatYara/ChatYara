@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { ShieldCheck } from "lucide-react-native";
-import { apiRequest, API_URL } from "../api/client";
+import { apiRequest, API_BASE_URL } from "../api/client";
 import { GlassCard } from "../components/GlassCard";
 import { NeonButton } from "../components/NeonButton";
 import { Screen } from "../components/Screen";
@@ -10,10 +10,12 @@ import type { SystemStatus, User } from "../types";
 export function SettingsScreen({
   token,
   user,
+  online,
   onLogout
 }: {
   token: string;
   user: User;
+  online: boolean;
   onLogout: () => void;
 }) {
   const [status, setStatus] = useState<SystemStatus | null>(null);
@@ -41,7 +43,7 @@ export function SettingsScreen({
   }
 
   return (
-    <Screen title="Configuracoes" subtitle="Perfil e painel administrativo">
+    <Screen title="Configuracoes" subtitle="Perfil e painel administrativo" online={online}>
       <GlassCard>
         <Text className="text-lg font-bold text-sky-50">{user.name}</Text>
         <Text className="mt-1 text-slate-300">{user.email}</Text>
@@ -54,9 +56,9 @@ export function SettingsScreen({
           <Text className="text-lg font-bold text-sky-50">Conexao segura</Text>
         </View>
         <Text className="mb-3 text-sm leading-5 text-slate-300">
-          A chave OpenAI fica somente no backend. O app consulta apenas o status operacional e nunca recebe o valor da chave.
+          As chaves Gemini e OpenAI ficam somente no backend Render. O app consulta apenas a API YARA AI e nunca chama Gemini diretamente.
         </Text>
-        <Text className="mb-3 text-xs text-slate-500">API: {API_URL}</Text>
+        <Text className="mb-3 text-xs text-slate-500">API: {API_BASE_URL}</Text>
         <View className="flex-row gap-2">
           <NeonButton className="flex-1" variant="ghost" onPress={loadStatus}>Status</NeonButton>
           <NeonButton className="flex-1" loading={loading} onPress={testOpenAI}>Testar OpenAI</NeonButton>
@@ -80,4 +82,3 @@ export function SettingsScreen({
     </Screen>
   );
 }
-

@@ -9,8 +9,10 @@ import { TextField } from "../components/TextField";
 import type { User } from "../types";
 
 export function AuthScreen({
+  online,
   onAuth
 }: {
+  online: boolean;
   onAuth: (data: { token: string; user: User }) => void;
 }) {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -46,6 +48,9 @@ export function AuthScreen({
           </View>
           <Text className="text-4xl font-black tracking-normal text-sky-50">YARA AI</Text>
           <Text className="mt-2 text-center text-slate-400">Assistente neural para criar sistemas e projetos.</Text>
+          <Text className={`mt-3 text-sm font-semibold ${online ? "text-emerald-300" : "text-rose-300"}`}>
+            {online ? "YARA Online" : "YARA Offline"}
+          </Text>
         </View>
 
         <GlassCard>
@@ -73,4 +78,3 @@ export function AuthScreen({
     </LinearGradient>
   );
 }
-

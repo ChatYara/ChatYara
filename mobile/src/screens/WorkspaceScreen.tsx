@@ -10,7 +10,7 @@ import type { Project } from "../types";
 type Memory = { id: string; title: string; content: string };
 type Favorite = { id: string; content: string; role: string };
 
-export function WorkspaceScreen({ token }: { token: string }) {
+export function WorkspaceScreen({ token, online }: { token: string; online: boolean }) {
   const [view, setView] = useState<"memories" | "projects" | "favorites">("memories");
   const [memories, setMemories] = useState<Memory[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -47,7 +47,7 @@ export function WorkspaceScreen({ token }: { token: string }) {
   const data = view === "memories" ? memories : view === "projects" ? projects : favorites;
 
   return (
-    <Screen title="Workspace" subtitle="Memoria, projetos e favoritos">
+    <Screen title="Workspace" subtitle="Memoria, projetos e favoritos" online={online}>
       <View className="mb-3 flex-row gap-2">
         {(["memories", "projects", "favorites"] as const).map((item) => (
           <NeonButton key={item} variant={view === item ? "primary" : "ghost"} className="flex-1" onPress={() => setView(item)}>
@@ -85,4 +85,3 @@ export function WorkspaceScreen({ token }: { token: string }) {
     </Screen>
   );
 }
-

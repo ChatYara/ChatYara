@@ -8,7 +8,7 @@ import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import type { Conversation, Message } from "../types";
 
-export function ChatScreen({ token }: { token: string }) {
+export function ChatScreen({ token, online }: { token: string; online: boolean }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,7 +74,7 @@ export function ChatScreen({ token }: { token: string }) {
   }, []);
 
   return (
-    <Screen title="YARA AI" subtitle="Chat neural seguro via backend">
+    <Screen title="YARA AI" subtitle="Chat neural seguro via backend" online={online}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1">
         <View className="mb-3 flex-row gap-2">
           <NeonButton onPress={newConversation} className="flex-1">
@@ -147,4 +147,3 @@ export function ChatScreen({ token }: { token: string }) {
     </Screen>
   );
 }
-
