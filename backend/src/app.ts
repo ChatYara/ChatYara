@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "node:path";
 import { env } from "./config/env";
 import { authRoutes } from "./routes/authRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
@@ -32,6 +33,7 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
   app.use(morgan("dev"));
+  app.use("/assets", express.static(path.resolve(process.cwd(), "public", "assets")));
 
   app.get("/", (_req, res) => {
     res.type("html").send(renderLandingPage());

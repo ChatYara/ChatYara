@@ -38,6 +38,54 @@ export function createConversation(userId: string, title = "Nova conversa") {
   return { id, title };
 }
 
+export function getConversation(userId: string, conversationId: string) {
+  const conversation = getDatabase()
+    .prepare(
+      "select id, title, created_at, updated_at from conversations where id = ? and user_id = ?"
+    )
+    .get(conversationId, userId) as ConversationRow | undefined;
+
+  if (!conversation) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  return {
+    conversation,
+    messages: getMessages(userId, conversationId)
+  };
+}
+
+export function renameConversation(userId: string, conversationId: string, title: string) {
+  const cleanTitle = title.replace(/\s+/g, " ").trim();
+  if (!cleanTitle) {
+    throw new Error("Informe um nome para a conversa.");
+  }
+
+  const result = getDatabase()
+    .prepare(
+      "update conversations set title = ?, updated_at = current_timestamp where id = ? and user_id = ?"
+    )
+    .run(cleanTitle, conversationId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  return { id: conversationId, title: cleanTitle };
+}
+
+export function deleteConversation(userId: string, conversationId: string) {
+  const result = getDatabase()
+    .prepare("delete from conversations where id = ? and user_id = ?")
+    .run(conversationId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  return { id: conversationId };
+}
+
 export function getMessages(userId: string, conversationId: string) {
   const conversation = getDatabase()
     .prepare("select id from conversations where id = ? and user_id = ?")

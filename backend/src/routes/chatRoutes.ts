@@ -1,7 +1,15 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
-import { createConversation, getMessages, listConversations, sendMessage } from "../services/chatService";
+import {
+  createConversation,
+  deleteConversation,
+  getConversation,
+  getMessages,
+  listConversations,
+  renameConversation,
+  sendMessage
+} from "../services/chatService";
 import { sendError } from "../utils/http";
 
 export const chatRoutes = Router();
@@ -15,6 +23,35 @@ chatRoutes.get("/conversations", (req, res) => {
 chatRoutes.post("/conversations", (req, res) => {
   const title = typeof req.body.title === "string" ? req.body.title : "Nova conversa";
   return res.status(201).json({ conversation: createConversation(req.user!.id, title) });
+});
+
+chatRoutes.get("/conversations/:id", (req, res) => {
+  try {
+    return res.json(getConversation(req.user!.id, req.params.id));
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
+});
+
+chatRoutes.patch("/conversations/:id", (req, res) => {
+  const parsed = z.object({ title: z.string().min(1) }).safeParse(req.body);
+  if (!parsed.success) {
+    return sendError(res, 400, "Informe um nome para a conversa.");
+  }
+
+  try {
+    return res.json({ conversation: renameConversation(req.user!.id, req.params.id, parsed.data.title) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
+});
+
+chatRoutes.delete("/conversations/:id", (req, res) => {
+  try {
+    return res.json({ conversation: deleteConversation(req.user!.id, req.params.id) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
 });
 
 chatRoutes.get("/conversations/:id/messages", (req, res) => {
@@ -43,4 +80,3 @@ chatRoutes.post("/chat", async (req, res) => {
     return sendError(res, 400, error instanceof Error ? error.message : "Erro ao conversar com YARA.");
   }
 });
-

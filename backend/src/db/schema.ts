@@ -62,7 +62,19 @@ export function runMigrations() {
       type text not null,
       prompt text not null,
       output text not null,
+      description text,
+      content text,
       created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists user_settings (
+      user_id text primary key,
+      display_name text not null,
+      theme text not null default 'dark',
+      ai_style text not null default 'balanced',
+      updated_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
     );
   `);
@@ -71,8 +83,13 @@ export function runMigrations() {
   ensureColumn("users", "updated_at", "text");
   ensureColumn("users", "reset_password_token_hash", "text");
   ensureColumn("users", "reset_password_expires_at", "text");
+  ensureColumn("projects", "description", "text");
+  ensureColumn("projects", "content", "text");
+  ensureColumn("projects", "updated_at", "text");
   db.exec(`
     update users set updated_at = current_timestamp where updated_at is null;
+    update projects set updated_at = current_timestamp where updated_at is null;
+    update projects set content = output where content is null;
 
     create unique index if not exists users_phone_unique
       on users(phone)

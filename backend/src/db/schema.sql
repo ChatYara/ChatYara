@@ -60,6 +60,18 @@ create table if not exists projects (
   type text not null,
   prompt text not null,
   output text not null,
+  description text,
+  content text,
   created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists user_settings (
+  user_id text primary key,
+  display_name text not null,
+  theme text not null default 'dark',
+  ai_style text not null default 'balanced',
+  updated_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
