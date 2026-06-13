@@ -25,6 +25,10 @@ export function createApp() {
     res.json({ ok: true, name: "YARA AI API" });
   });
 
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true, name: "YARA AI API" });
+  });
+
   app.use("/api/auth", authRoutes);
   app.use("/api/system", systemRoutes);
   app.use("/api", chatRoutes);
