@@ -22,7 +22,7 @@ uploadRoutes.post("/uploads", async (req, res) => {
     const upload = await parseMultipartUpload(req);
     return res.status(201).json({
       upload: createUploadFromFile(req.user!.id, {
-        conversationId: upload.fields.conversationId,
+        conversationId: upload.fields.conversationId || upload.fields.conversation_id,
         file: upload.file
       })
     });

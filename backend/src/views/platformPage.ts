@@ -65,6 +65,20 @@ ${logoYaraStyles()}
         font-family: Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
+      body.menu-open::before,
+      body.drawer-open::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 45;
+        background: rgba(2, 6, 23, 0.62);
+        backdrop-filter: blur(12px);
+      }
+
+      body.menu-open::before {
+        z-index: 35;
+      }
+
       button,
       input,
       select,
@@ -341,6 +355,7 @@ ${logoYaraStyles()}
       }
 
       .model-select {
+        display: none;
         min-height: 38px;
         border: 1px solid rgba(148, 163, 184, 0.16);
         border-radius: 999px;
@@ -432,8 +447,9 @@ ${logoYaraStyles()}
       }
 
       .empty-chat h2 {
-        margin: 0 0 10px;
-        font-size: clamp(28px, 4vw, 44px);
+        margin: 0;
+        font-size: clamp(30px, 4vw, 48px);
+        font-weight: 750;
       }
 
       .empty-chat p,
@@ -754,6 +770,11 @@ ${logoYaraStyles()}
         backdrop-filter: blur(18px);
       }
 
+      .floating-menu {
+        max-height: min(520px, calc(100vh - 120px));
+        overflow: auto;
+      }
+
       .floating-menu.open,
       .attach-menu.open {
         display: grid;
@@ -802,6 +823,12 @@ ${logoYaraStyles()}
       .settings-grid {
         display: grid;
         grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+        gap: 18px;
+      }
+
+      .documents-layout {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
         gap: 18px;
       }
 
@@ -1136,7 +1163,8 @@ ${logoYaraStyles()}
 
       @media (max-width: 1024px) {
         .layout-grid,
-        .settings-grid { grid-template-columns: 1fr; }
+        .settings-grid,
+        .documents-layout { grid-template-columns: 1fr; }
         .settings-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .inline-form { grid-template-columns: 1fr; }
@@ -1156,10 +1184,12 @@ ${logoYaraStyles()}
           border-right: 1px solid var(--line);
           border-bottom: 0;
           transition: transform 180ms ease;
+          box-shadow: 28px 0 70px rgba(0, 0, 0, 0.34);
         }
         .mobile-toggle { display: inline-flex; }
         .sidebar-body { display: flex; }
         .sidebar.open { transform: translateX(0); }
+        .sidebar.open { z-index: 60; }
         .main { height: 100dvh; }
         .topbar {
           min-height: 64px;
@@ -1175,19 +1205,39 @@ ${logoYaraStyles()}
         .model-select { max-width: 128px; }
         .floating-menu.open {
           position: fixed;
-          inset: auto 12px 12px;
+          inset: auto 10px max(10px, env(safe-area-inset-bottom)) 10px;
+          z-index: 70;
           width: auto;
           max-height: calc(100dvh - 120px);
           overflow: auto;
+          border-radius: 20px 20px 18px 18px;
+          padding: 10px;
+          animation: sheetIn 150ms ease-out;
+        }
+        .floating-menu.open::before {
+          content: "";
+          width: 42px;
+          height: 4px;
+          justify-self: center;
+          border-radius: 999px;
+          background: rgba(148, 163, 184, 0.44);
+          margin: 2px 0 6px;
         }
         .messages { padding-inline: 4px; }
+      }
+
+      @keyframes sheetIn {
+        from { transform: translateY(14px); opacity: 0.7; }
+        to { transform: translateY(0); opacity: 1; }
       }
 
       @media (max-width: 640px) {
         .sidebar,
         .view,
         .topbar { padding: 14px; }
-        .chat-view { padding: 8px 10px 10px; }
+        .chat-view { padding: 8px 10px 10px; gap: 8px; }
+        .messages { gap: 14px; padding-bottom: 4px; }
+        .composer-wrap { padding-top: 6px; }
         .composer { grid-template-columns: auto minmax(0, 1fr) auto; border-radius: 16px; }
         .composer .primary-action { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
         .composer .primary-action svg { margin: 0; }
@@ -1196,16 +1246,26 @@ ${logoYaraStyles()}
         .message.assistant { margin-left: 38px; }
         .message-avatar { left: -38px; width: 30px; height: 30px; }
         .button { width: 100%; }
+        .topbar-actions { gap: 8px; }
+        .topbar-actions .status { display: none; }
+        .topbar-title { min-width: 0; }
+        .topbar-title > div { min-width: 0; }
+        .topbar h1 {
+          max-width: 52vw;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .project-toolbar,
         .row { align-items: stretch; flex-direction: column; }
         .settings-hero { align-items: flex-start; flex-direction: column; }
         .settings-card-grid,
         .option-grid,
         .dashboard-grid { grid-template-columns: 1fr; }
-        .empty-brand { display: none; }
         .empty-chat h2 { font-size: 26px; }
-        .empty-chat p { display: none; }
-        .quick-prompts { justify-content: center; gap: 7px; }
+        .empty-chat p,
+        .quick-prompts,
+        .empty-brand { display: none; }
         .quick-prompt { flex: 0 1 auto; min-height: 34px; padding: 7px 10px; font-size: 12px; }
         .attachment-card,
         .attachment-preview { grid-template-columns: auto minmax(0, 1fr); }
@@ -1224,10 +1284,10 @@ ${logoYaraStyles()}
         <div class="sidebar-body">
           <button class="primary-action" id="newConversationButton" type="button">${icon("plus")}Nova conversa</button>
           <nav class="nav" aria-label="Navegação">
-            ${navButton("chat", "Histórico", "history", true)}
-            ${navButton("dashboard", "Dashboard", "sparkles")}
+            ${navButton("chat", "Chat", "chat", true)}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
+            ${navButton("documents", "Documentos", "file")}
             ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
           </nav>
@@ -1279,14 +1339,13 @@ ${logoYaraStyles()}
             <button class="icon-button" id="quickSettingsButton" type="button" aria-label="Configurações rápidas">${icon("settings")}</button>
             <button class="icon-button" id="chatMenuButton" type="button" aria-label="Ações da conversa">${icon("dots")}</button>
             <div class="floating-menu" id="chatActionMenu">
-              ${menuButton("shareConversation", "Compartilhar conversa", "share")}
-              ${menuButton("pinConversation", "Fixar conversa", "pin")}
-              ${menuButton("projectConversation", "Adicionar ao projeto", "folder")}
+              ${menuButton("shareConversation", "Compartilhar", "share")}
+              ${menuButton("pinConversation", "Fixar", "pin")}
               ${menuButton("filesConversation", "Arquivos enviados", "file")}
               ${menuButton("searchConversation", "Buscar no chat", "search")}
-              ${menuButton("topConversation", "Adicionar ao início", "arrowUp")}
-              ${menuButton("archiveConversation", "Arquivar conversa", "archive")}
-              ${menuButton("deleteConversation", "Excluir conversa", "trash", true)}
+              ${menuButton("projectConversation", "Adicionar ao projeto", "folder")}
+              ${menuButton("archiveConversation", "Arquivar", "archive")}
+              ${menuButton("deleteConversation", "Excluir", "trash", true)}
             </div>
           </div>
         </header>
@@ -1335,18 +1394,7 @@ ${logoYaraStyles()}
           </div>
           <div class="messages" id="messages">
             <div class="empty-chat">
-              <div class="empty-brand">${renderLogoYara({ variant: "icon", className: "logo-yara--auth" })}</div>
-              <h2>Olá! Eu sou a YARA.</h2>
-              <p>Posso conversar com você, responder perguntas, ajudar nos estudos, criar textos, analisar ideias, organizar projetos, pesquisar quando necessário e também criar sistemas quando você quiser.</p>
-              <div class="quick-prompts" data-quick-prompts>
-                <button class="quick-prompt" data-prompt="Pergunte qualquer coisa" type="button">Pergunte qualquer coisa</button>
-                <button class="quick-prompt" data-prompt="Crie um texto curto sobre uma ideia importante" type="button">Criar um texto</button>
-                <button class="quick-prompt" data-prompt="Me ajude a estudar um assunto" type="button">Me ajude a estudar</button>
-                <button class="quick-prompt" data-prompt="Organize esta ideia comigo" type="button">Organizar uma ideia</button>
-                <button class="quick-prompt" data-prompt="Analise o arquivo que vou anexar" type="button">Analisar um arquivo</button>
-                <button class="quick-prompt" data-prompt="Pesquise na internet sobre este assunto" type="button">Pesquisar na internet</button>
-                <button class="quick-prompt" data-prompt="Vamos continuar um assunto anterior" type="button">Continuar um assunto</button>
-              </div>
+              <h2>Como posso ajudar você hoje?</h2>
             </div>
           </div>
           <div class="composer-wrap">
@@ -1458,6 +1506,47 @@ ${logoYaraStyles()}
                   <button class="button" id="continueProjectButton" type="button">${icon("chat")}Continuar com a YARA</button>
                   <button class="button danger" id="deleteProjectButton" type="button">${icon("trash")}Excluir projeto</button>
                 </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-documents" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Documentos</h2>
+                <p class="muted">Gere, baixe e organize documentos reais da sua conta YARA AI.</p>
+              </div>
+              <button class="button" id="refreshDocumentsPageButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Novo documento</h2>
+                <p class="muted">Escolha um modelo, preencha os campos em JSON e gere PDF ou CSV protegido.</p>
+                <form class="form" id="documentPageForm">
+                  <label>Título do documento</label>
+                  <input class="field" id="documentPageTitle" placeholder="Ex.: Orçamento para cliente" required />
+                  <label>Modelo</label>
+                  <select class="select" id="documentPageTemplate"></select>
+                  <label>Formato</label>
+                  <select class="select" id="documentPageFormat">
+                    <option value="pdf">PDF</option>
+                    <option value="csv">CSV</option>
+                  </select>
+                  <label>Campos do documento</label>
+                  <textarea class="field" id="documentPageFields" rows="8">{
+  "cliente": "Cliente Exemplo",
+  "itens": "Item 1, Item 2",
+  "total": "R$ 0,00",
+  "observacoes": "Gerado pela YARA AI"
+}</textarea>
+                  <button class="primary-action" type="submit">${icon("save")}Gerar documento</button>
+                </form>
+              </article>
+              <article class="card">
+                <h2>Documentos gerados</h2>
+                <div class="list" id="documentsPageList"></div>
               </article>
             </div>
           </div>
@@ -1717,6 +1806,7 @@ ${logoYaraStyles()}
       let audioRecorder = null;
       let audioStream = null;
       let audioChunks = [];
+      let documentTemplates = [];
 
       const els = {
         accountName: document.getElementById("accountName"),
@@ -1844,19 +1934,7 @@ ${logoYaraStyles()}
       }
 
       function emptyChatHtml() {
-        const prompts = [
-          ["Pergunte qualquer coisa", "Pergunte qualquer coisa"],
-          ["Criar um texto", "Faça um texto de aniversário"],
-          ["Me ajude a estudar", "Explique a Revolução Baiana"],
-          ["Organizar uma ideia", "Organize uma escala de trabalho"],
-          ["Analisar um arquivo", "Analise o arquivo que vou anexar"],
-          ["Pesquisar na internet", "Pesquise na internet sobre este assunto"],
-          ["Continuar um assunto", "Vamos continuar um assunto anterior"]
-        ];
-
-        return '<div class="empty-chat"><h2>Olá! Eu sou a YARA.</h2><p>Posso conversar com você, responder perguntas, ajudar nos estudos, criar textos, analisar ideias, organizar projetos, pesquisar quando necessário e também criar sistemas quando você quiser.</p><div class="quick-prompts">' + prompts.map(function(item) {
-          return '<button class="quick-prompt" data-prompt="' + escapeHtml(item[1]) + '" type="button">' + escapeHtml(item[0]) + '</button>';
-        }).join("") + '</div></div>';
+        return '<div class="empty-chat"><h2>Como posso ajudar você hoje?</h2></div>';
       }
 
       function initials(name) {
@@ -1930,6 +2008,7 @@ ${logoYaraStyles()}
       }
 
       function setView(view) {
+        const requestedView = view;
         if (view === "memory") {
           view = "settings";
           window.setTimeout(function() { selectSettingsTab("memory"); }, 0);
@@ -1937,23 +2016,27 @@ ${logoYaraStyles()}
         document.querySelectorAll(".view").forEach(function(item) {
           item.hidden = item.id !== "view-" + view;
         });
+        const activeView = requestedView === "memory" ? "memory" : view;
         document.querySelectorAll(".nav-button").forEach(function(item) {
-          item.classList.toggle("active", item.dataset.view === view);
+          item.classList.toggle("active", item.dataset.view === activeView);
         });
         const labels = {
-          chat: ["YARA AI", "Converse com a YARA, pergunte qualquer coisa e organize ideias, estudos, trabalho e projetos."],
-          dashboard: ["Dashboard", "Veja sua atividade real, projetos recentes, arquivos e tarefas pendentes."],
-          generator: ["Gerador de Sistemas", "Crie sistemas completos e salve automaticamente como projeto."],
-          projects: ["Meus Projetos", "Organize, busque e continue projetos com a YARA."],
-          settings: ["Configurações", "Perfil, segurança, preferências e memória da YARA."]
+          chat: ["YARA AI", "Chat geral com a YARA."],
+          dashboard: ["Dashboard", "Resumo da sua atividade."],
+          generator: ["Gerador de Sistemas", "Crie sistemas completos em um módulo separado."],
+          projects: ["Projetos", "Organize projetos, tarefas, notas e arquivos."],
+          documents: ["Documentos", "Gere e baixe documentos protegidos."],
+          settings: ["Configurações", "Preferências, conta e memória da YARA."]
         };
         els.pageTitle.textContent = labels[view][0];
         els.pageSubtitle.textContent = labels[view][1];
         els.sidebar.classList.remove("open");
         els.chatActionMenu.classList.remove("open");
         els.attachMenu.classList.remove("open");
+        document.body.classList.remove("drawer-open", "menu-open");
         if (view === "dashboard") loadDashboard();
         if (view === "projects") loadProjects();
+        if (view === "documents") loadDocuments();
         if (view === "settings") loadSettings();
       }
 
@@ -1968,6 +2051,28 @@ ${logoYaraStyles()}
         if (tabName === "files") loadUploads();
         if (tabName === "documents") loadDocuments();
         if (tabName === "ai") loadAiStatus();
+      }
+
+      function closeChatMenu() {
+        els.chatActionMenu.classList.remove("open");
+        document.body.classList.remove("menu-open");
+      }
+
+      function toggleChatMenu() {
+        const willOpen = !els.chatActionMenu.classList.contains("open");
+        els.chatActionMenu.classList.toggle("open", willOpen);
+        document.body.classList.toggle("menu-open", willOpen);
+      }
+
+      function closeSidebarDrawer() {
+        els.sidebar.classList.remove("open");
+        document.body.classList.remove("drawer-open");
+      }
+
+      function toggleSidebarDrawer() {
+        const willOpen = !els.sidebar.classList.contains("open");
+        els.sidebar.classList.toggle("open", willOpen);
+        document.body.classList.toggle("drawer-open", willOpen);
       }
 
       function renderConversationGroup(target, items, emptyText) {
@@ -2592,13 +2697,12 @@ ${logoYaraStyles()}
       }
 
       function documentTemplateLabel(id) {
-        const select = document.getElementById("documentTemplate");
-        const option = select ? Array.from(select.options).find(function(item) { return item.value === id; }) : null;
-        return option ? option.textContent : id;
+        const template = documentTemplates.find(function(item) { return item.id === id; });
+        return template ? template.label : id;
       }
 
-      function parseDocumentFields() {
-        const raw = document.getElementById("documentFields").value.trim();
+      function parseDocumentFields(fieldId) {
+        const raw = document.getElementById(fieldId).value.trim();
         if (!raw) return {};
         try {
           const parsed = JSON.parse(raw);
@@ -2614,15 +2718,22 @@ ${logoYaraStyles()}
       async function loadDocuments() {
         const templateData = await api("/api/documents/templates");
         const documentData = await api("/api/documents");
-        const templates = templateData.templates || [];
+        documentTemplates = templateData.templates || [];
         const documents = documentData.documents || [];
-        const select = document.getElementById("documentTemplate");
-        if (select && !select.options.length) {
-          select.innerHTML = templates.map(function(template) {
+        ["documentTemplate", "documentPageTemplate"].forEach(function(selectId) {
+          const select = document.getElementById(selectId);
+          if (!select || select.options.length) return;
+          select.innerHTML = documentTemplates.map(function(template) {
             return '<option value="' + escapeHtml(template.id) + '">' + escapeHtml(template.label) + '</option>';
           }).join("");
-        }
-        const target = document.getElementById("documentsList");
+        });
+        renderDocumentList("documentsList", documents);
+        renderDocumentList("documentsPageList", documents);
+      }
+
+      function renderDocumentList(targetId, documents) {
+        const target = document.getElementById(targetId);
+        if (!target) return;
         if (!documents.length) {
           target.innerHTML = '<p class="muted">Nenhum documento gerado ainda.</p>';
           return;
@@ -2632,6 +2743,44 @@ ${logoYaraStyles()}
           const label = documentTemplateLabel(documentItem.template);
           return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(documentItem.title) + '</strong><p class="muted">' + escapeHtml(label || documentItem.template) + ' · ' + escapeHtml(String(documentItem.format).toUpperCase()) + ' · ' + size + '</p></div><div class="row"><button class="button" data-download-document="' + documentItem.id + '" data-file-name="' + escapeHtml(documentItem.file_name) + '" type="button">Baixar</button><button class="icon-button danger" data-delete-document="' + documentItem.id + '" type="button" aria-label="Excluir documento">${icon("trash")}</button></div></div></article>';
         }).join("");
+      }
+
+      async function createDocumentFromControls(config) {
+        const title = document.getElementById(config.titleId).value.trim();
+        if (title.length < 2) return showToast("Informe um título para o documento.");
+        let fields;
+        try {
+          fields = parseDocumentFields(config.fieldsId);
+        } catch (error) {
+          return showToast(error.message);
+        }
+        await api("/api/documents", {
+          method: "POST",
+          body: JSON.stringify({
+            title: title,
+            template: document.getElementById(config.templateId).value,
+            format: document.getElementById(config.formatId).value,
+            fields: fields
+          })
+        });
+        document.getElementById(config.titleId).value = "";
+        await loadDocuments();
+        await loadDashboard();
+        showToast("Documento gerado com sucesso.");
+      }
+
+      async function handleDocumentListClick(event) {
+        const downloadButton = event.target.closest("[data-download-document]");
+        if (downloadButton) {
+          await downloadDocument(downloadButton.dataset.downloadDocument, downloadButton.dataset.fileName || "documento");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-document]");
+        if (!deleteButton) return;
+        await api("/api/documents/" + deleteButton.dataset.deleteDocument, { method: "DELETE" });
+        await loadDocuments();
+        await loadDashboard();
+        showToast("Documento removido.");
       }
 
       async function loadAiStatus() {
@@ -2738,15 +2887,31 @@ ${logoYaraStyles()}
           document.getElementById("chatForm").requestSubmit();
         }
       });
-      document.getElementById("mobileToggle").addEventListener("click", function() { els.sidebar.classList.toggle("open"); });
+      document.getElementById("mobileToggle").addEventListener("click", toggleSidebarDrawer);
       document.getElementById("quickSettingsButton").addEventListener("click", openQuickSettingsModal);
       document.getElementById("sidebarSettingsButton").addEventListener("click", function() { setView("settings"); });
       document.getElementById("helpButton").addEventListener("click", openHelpModal);
       document.getElementById("termsButton").addEventListener("click", openTermsModal);
-      document.getElementById("chatMenuButton").addEventListener("click", function() { els.chatActionMenu.classList.toggle("open"); });
+      document.getElementById("chatMenuButton").addEventListener("click", toggleChatMenu);
       document.getElementById("attachButton").addEventListener("click", function() { els.attachMenu.classList.toggle("open"); });
       document.getElementById("modalClose").addEventListener("click", closeModal);
       els.modalOverlay.addEventListener("click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
+      document.addEventListener("click", function(event) {
+        if (!els.chatActionMenu.classList.contains("open")) return;
+        if (event.target.closest("#chatActionMenu") || event.target.closest("#chatMenuButton")) return;
+        closeChatMenu();
+      });
+      document.addEventListener("click", function(event) {
+        if (!els.sidebar.classList.contains("open")) return;
+        if (event.target.closest("#sidebar") || event.target.closest("#mobileToggle")) return;
+        closeSidebarDrawer();
+      });
+      document.addEventListener("keydown", function(event) {
+        if (event.key !== "Escape") return;
+        closeChatMenu();
+        closeSidebarDrawer();
+        els.attachMenu.classList.remove("open");
+      });
       els.attachmentPreview.addEventListener("click", function(event) {
         const button = event.target.closest("#removeAttachmentButton");
         if (!button) return;
@@ -2802,13 +2967,12 @@ ${logoYaraStyles()}
         const item = event.target.closest("[data-action]");
         if (!item) return;
         const action = item.dataset.action;
-        els.chatActionMenu.classList.remove("open");
+        closeChatMenu();
         if (action === "shareConversation") await shareConversation();
         if (action === "pinConversation") await pinConversation();
         if (action === "projectConversation") await showProjectPicker();
         if (action === "filesConversation") await showConversationFiles();
         if (action === "searchConversation") toggleSearch();
-        if (action === "topConversation") await moveConversationTop();
         if (action === "archiveConversation") await archiveConversation();
         if (action === "deleteConversation") await deleteCurrentConversation();
       });
@@ -3215,45 +3379,32 @@ ${logoYaraStyles()}
         await loadDocuments();
         showToast("Documentos atualizados.");
       });
+      document.getElementById("refreshDocumentsPageButton").addEventListener("click", async function() {
+        await loadDocuments();
+        showToast("Documentos atualizados.");
+      });
 
       document.getElementById("documentForm").addEventListener("submit", async function(event) {
         event.preventDefault();
-        const title = document.getElementById("documentTitle").value.trim();
-        if (title.length < 2) return showToast("Informe um título para o documento.");
-        let fields;
-        try {
-          fields = parseDocumentFields();
-        } catch (error) {
-          return showToast(error.message);
-        }
-        await api("/api/documents", {
-          method: "POST",
-          body: JSON.stringify({
-            title: title,
-            template: document.getElementById("documentTemplate").value,
-            format: document.getElementById("documentFormat").value,
-            fields: fields
-          })
+        await createDocumentFromControls({
+          titleId: "documentTitle",
+          templateId: "documentTemplate",
+          formatId: "documentFormat",
+          fieldsId: "documentFields"
         });
-        document.getElementById("documentTitle").value = "";
-        await loadDocuments();
-        await loadDashboard();
-        showToast("Documento gerado com sucesso.");
       });
 
-      document.getElementById("documentsList").addEventListener("click", async function(event) {
-        const downloadButton = event.target.closest("[data-download-document]");
-        if (downloadButton) {
-          await downloadDocument(downloadButton.dataset.downloadDocument, downloadButton.dataset.fileName || "documento");
-          return;
-        }
-        const deleteButton = event.target.closest("[data-delete-document]");
-        if (!deleteButton) return;
-        await api("/api/documents/" + deleteButton.dataset.deleteDocument, { method: "DELETE" });
-        await loadDocuments();
-        await loadDashboard();
-        showToast("Documento removido.");
+      document.getElementById("documentPageForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        await createDocumentFromControls({
+          titleId: "documentPageTitle",
+          templateId: "documentPageTemplate",
+          formatId: "documentPageFormat",
+          fieldsId: "documentPageFields"
+        });
       });
+      document.getElementById("documentsList").addEventListener("click", handleDocumentListClick);
+      document.getElementById("documentsPageList").addEventListener("click", handleDocumentListClick);
 
       document.getElementById("testAiButton").addEventListener("click", async function() {
         try {
