@@ -487,6 +487,7 @@ ${logoYaraStyles()}
         line-height: 1.65;
         white-space: normal;
         box-shadow: 0 16px 34px rgba(0, 0, 0, 0.16);
+        animation: messageIn 180ms ease-out both;
       }
 
       .message.user {
@@ -498,6 +499,32 @@ ${logoYaraStyles()}
       .message.assistant {
         align-self: flex-start;
         margin-left: 46px;
+        animation-name: assistantMessageIn;
+      }
+
+      .message.thinking,
+      .message.typing {
+        border-color: rgba(56, 189, 248, 0.28);
+        background:
+          linear-gradient(135deg, rgba(56, 189, 248, 0.08), transparent 34%),
+          rgba(15, 23, 42, 0.76);
+        box-shadow: 0 18px 44px rgba(10, 132, 255, 0.12);
+      }
+
+      .message.thinking::after {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        pointer-events: none;
+        border-radius: inherit;
+        background: linear-gradient(110deg, transparent 20%, rgba(56, 189, 248, 0.18) 48%, transparent 76%);
+        opacity: 0.65;
+        animation: thinkingGlow 1.6s ease-in-out infinite;
+      }
+
+      .message.error {
+        border-color: rgba(251, 113, 133, 0.34);
+        background: rgba(76, 5, 25, 0.36);
       }
 
       .message-avatar {
@@ -600,7 +627,9 @@ ${logoYaraStyles()}
       .typing-indicator {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 7px;
+        color: #dbeafe;
+        font-weight: 750;
       }
 
       .typing-dot {
@@ -617,6 +646,59 @@ ${logoYaraStyles()}
       @keyframes typingPulse {
         0%, 100% { transform: translateY(0); opacity: 0.35; }
         50% { transform: translateY(-4px); opacity: 1; }
+      }
+
+      .typing-cursor {
+        display: inline-block;
+        width: 7px;
+        height: 1.1em;
+        margin-left: 3px;
+        border-radius: 999px;
+        background: var(--accent);
+        vertical-align: -0.18em;
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.55);
+        animation: cursorBlink 0.9s steps(2, start) infinite;
+      }
+
+      .send-spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(3, 20, 37, 0.22);
+        border-top-color: #031425;
+        border-radius: 999px;
+        animation: spin 760ms linear infinite;
+      }
+
+      .primary-action[disabled],
+      .icon-button[disabled],
+      .button[disabled] {
+        cursor: not-allowed;
+        opacity: 0.72;
+        transform: none;
+      }
+
+      @keyframes messageIn {
+        from { opacity: 0; transform: translateY(8px) scale(0.99); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+
+      @keyframes assistantMessageIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes thinkingGlow {
+        0%, 100% { opacity: 0.28; transform: translateX(-8px); }
+        50% { opacity: 0.72; transform: translateX(8px); }
+      }
+
+      @keyframes cursorBlink {
+        0%, 45% { opacity: 1; }
+        46%, 100% { opacity: 0; }
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
 
       .message-actions {
@@ -1245,6 +1327,7 @@ ${logoYaraStyles()}
         .message { max-width: 100%; }
         .message.assistant { margin-left: 38px; }
         .message-avatar { left: -38px; width: 30px; height: 30px; }
+        .typing-indicator { font-size: 13px; }
         .button { width: 100%; }
         .topbar-actions { gap: 8px; }
         .topbar-actions .status { display: none; }
@@ -1271,6 +1354,28 @@ ${logoYaraStyles()}
         .attachment-preview { grid-template-columns: auto minmax(0, 1fr); }
         .attachment-card .button,
         .attachment-preview .icon-button { grid-column: 1 / -1; width: 100%; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+
+        .message,
+        .message.assistant {
+          animation: none !important;
+        }
+
+        .message.thinking::after,
+        .typing-cursor,
+        .send-spinner {
+          animation: none !important;
+        }
       }
     </style>
   </head>
@@ -1414,7 +1519,7 @@ ${logoYaraStyles()}
             <form class="composer" id="chatForm">
               <button class="icon-button" id="attachButton" type="button" aria-label="Anexar arquivo">${icon("paperclip")}</button>
               <textarea id="messageInput" placeholder="Mensagem para YARA..." rows="1" autocomplete="off"></textarea>
-              <button class="primary-action" type="submit" aria-label="Enviar mensagem">${icon("send")}Enviar</button>
+              <button class="primary-action" id="sendButton" type="submit" aria-label="Enviar mensagem">${icon("send")}Enviar</button>
             </form>
           </div>
         </section>
@@ -1807,6 +1912,8 @@ ${logoYaraStyles()}
       let audioStream = null;
       let audioChunks = [];
       let documentTemplates = [];
+      let responseState = "done";
+      let isResponding = false;
 
       const els = {
         accountName: document.getElementById("accountName"),
@@ -1821,6 +1928,7 @@ ${logoYaraStyles()}
         conversationList: document.getElementById("conversationList"),
         messages: document.getElementById("messages"),
         messageInput: document.getElementById("messageInput"),
+        sendButton: document.getElementById("sendButton"),
         attachmentPreview: document.getElementById("attachmentPreview"),
         fileInputImages: document.getElementById("fileInputImages"),
         fileInputDocument: document.getElementById("fileInputDocument"),
@@ -2199,6 +2307,22 @@ ${logoYaraStyles()}
         els.messageInput.style.height = Math.min(132, els.messageInput.scrollHeight) + "px";
       }
 
+      function scrollMessagesToBottom() {
+        window.requestAnimationFrame(function() {
+          els.messages.scrollTop = els.messages.scrollHeight;
+        });
+      }
+
+      function setResponseState(state) {
+        responseState = state;
+        isResponding = state === "sending" || state === "thinking" || state === "typing";
+        els.sendButton.disabled = isResponding;
+        els.sendButton.setAttribute("aria-busy", isResponding ? "true" : "false");
+        els.sendButton.innerHTML = isResponding
+          ? '<span class="send-spinner" aria-hidden="true"></span><span>Enviando</span>'
+          : '${icon("send")}Enviar';
+      }
+
       async function reloadCurrentConversation() {
         if (!currentConversationId) return;
         const conversation = await api("/api/conversations/" + currentConversationId);
@@ -2245,28 +2369,32 @@ ${logoYaraStyles()}
         currentMessages = messages || [];
         if (!currentMessages.length) {
           els.messages.innerHTML = emptyChatHtml();
+          scrollMessagesToBottom();
           return;
         }
         els.messages.innerHTML = currentMessages.map(function(message) {
           const who = message.role === "user" ? "Você" : "YARA";
           const id = escapeHtml(message.id || "");
+          const state = message.state || (message.typing ? "thinking" : "");
           const avatar = message.role === "assistant" ? '<span class="message-avatar">YA</span>' : "";
           const time = formatTime(message.created_at);
           const uploads = message.uploads && message.uploads.length
             ? '<div class="message-attachments">' + message.uploads.map(renderAttachment).join("") + '</div>'
             : "";
           const edited = message.edited_at ? '<span class="muted"> · editada</span>' : "";
-          const actions = '<div class="message-actions"><button class="message-action" data-copy-message="' + id + '" type="button">Copiar</button>' +
-            (message.role === "user" && id ? '<button class="message-action" data-edit-message="' + id + '" type="button">Editar</button>' : "") +
-            (message.role === "assistant" && id ? '<button class="message-action" data-regenerate-message="' + id + '" type="button">Regenerar</button><button class="message-action ' + (message.feedback === "like" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="like" type="button">Curtir</button><button class="message-action ' + (message.feedback === "dislike" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="dislike" type="button">Não curtir</button>' : "") +
-            '</div>';
-          const contentHtml = message.typing
-            ? '<div class="typing-indicator" aria-label="YARA está pensando"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span><span class="muted">YARA está pensando...</span></div>'
-            : renderMarkdown(message.content);
-          return '<article class="message ' + message.role + '" data-message-id="' + id + '">' + avatar + '<small>' + who + edited + (time ? '<span class="message-time">' + time + '</span>' : "") + '</small><div class="message-content">' + contentHtml + '</div>' + uploads + actions + '</article>';
+          const actions = id
+            ? '<div class="message-actions"><button class="message-action" data-copy-message="' + id + '" type="button">Copiar</button>' +
+              (message.role === "user" ? '<button class="message-action" data-edit-message="' + id + '" type="button">Editar</button>' : "") +
+              (message.role === "assistant" ? '<button class="message-action" data-regenerate-message="' + id + '" type="button">Regenerar</button><button class="message-action ' + (message.feedback === "like" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="like" type="button">Curtir</button><button class="message-action ' + (message.feedback === "dislike" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="dislike" type="button">Não curtir</button>' : "") +
+              '</div>'
+            : "";
+          const contentHtml = state === "thinking"
+            ? '<div class="typing-indicator" role="status" aria-live="polite" aria-label="YARA está pensando"><span>YARA está pensando...</span><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>'
+            : renderMarkdown(message.content || "") + (state === "typing" ? '<span class="typing-cursor" aria-hidden="true"></span>' : "");
+          return '<article class="message ' + message.role + (state ? " " + state : "") + '" data-message-id="' + id + '" data-state="' + escapeHtml(state) + '">' + avatar + '<small>' + who + edited + (time ? '<span class="message-time">' + time + '</span>' : "") + '</small><div class="message-content">' + contentHtml + '</div>' + uploads + actions + '</article>';
         }).join("");
         hydrateProtectedImages();
-        els.messages.scrollTop = els.messages.scrollHeight;
+        scrollMessagesToBottom();
       }
 
       async function openConversation(id) {
@@ -2339,6 +2467,13 @@ ${logoYaraStyles()}
       }
 
       async function streamChat(payload, baseMessages, userMessageText) {
+        const userPreview = { role: "user", content: userMessageText || "Anexo enviado.", uploads: [] };
+        renderMessages(baseMessages.concat([
+          userPreview,
+          { role: "assistant", content: "", state: "thinking" }
+        ]));
+        setResponseState("thinking");
+
         const response = await fetch("/api/chat/stream", {
           method: "POST",
           headers: {
@@ -2359,11 +2494,6 @@ ${logoYaraStyles()}
         let assistantText = "";
         let donePayload = null;
 
-        renderMessages(baseMessages.concat([
-          { role: "user", content: userMessageText || "Anexo enviado.", uploads: [] },
-          { role: "assistant", content: "", typing: true }
-        ]));
-
         while (true) {
           const chunk = await reader.read();
           if (chunk.done) break;
@@ -2378,9 +2508,10 @@ ${logoYaraStyles()}
             const data = JSON.parse(rawData);
             if (eventName === "chunk") {
               assistantText += data.text || "";
+              if (responseState !== "typing") setResponseState("typing");
               renderMessages(baseMessages.concat([
-                { role: "user", content: userMessageText || "Anexo enviado.", uploads: [] },
-                { role: "assistant", content: assistantText }
+                userPreview,
+                { role: "assistant", content: assistantText, state: "typing" }
               ]));
             }
             if (eventName === "done") {
@@ -2398,11 +2529,14 @@ ${logoYaraStyles()}
 
       async function sendMessage(event) {
         event.preventDefault();
+        if (isResponding) return;
         const message = els.messageInput.value.trim();
         if (!message && !pendingAttachment) return;
         els.messageInput.value = "";
         autoGrowMessageInput();
         const baseMessages = currentMessages.slice();
+        const userPreview = { role: "user", content: message || "Anexo enviado.", uploads: [] };
+        setResponseState("sending");
         try {
           const upload = await uploadPendingAttachment();
           const payload = {
@@ -2414,17 +2548,25 @@ ${logoYaraStyles()}
           currentConversationId = data.conversationId;
           const conversation = await api("/api/conversations/" + currentConversationId);
           currentConversation = conversation.conversation;
+          setResponseState("done");
           renderMessages(conversation.messages || []);
           await loadConversations();
         } catch (error) {
           const text = error.message || "Não foi possível enviar este arquivo.";
+          setResponseState("error");
           showToast(text);
           if (currentConversationId) {
-            const conversation = await api("/api/conversations/" + currentConversationId).catch(function() { return { messages: [] }; });
-            renderMessages(conversation.messages || []);
+            const conversation = await api("/api/conversations/" + currentConversationId).catch(function() { return { messages: baseMessages }; });
+            renderMessages((conversation.messages || baseMessages).concat([
+              { role: "assistant", content: text, state: "error" }
+            ]));
           } else {
-            renderMessages([]);
+            renderMessages(baseMessages.concat([
+              userPreview,
+              { role: "assistant", content: text, state: "error" }
+            ]));
           }
+          window.setTimeout(function() { setResponseState("done"); }, 250);
         }
       }
 
