@@ -93,6 +93,12 @@ create table if not exists user_settings (
   ai_style text not null default 'balanced',
   language text not null default 'pt-BR',
   response_length text not null default 'medium',
+  voice_enabled integer not null default 1,
+  voice_language text not null default 'pt-BR',
+  voice_rate real not null default 1,
+  voice_pitch real not null default 1,
+  voice_gender text not null default 'auto',
+  voice_auto_read integer not null default 0,
   updated_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );

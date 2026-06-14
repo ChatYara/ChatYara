@@ -825,11 +825,82 @@ ${logoYaraStyles()}
         box-shadow: 0 0 20px rgba(10, 132, 255, 0.18);
       }
 
+      .voice-toggle,
+      .conversation-toggle {
+        min-height: 34px;
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        border-radius: 999px;
+        padding: 7px 11px;
+        color: #bfdbfe;
+        background: rgba(15, 23, 42, 0.58);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .voice-toggle.listening,
+      .conversation-toggle.active,
+      .voice-button.listening {
+        color: #031425;
+        border-color: rgba(56, 189, 248, 0.8);
+        background: linear-gradient(135deg, #38bdf8, #0a84ff);
+        box-shadow: 0 0 24px rgba(10, 132, 255, 0.26);
+      }
+
+      .voice-status {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 999px;
+        padding: 7px 11px;
+        color: var(--muted);
+        background: rgba(2, 6, 23, 0.42);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .voice-status strong {
+        color: #dbeafe;
+      }
+
+      .voice-status.error strong {
+        color: #fecaca;
+      }
+
+      .voice-status.listening strong,
+      .voice-status.speaking strong {
+        color: #bae6fd;
+      }
+
+      .voice-waves {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .voice-waves span {
+        width: 3px;
+        height: 8px;
+        border-radius: 999px;
+        background: #38bdf8;
+        opacity: 0.55;
+        animation: voiceWave 1s ease-in-out infinite;
+      }
+
+      .voice-waves span:nth-child(2) { animation-delay: 0.12s; }
+      .voice-waves span:nth-child(3) { animation-delay: 0.24s; }
+
+      @keyframes voiceWave {
+        0%, 100% { transform: scaleY(0.6); opacity: 0.45; }
+        50% { transform: scaleY(1.7); opacity: 1; }
+      }
+
       .composer {
         max-width: 920px;
         margin: 0 auto;
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
         gap: 8px;
         border: 1px solid rgba(56, 189, 248, 0.38);
         border-radius: 18px;
@@ -1348,7 +1419,7 @@ ${logoYaraStyles()}
         .messages { gap: 14px; padding-bottom: 4px; }
         .composer-wrap { padding-top: 6px; }
         .composer-tools { margin-bottom: 6px; overflow-x: auto; }
-        .composer { grid-template-columns: auto minmax(0, 1fr) auto; border-radius: 16px; }
+        .composer { grid-template-columns: auto auto minmax(0, 1fr) auto; border-radius: 16px; }
         .composer .primary-action { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
         .composer .primary-action svg { margin: 0; }
         .composer textarea { max-height: 96px; }
@@ -1547,9 +1618,12 @@ ${logoYaraStyles()}
             <div class="attachment-preview" id="attachmentPreview" hidden></div>
             <div class="composer-tools">
               <button class="web-search-toggle" id="webSearchToggle" type="button">${icon("search")}Pesquisar na web</button>
+              <button class="conversation-toggle" id="conversationModeButton" type="button">${icon("mic")}Conversar com YARA</button>
+              <span class="voice-status" id="voiceStatus" role="status" aria-live="polite"><span class="voice-waves" aria-hidden="true"><span></span><span></span><span></span></span><strong>Voz pronta</strong></span>
             </div>
             <form class="composer" id="chatForm">
               <button class="icon-button" id="attachButton" type="button" aria-label="Anexar arquivo">${icon("paperclip")}</button>
+              <button class="icon-button voice-button" id="dictationButton" type="button" aria-label="Ditar mensagem">${icon("mic")}</button>
               <textarea id="messageInput" placeholder="Mensagem para YARA..." rows="1" autocomplete="off"></textarea>
               <button class="primary-action" id="sendButton" type="submit" aria-label="Enviar mensagem">${icon("send")}Enviar</button>
             </form>
@@ -1713,6 +1787,7 @@ ${logoYaraStyles()}
               <button class="tab" data-settings-tab="notifications" type="button">Notificações</button>
               <button class="tab" data-settings-tab="security" type="button">Segurança</button>
               <button class="tab" data-settings-tab="appearance" type="button">Aparência</button>
+              <button class="tab" data-settings-tab="voice" type="button">Voz</button>
               <button class="tab" data-settings-tab="ai" type="button">IA</button>
               <button class="tab" data-settings-tab="about" type="button">Sobre</button>
             </div>
@@ -1885,6 +1960,43 @@ ${logoYaraStyles()}
               </div>
             </div>
 
+            <div class="settings-pane settings-grid" id="settings-voice" hidden>
+              <form class="card" id="voiceForm">
+                <h2>Voz</h2>
+                <label class="toggle-row"><div><strong>Ativar voz</strong><p class="muted">Permite ditado, leitura de respostas e modo conversa quando o navegador suportar.</p></div><input id="voiceEnabled" type="checkbox" /></label>
+                <label class="muted">Idioma</label>
+                <select class="select" id="voiceLanguage">
+                  <option value="pt-BR">Português do Brasil</option>
+                  <option value="en-US">Inglês</option>
+                  <option value="es-ES">Espanhol</option>
+                </select>
+                <label class="muted">Velocidade</label>
+                <input class="field" id="voiceRate" min="0.6" max="1.8" step="0.1" type="number" />
+                <label class="muted">Tom</label>
+                <input class="field" id="voicePitch" min="0.6" max="1.6" step="0.1" type="number" />
+                <label class="muted">Voz preferida</label>
+                <select class="select" id="voiceGender">
+                  <option value="auto">Automática</option>
+                  <option value="female">Feminina quando disponível</option>
+                  <option value="male">Masculina quando disponível</option>
+                </select>
+                <label class="toggle-row"><div><strong>Ler respostas automaticamente</strong><p class="muted">A YARA fala a resposta após enviar uma mensagem.</p></div><input id="voiceAutoRead" type="checkbox" /></label>
+                <button class="primary-action" type="submit">${icon("save")}Salvar voz</button>
+              </form>
+              <article class="card">
+                <h2>Disponibilidade</h2>
+                <p class="muted" id="speechSupportText">Verificando suporte do navegador...</p>
+                <div class="settings-card-grid">
+                  ${settingsInfoCard("Web Speech API", "Ditado e leitura por recursos nativos do navegador.", "mic")}
+                  ${settingsInfoCard("Whisper", "Estrutura preparada para STT no servidor futuramente.", "sparkles")}
+                  ${settingsInfoCard("Google STT", "Preparado para provedor de fala corporativo.", "code")}
+                  ${settingsInfoCard("Deepgram", "Preparado para transcrição em tempo real.", "code")}
+                  ${settingsInfoCard("AssemblyAI", "Preparado para transcrição avançada.", "code")}
+                  ${settingsInfoCard("TTS externo", "Edge TTS, ElevenLabs e OpenAI TTS ficam reservados para backend seguro.", "shield")}
+                </div>
+              </article>
+            </div>
+
             <div class="settings-pane settings-grid" id="settings-ai" hidden>
               <article class="card">
                 <h2>IA</h2>
@@ -1947,6 +2059,24 @@ ${logoYaraStyles()}
       let responseState = "done";
       let isResponding = false;
       let useWebSearchNext = false;
+      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const speechRecognitionSupported = Boolean(SpeechRecognitionCtor);
+      const speechSynthesisSupported = "speechSynthesis" in window;
+      let speechRecognition = null;
+      let isListening = false;
+      let conversationMode = false;
+      let voiceBaseText = "";
+      let activeUtterance = null;
+      let speakingMessageId = null;
+      let speechPaused = false;
+      let voiceSettings = {
+        enabled: true,
+        language: "pt-BR",
+        rate: 1,
+        pitch: 1,
+        gender: "auto",
+        autoRead: false
+      };
 
       const els = {
         accountName: document.getElementById("accountName"),
@@ -1963,6 +2093,9 @@ ${logoYaraStyles()}
         messageInput: document.getElementById("messageInput"),
         sendButton: document.getElementById("sendButton"),
         webSearchToggle: document.getElementById("webSearchToggle"),
+        dictationButton: document.getElementById("dictationButton"),
+        conversationModeButton: document.getElementById("conversationModeButton"),
+        voiceStatus: document.getElementById("voiceStatus"),
         attachmentPreview: document.getElementById("attachmentPreview"),
         fileInputImages: document.getElementById("fileInputImages"),
         fileInputDocument: document.getElementById("fileInputDocument"),
@@ -2363,6 +2496,263 @@ ${logoYaraStyles()}
         els.webSearchToggle.setAttribute("aria-pressed", useWebSearchNext ? "true" : "false");
       }
 
+      function setVoiceStatus(message, state) {
+        const safeState = state || "idle";
+        els.voiceStatus.className = "voice-status " + safeState;
+        els.voiceStatus.innerHTML = '<span class="voice-waves" aria-hidden="true"><span></span><span></span><span></span></span><strong>' + escapeHtml(message) + '</strong>';
+      }
+
+      function refreshVoiceControls() {
+        els.dictationButton.classList.toggle("listening", isListening);
+        els.dictationButton.setAttribute("aria-pressed", isListening ? "true" : "false");
+        els.conversationModeButton.classList.toggle("active", conversationMode);
+        els.conversationModeButton.setAttribute("aria-pressed", conversationMode ? "true" : "false");
+      }
+
+      function updateSpeechSupportText() {
+        const support = document.getElementById("speechSupportText");
+        if (!support) return;
+        const stt = speechRecognitionSupported ? "Ditado disponível neste navegador." : "Ditado indisponível neste navegador.";
+        const tts = speechSynthesisSupported ? "Leitura de respostas disponível." : "Leitura de respostas indisponível.";
+        support.textContent = stt + " " + tts + " Chrome e Edge oferecem a melhor compatibilidade; Safari pode variar por versão.";
+      }
+
+      function applyVoiceSettings(settings) {
+        voiceSettings = {
+          enabled: Boolean(settings.voice_enabled ?? true),
+          language: settings.voice_language || settings.language || "pt-BR",
+          rate: Number(settings.voice_rate || 1),
+          pitch: Number(settings.voice_pitch || 1),
+          gender: settings.voice_gender || "auto",
+          autoRead: Boolean(settings.voice_auto_read)
+        };
+
+        const enabled = document.getElementById("voiceEnabled");
+        const language = document.getElementById("voiceLanguage");
+        const rate = document.getElementById("voiceRate");
+        const pitch = document.getElementById("voicePitch");
+        const gender = document.getElementById("voiceGender");
+        const autoRead = document.getElementById("voiceAutoRead");
+        if (enabled) enabled.checked = voiceSettings.enabled;
+        if (language) language.value = voiceSettings.language;
+        if (rate) rate.value = String(voiceSettings.rate);
+        if (pitch) pitch.value = String(voiceSettings.pitch);
+        if (gender) gender.value = voiceSettings.gender;
+        if (autoRead) autoRead.checked = voiceSettings.autoRead;
+        updateSpeechSupportText();
+      }
+
+      function cleanTextForSpeech(value) {
+        return String(value || "")
+          .replace(/\\x60\\x60\\x60[\\s\\S]*?\\x60\\x60\\x60/g, " bloco de código ")
+          .replace(/\\x60([^\\x60]+)\\x60/g, "$1")
+          .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, "$1")
+          .replace(/[#*_>\\-]+/g, " ")
+          .replace(/Fontes:\\s*[\\s\\S]*$/i, "Fontes listadas na conversa.")
+          .replace(/\\s+/g, " ")
+          .trim();
+      }
+
+      function chooseVoice() {
+        if (!speechSynthesisSupported) return null;
+        const voices = window.speechSynthesis.getVoices();
+        const language = voiceSettings.language || "pt-BR";
+        const sameLanguage = voices.filter(function(voice) {
+          return voice.lang && voice.lang.toLowerCase().startsWith(language.slice(0, 2).toLowerCase());
+        });
+        const pool = sameLanguage.length ? sameLanguage : voices;
+        if (voiceSettings.gender === "female") {
+          return pool.find(function(voice) { return /female|feminina|woman|maria|helena|luciana|francisca/i.test(voice.name); }) || pool[0] || null;
+        }
+        if (voiceSettings.gender === "male") {
+          return pool.find(function(voice) { return /male|masculina|man|daniel|felipe|ricardo|joaquim/i.test(voice.name); }) || pool[0] || null;
+        }
+        return pool[0] || null;
+      }
+
+      function stopSpeech(announce) {
+        if (speechSynthesisSupported) {
+          window.speechSynthesis.cancel();
+        }
+        activeUtterance = null;
+        speakingMessageId = null;
+        speechPaused = false;
+        if (announce !== false) setVoiceStatus("Leitura parada", "idle");
+      }
+
+      function speakText(value, messageId, options) {
+        if (!voiceSettings.enabled) {
+          setVoiceStatus("Voz desativada nas configurações", "error");
+          return;
+        }
+        if (!speechSynthesisSupported) {
+          setVoiceStatus("Leitura indisponível neste navegador", "error");
+          return;
+        }
+        const text = cleanTextForSpeech(value);
+        if (!text) return;
+        stopSpeech(false);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = voiceSettings.language || "pt-BR";
+        utterance.rate = Number(voiceSettings.rate || 1);
+        utterance.pitch = Number(voiceSettings.pitch || 1);
+        const preferredVoice = chooseVoice();
+        if (preferredVoice) utterance.voice = preferredVoice;
+        activeUtterance = utterance;
+        speakingMessageId = messageId || null;
+        speechPaused = false;
+        utterance.onstart = function() {
+          setVoiceStatus("YARA está falando...", "speaking");
+        };
+        utterance.onend = function() {
+          activeUtterance = null;
+          speakingMessageId = null;
+          speechPaused = false;
+          setVoiceStatus(conversationMode ? "Ouvindo..." : "Voz pronta", conversationMode ? "listening" : "idle");
+          if (options && options.resumeConversation && conversationMode) {
+            window.setTimeout(function() { startDictation(true); }, 550);
+          }
+        };
+        utterance.onerror = function() {
+          activeUtterance = null;
+          speakingMessageId = null;
+          speechPaused = false;
+          setVoiceStatus("Erro ao ler resposta", "error");
+          if (options && options.resumeConversation && conversationMode) {
+            window.setTimeout(function() { startDictation(true); }, 700);
+          }
+        };
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function toggleSpeechPause() {
+        if (!speechSynthesisSupported || !activeUtterance) return;
+        if (speechPaused) {
+          window.speechSynthesis.resume();
+          speechPaused = false;
+          setVoiceStatus("YARA está falando...", "speaking");
+        } else {
+          window.speechSynthesis.pause();
+          speechPaused = true;
+          setVoiceStatus("Leitura pausada", "idle");
+        }
+      }
+
+      function speakMessage(messageId, options) {
+        const message = currentMessages.find(function(item) { return item.id === messageId; });
+        if (!message || message.role !== "assistant") return;
+        speakText(message.content || "", messageId, options || {});
+      }
+
+      function getSpeechRecognition() {
+        if (!speechRecognitionSupported) return null;
+        if (speechRecognition) return speechRecognition;
+        speechRecognition = new SpeechRecognitionCtor();
+        speechRecognition.interimResults = true;
+        speechRecognition.continuous = false;
+        speechRecognition.maxAlternatives = 1;
+        speechRecognition.onstart = function() {
+          isListening = true;
+          refreshVoiceControls();
+          setVoiceStatus(conversationMode ? "Ouvindo..." : "Gravando...", "listening");
+        };
+        speechRecognition.onresult = function(event) {
+          let finalText = "";
+          let interimText = "";
+          for (let index = 0; index < event.results.length; index += 1) {
+            const transcript = event.results[index][0] ? event.results[index][0].transcript : "";
+            if (event.results[index].isFinal) finalText += transcript;
+            else interimText += transcript;
+          }
+          const speechText = (finalText || interimText || "").trim();
+          const base = voiceBaseText ? voiceBaseText + " " : "";
+          els.messageInput.value = (base + speechText).trim();
+          autoGrowMessageInput();
+        };
+        speechRecognition.onerror = function(event) {
+          isListening = false;
+          refreshVoiceControls();
+          const denied = event.error === "not-allowed" || event.error === "service-not-allowed";
+          setVoiceStatus(denied ? "Permissão de microfone negada" : "Erro de microfone", "error");
+          if (denied) conversationMode = false;
+          refreshVoiceControls();
+        };
+        speechRecognition.onend = function() {
+          const hasText = els.messageInput.value.trim().length > 0 && els.messageInput.value.trim() !== voiceBaseText;
+          isListening = false;
+          refreshVoiceControls();
+          if (conversationMode && hasText && !isResponding) {
+            setVoiceStatus("Enviando fala para a YARA...", "speaking");
+            document.getElementById("chatForm").requestSubmit();
+            return;
+          }
+          setVoiceStatus(conversationMode ? "Ouvindo..." : "Voz pronta", conversationMode ? "listening" : "idle");
+          if (conversationMode && !isResponding && !activeUtterance) {
+            window.setTimeout(function() { startDictation(true); }, 750);
+          }
+        };
+        return speechRecognition;
+      }
+
+      function startDictation(fromConversation) {
+        if (!voiceSettings.enabled) {
+          setVoiceStatus("Voz desativada nas configurações", "error");
+          return;
+        }
+        if (!speechRecognitionSupported) {
+          setVoiceStatus("Ditado indisponível neste navegador", "error");
+          return;
+        }
+        if (isListening) return;
+        stopSpeech(false);
+        const recognition = getSpeechRecognition();
+        if (!recognition) return;
+        recognition.lang = voiceSettings.language || "pt-BR";
+        voiceBaseText = els.messageInput.value.trim();
+        try {
+          recognition.start();
+        } catch {
+          setVoiceStatus(fromConversation ? "Ouvindo..." : "Gravando...", "listening");
+        }
+      }
+
+      function stopDictation() {
+        if (!speechRecognition || !isListening) return;
+        speechRecognition.stop();
+      }
+
+      function toggleDictation() {
+        if (isListening) {
+          stopDictation();
+          return;
+        }
+        startDictation(false);
+      }
+
+      function setConversationMode(active) {
+        conversationMode = Boolean(active);
+        refreshVoiceControls();
+        if (conversationMode) {
+          setVoiceStatus("Ouvindo...", "listening");
+          startDictation(true);
+        } else {
+          stopDictation();
+          setVoiceStatus("Modo conversa desativado", "idle");
+        }
+      }
+
+      function handleAssistantVoiceAfterResponse(messages) {
+        const assistant = (messages || []).slice().reverse().find(function(message) {
+          return message.role === "assistant" && message.content;
+        });
+        if (!assistant) return;
+        if (conversationMode || voiceSettings.autoRead) {
+          speakText(assistant.content, assistant.id, { resumeConversation: conversationMode });
+        } else if (conversationMode) {
+          window.setTimeout(function() { startDictation(true); }, 500);
+        }
+      }
+
       function renderSources(sources) {
         if (!sources || !sources.length) return '<p class="muted">Nenhuma fonte registrada.</p>';
         return sources.map(function(source, index) {
@@ -2450,7 +2840,7 @@ ${logoYaraStyles()}
           const actions = id
             ? '<div class="message-actions"><button class="message-action" data-copy-message="' + id + '" type="button">Copiar</button>' +
               (message.role === "user" ? '<button class="message-action" data-edit-message="' + id + '" type="button">Editar</button>' : "") +
-              (message.role === "assistant" ? '<button class="message-action" data-regenerate-message="' + id + '" type="button">Regenerar</button><button class="message-action ' + (message.feedback === "like" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="like" type="button">Curtir</button><button class="message-action ' + (message.feedback === "dislike" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="dislike" type="button">Não curtir</button>' : "") +
+              (message.role === "assistant" ? '<button class="message-action" data-speak-message="' + id + '" type="button">Ouvir</button><button class="message-action" data-pause-speech="' + id + '" type="button">Pausar/Continuar</button><button class="message-action" data-stop-speech="' + id + '" type="button">Parar</button><button class="message-action" data-regenerate-message="' + id + '" type="button">Regenerar</button><button class="message-action ' + (message.feedback === "like" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="like" type="button">Curtir</button><button class="message-action ' + (message.feedback === "dislike" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="dislike" type="button">Não curtir</button>' : "") +
               '</div>'
             : "";
           const contentHtml = state === "thinking"
@@ -2617,6 +3007,7 @@ ${logoYaraStyles()}
           currentConversation = conversation.conversation;
           setResponseState("done");
           renderMessages(conversation.messages || []);
+          handleAssistantVoiceAfterResponse(conversation.messages || data.messages || []);
           await loadConversations();
         } catch (error) {
           const text = error.message || "Não foi possível enviar este arquivo.";
@@ -3025,6 +3416,7 @@ ${logoYaraStyles()}
         document.getElementById("aiStyle").value = settings.ai_style || "balanced";
         document.getElementById("language").value = settings.language || "pt-BR";
         document.getElementById("responseLength").value = settings.response_length || "medium";
+        applyVoiceSettings(settings);
         document.getElementById("settingsName").textContent = currentUser ? currentUser.name : "Usuário";
         document.getElementById("settingsEmail").textContent = currentUser ? currentUser.email : "Conta YARA";
         els.settingsAvatar.textContent = initials(currentUser ? currentUser.name : "YA");
@@ -3045,6 +3437,8 @@ ${logoYaraStyles()}
         }
         try {
           await refreshUser();
+          const settingsData = await api("/api/settings").catch(function() { return { settings: {} }; });
+          applyVoiceSettings(settingsData.settings || {});
           setView("chat");
           await loadConversations();
           await loadAiStatus().catch(function() {});
@@ -3107,6 +3501,10 @@ ${logoYaraStyles()}
         setWebSearchNext(!useWebSearchNext);
         showToast(useWebSearchNext ? "A próxima mensagem usará pesquisa online." : "Pesquisa online desativada.");
       });
+      document.getElementById("dictationButton").addEventListener("click", toggleDictation);
+      document.getElementById("conversationModeButton").addEventListener("click", function() {
+        setConversationMode(!conversationMode);
+      });
       document.getElementById("modalClose").addEventListener("click", closeModal);
       els.modalOverlay.addEventListener("click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
       document.addEventListener("click", function(event) {
@@ -3150,6 +3548,24 @@ ${logoYaraStyles()}
         const copyButton = event.target.closest("[data-copy-message]");
         if (copyButton) {
           await copyMessage(copyButton.dataset.copyMessage);
+          return;
+        }
+
+        const speakButton = event.target.closest("[data-speak-message]");
+        if (speakButton) {
+          speakMessage(speakButton.dataset.speakMessage);
+          return;
+        }
+
+        const pauseSpeechButton = event.target.closest("[data-pause-speech]");
+        if (pauseSpeechButton) {
+          toggleSpeechPause();
+          return;
+        }
+
+        const stopSpeechButton = event.target.closest("[data-stop-speech]");
+        if (stopSpeechButton) {
+          stopSpeech();
           return;
         }
 
@@ -3502,6 +3918,29 @@ ${logoYaraStyles()}
         showToast("Preferências salvas.");
       });
 
+      document.getElementById("voiceForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        const payload = {
+          voiceEnabled: document.getElementById("voiceEnabled").checked,
+          voiceLanguage: document.getElementById("voiceLanguage").value,
+          voiceRate: Number(document.getElementById("voiceRate").value || 1),
+          voicePitch: Number(document.getElementById("voicePitch").value || 1),
+          voiceGender: document.getElementById("voiceGender").value,
+          voiceAutoRead: document.getElementById("voiceAutoRead").checked
+        };
+        const data = await api("/api/settings", {
+          method: "PATCH",
+          body: JSON.stringify(payload)
+        });
+        applyVoiceSettings(data.settings || {});
+        if (!voiceSettings.enabled) {
+          stopSpeech(false);
+          stopDictation();
+          setConversationMode(false);
+        }
+        showToast("Configurações de voz salvas.");
+      });
+
       document.getElementById("memoryForm").addEventListener("submit", async function(event) {
         event.preventDefault();
         const title = document.getElementById("memoryTitle").value.trim();
@@ -3637,11 +4076,18 @@ ${logoYaraStyles()}
       });
 
       document.getElementById("logoutButton").addEventListener("click", function() {
+        stopSpeech(false);
+        stopDictation();
         localStorage.removeItem("yaraToken");
         localStorage.removeItem("yaraUser");
         window.location.href = "/";
       });
 
+      if (speechSynthesisSupported) {
+        window.speechSynthesis.onvoiceschanged = updateSpeechSupportText;
+      }
+      updateSpeechSupportText();
+      refreshVoiceControls();
       init();
     </script>
   </body>

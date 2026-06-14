@@ -305,7 +305,13 @@ workspaceRoutes.patch("/settings", (req, res) => {
       theme: z.string().min(1).optional(),
       aiStyle: z.string().min(1).optional(),
       language: z.string().min(2).optional(),
-      responseLength: z.string().min(1).optional()
+      responseLength: z.string().min(1).optional(),
+      voiceEnabled: z.boolean().optional(),
+      voiceLanguage: z.string().min(2).optional(),
+      voiceRate: z.number().min(0.6).max(1.8).optional(),
+      voicePitch: z.number().min(0.6).max(1.6).optional(),
+      voiceGender: z.enum(["auto", "female", "male"]).optional(),
+      voiceAutoRead: z.boolean().optional()
     })
     .safeParse(req.body);
 

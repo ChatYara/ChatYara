@@ -95,6 +95,12 @@ export function runMigrations() {
       ai_style text not null default 'balanced',
       language text not null default 'pt-BR',
       response_length text not null default 'medium',
+      voice_enabled integer not null default 1,
+      voice_language text not null default 'pt-BR',
+      voice_rate real not null default 1,
+      voice_pitch real not null default 1,
+      voice_gender text not null default 'auto',
+      voice_auto_read integer not null default 0,
       updated_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
     );
@@ -231,6 +237,12 @@ export function runMigrations() {
   ensureColumn("user_settings", "avatar_url", "text");
   ensureColumn("user_settings", "language", "text not null default 'pt-BR'");
   ensureColumn("user_settings", "response_length", "text not null default 'medium'");
+  ensureColumn("user_settings", "voice_enabled", "integer not null default 1");
+  ensureColumn("user_settings", "voice_language", "text not null default 'pt-BR'");
+  ensureColumn("user_settings", "voice_rate", "real not null default 1");
+  ensureColumn("user_settings", "voice_pitch", "real not null default 1");
+  ensureColumn("user_settings", "voice_gender", "text not null default 'auto'");
+  ensureColumn("user_settings", "voice_auto_read", "integer not null default 0");
   ensureColumn("user_sessions", "last_seen_at", "text");
   ensureColumn("user_sessions", "revoked_at", "text");
   ensureColumn("uploads", "message_id", "text");
@@ -244,6 +256,8 @@ export function runMigrations() {
     update projects set content = output where content is null;
     update user_settings set language = 'pt-BR' where language is null;
     update user_settings set response_length = 'medium' where response_length is null;
+    update user_settings set voice_language = 'pt-BR' where voice_language is null;
+    update user_settings set voice_gender = 'auto' where voice_gender is null;
 
     create unique index if not exists users_phone_unique
       on users(phone)

@@ -495,7 +495,8 @@ export function getSettings(userId: string) {
   const db = getDatabase();
   const existing = db
     .prepare(
-      `select user_id, display_name, full_name, avatar_url, theme, ai_style, language, response_length, updated_at
+      `select user_id, display_name, full_name, avatar_url, theme, ai_style, language, response_length,
+              voice_enabled, voice_language, voice_rate, voice_pitch, voice_gender, voice_auto_read, updated_at
        from user_settings
        where user_id = ?`
     )
@@ -518,6 +519,12 @@ export function getSettings(userId: string) {
     ai_style: "balanced",
     language: "pt-BR",
     response_length: "medium",
+    voice_enabled: 1,
+    voice_language: "pt-BR",
+    voice_rate: 1,
+    voice_pitch: 1,
+    voice_gender: "auto",
+    voice_auto_read: 0,
     updated_at: new Date().toISOString()
   };
 }
@@ -532,6 +539,12 @@ export function updateSettings(
     aiStyle?: string;
     language?: string;
     responseLength?: string;
+    voiceEnabled?: boolean;
+    voiceLanguage?: string;
+    voiceRate?: number;
+    voicePitch?: number;
+    voiceGender?: string;
+    voiceAutoRead?: boolean;
   }
 ) {
   const current = getSettings(userId) as {
@@ -542,6 +555,12 @@ export function updateSettings(
     ai_style: string;
     language: string;
     response_length: string;
+    voice_enabled: number;
+    voice_language: string;
+    voice_rate: number;
+    voice_pitch: number;
+    voice_gender: string;
+    voice_auto_read: number;
   };
   const displayName = input.displayName?.trim() || current.display_name;
   const fullName = input.fullName?.trim() ?? current.full_name ?? "";
@@ -550,11 +569,20 @@ export function updateSettings(
   const aiStyle = input.aiStyle?.trim() || current.ai_style;
   const language = input.language?.trim() || current.language || "pt-BR";
   const responseLength = input.responseLength?.trim() || current.response_length || "medium";
+  const voiceEnabled = typeof input.voiceEnabled === "boolean" ? (input.voiceEnabled ? 1 : 0) : current.voice_enabled;
+  const voiceLanguage = input.voiceLanguage?.trim() || current.voice_language || "pt-BR";
+  const voiceRate = Math.min(1.8, Math.max(0.6, Number(input.voiceRate ?? current.voice_rate ?? 1)));
+  const voicePitch = Math.min(1.6, Math.max(0.6, Number(input.voicePitch ?? current.voice_pitch ?? 1)));
+  const voiceGender = input.voiceGender?.trim() || current.voice_gender || "auto";
+  const voiceAutoRead = typeof input.voiceAutoRead === "boolean" ? (input.voiceAutoRead ? 1 : 0) : current.voice_auto_read;
 
   getDatabase()
     .prepare(
-      `insert into user_settings (user_id, display_name, full_name, avatar_url, theme, ai_style, language, response_length, updated_at)
-       values (?, ?, ?, ?, ?, ?, ?, ?, current_timestamp)
+      `insert into user_settings (
+         user_id, display_name, full_name, avatar_url, theme, ai_style, language, response_length,
+         voice_enabled, voice_language, voice_rate, voice_pitch, voice_gender, voice_auto_read, updated_at
+       )
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp)
        on conflict(user_id) do update set
          display_name = excluded.display_name,
          full_name = excluded.full_name,
@@ -563,9 +591,30 @@ export function updateSettings(
          ai_style = excluded.ai_style,
          language = excluded.language,
          response_length = excluded.response_length,
+         voice_enabled = excluded.voice_enabled,
+         voice_language = excluded.voice_language,
+         voice_rate = excluded.voice_rate,
+         voice_pitch = excluded.voice_pitch,
+         voice_gender = excluded.voice_gender,
+         voice_auto_read = excluded.voice_auto_read,
          updated_at = current_timestamp`
     )
-    .run(userId, displayName, fullName, avatarUrl || null, theme, aiStyle, language, responseLength);
+    .run(
+      userId,
+      displayName,
+      fullName,
+      avatarUrl || null,
+      theme,
+      aiStyle,
+      language,
+      responseLength,
+      voiceEnabled,
+      voiceLanguage,
+      voiceRate,
+      voicePitch,
+      voiceGender,
+      voiceAutoRead
+    );
 
   return getSettings(userId);
 }
