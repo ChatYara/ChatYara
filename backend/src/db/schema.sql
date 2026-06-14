@@ -193,20 +193,42 @@ create table if not exists project_uploads (
 create table if not exists documents (
   id text primary key,
   user_id text not null,
+  project_id text,
   title text not null,
+  type text not null default 'generated',
   template text not null,
-  format text not null check (format in ('pdf', 'csv')),
+  status text not null default 'ready',
+  format text not null,
   file_name text not null,
   file_type text not null,
   file_size integer not null,
   storage_path text not null,
+  original_file_id text,
   metadata_json text not null default '{}',
   created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
 
 create index if not exists documents_user_created
   on documents(user_id, created_at);
+
+create table if not exists document_conversions (
+  id text primary key,
+  user_id text not null,
+  source_document_id text not null,
+  result_document_id text,
+  from_type text not null,
+  to_type text not null,
+  status text not null,
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (source_document_id) references documents(id) on delete cascade,
+  foreign key (result_document_id) references documents(id) on delete set null
+);
+
+create index if not exists document_conversions_user_created
+  on document_conversions(user_id, created_at);
 
 create table if not exists search_history (
   id text primary key,

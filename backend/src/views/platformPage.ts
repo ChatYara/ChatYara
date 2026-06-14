@@ -1733,8 +1733,8 @@ ${logoYaraStyles()}
             </div>
             <div class="documents-layout">
               <article class="card">
-                <h2>Novo documento</h2>
-                <p class="muted">Escolha um modelo, preencha os campos em JSON e gere PDF ou CSV protegido.</p>
+                <h2>Criar documento</h2>
+                <p class="muted">Gere PDF, CSV, XLSX, TXT ou HTML com dados salvos na sua conta.</p>
                 <form class="form" id="documentPageForm">
                   <label>Título do documento</label>
                   <input class="field" id="documentPageTitle" placeholder="Ex.: Orçamento para cliente" required />
@@ -1744,6 +1744,9 @@ ${logoYaraStyles()}
                   <select class="select" id="documentPageFormat">
                     <option value="pdf">PDF</option>
                     <option value="csv">CSV</option>
+                    <option value="xlsx">XLSX</option>
+                    <option value="txt">TXT</option>
+                    <option value="html">HTML</option>
                   </select>
                   <label>Campos do documento</label>
                   <textarea class="field" id="documentPageFields" rows="8">{
@@ -1756,10 +1759,51 @@ ${logoYaraStyles()}
                 </form>
               </article>
               <article class="card">
-                <h2>Documentos gerados</h2>
-                <div class="list" id="documentsPageList"></div>
+                <h2>Upload e análise</h2>
+                <p class="muted">Envie PDF, TXT, CSV, XLSX ou DOCX para análise segura.</p>
+                <input id="documentUploadInput" type="file" accept=".pdf,.txt,.csv,.xlsx,.docx,application/pdf,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+                <button class="primary-action" id="documentUploadButton" type="button">${icon("paperclip")}Enviar documento</button>
+                <div class="list" id="documentAnalysisList"></div>
               </article>
             </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Conversões</h2>
+                <p class="muted">Converta documentos quando o formato estiver disponível.</p>
+                <select class="select" id="documentConvertSource"></select>
+                <select class="select" id="documentConvertFormat">
+                  <option value="xlsx">CSV → XLSX</option>
+                  <option value="csv">XLSX → CSV</option>
+                  <option value="pdf">TXT/HTML → PDF</option>
+                  <option value="html">Outra conversão</option>
+                </select>
+                <button class="primary-action" id="documentConvertButton" type="button">${icon("code")}Converter</button>
+              </article>
+              <article class="card">
+                <h2>Templates</h2>
+                <div class="settings-card-grid" id="documentTemplatesList"></div>
+              </article>
+            </div>
+            <article class="card">
+              <div class="item-top">
+                <div>
+                  <h2>Meus documentos</h2>
+                  <p class="muted">Histórico de documentos, arquivos analisados e exportações.</p>
+                </div>
+                <div class="row">
+                  <input class="field" id="documentSearch" placeholder="Buscar..." />
+                  <select class="select" id="documentFormatFilter">
+                    <option value="">Todos</option>
+                    <option value="pdf">PDF</option>
+                    <option value="csv">CSV</option>
+                    <option value="xlsx">XLSX</option>
+                    <option value="txt">TXT</option>
+                    <option value="html">HTML</option>
+                  </select>
+                </div>
+              </div>
+                <div class="list" id="documentsPageList"></div>
+            </article>
           </div>
         </section>
 
@@ -1907,6 +1951,9 @@ ${logoYaraStyles()}
                   <select class="select" id="documentFormat">
                     <option value="pdf">PDF</option>
                     <option value="csv">CSV</option>
+                    <option value="xlsx">XLSX</option>
+                    <option value="txt">TXT</option>
+                    <option value="html">HTML</option>
                   </select>
                   <label>Campos do documento</label>
                   <textarea class="field" id="documentFields" rows="8">{
@@ -2056,6 +2103,7 @@ ${logoYaraStyles()}
       let audioStream = null;
       let audioChunks = [];
       let documentTemplates = [];
+      let currentDocuments = [];
       let responseState = "done";
       let isResponding = false;
       let useWebSearchNext = false;
@@ -3319,7 +3367,7 @@ ${logoYaraStyles()}
         const templateData = await api("/api/documents/templates");
         const documentData = await api("/api/documents");
         documentTemplates = templateData.templates || [];
-        const documents = documentData.documents || [];
+        currentDocuments = documentData.documents || [];
         ["documentTemplate", "documentPageTemplate"].forEach(function(selectId) {
           const select = document.getElementById(selectId);
           if (!select || select.options.length) return;
@@ -3327,8 +3375,38 @@ ${logoYaraStyles()}
             return '<option value="' + escapeHtml(template.id) + '">' + escapeHtml(template.label) + '</option>';
           }).join("");
         });
-        renderDocumentList("documentsList", documents);
-        renderDocumentList("documentsPageList", documents);
+        renderDocumentTemplates();
+        renderDocumentConvertOptions();
+        renderDocumentList("documentsList", currentDocuments);
+        renderDocumentList("documentsPageList", filteredDocuments());
+      }
+
+      function filteredDocuments() {
+        const search = (document.getElementById("documentSearch")?.value || "").trim().toLowerCase();
+        const format = document.getElementById("documentFormatFilter")?.value || "";
+        return currentDocuments.filter(function(documentItem) {
+          const matchesSearch = !search || [documentItem.title, documentItem.file_name, documentItem.template, documentItem.type].join(" ").toLowerCase().includes(search);
+          const matchesFormat = !format || documentItem.format === format;
+          return matchesSearch && matchesFormat;
+        });
+      }
+
+      function renderDocumentTemplates() {
+        const target = document.getElementById("documentTemplatesList");
+        if (!target) return;
+        target.innerHTML = documentTemplates.map(function(template) {
+          return '<article class="card"><h2>' + escapeHtml(template.label) + '</h2><p class="muted">' + escapeHtml(template.description || "") + '</p></article>';
+        }).join("");
+      }
+
+      function renderDocumentConvertOptions() {
+        const select = document.getElementById("documentConvertSource");
+        if (!select) return;
+        select.innerHTML = currentDocuments.length
+          ? currentDocuments.map(function(documentItem) {
+              return '<option value="' + documentItem.id + '">' + escapeHtml(documentItem.title) + ' · ' + escapeHtml(String(documentItem.format).toUpperCase()) + '</option>';
+            }).join("")
+          : '<option value="">Nenhum documento disponível</option>';
       }
 
       function renderDocumentList(targetId, documents) {
@@ -3341,7 +3419,7 @@ ${logoYaraStyles()}
         target.innerHTML = documents.map(function(documentItem) {
           const size = Math.round(Number(documentItem.file_size || 0) / 1024 * 10) / 10 + " KB";
           const label = documentTemplateLabel(documentItem.template);
-          return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(documentItem.title) + '</strong><p class="muted">' + escapeHtml(label || documentItem.template) + ' · ' + escapeHtml(String(documentItem.format).toUpperCase()) + ' · ' + size + '</p></div><div class="row"><button class="button" data-download-document="' + documentItem.id + '" data-file-name="' + escapeHtml(documentItem.file_name) + '" type="button">Baixar</button><button class="icon-button danger" data-delete-document="' + documentItem.id + '" type="button" aria-label="Excluir documento">${icon("trash")}</button></div></div></article>';
+          return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(documentItem.title) + '</strong><p class="muted">' + escapeHtml(label || documentItem.template) + ' · ' + escapeHtml(String(documentItem.format).toUpperCase()) + ' · ' + escapeHtml(documentItem.type || "documento") + ' · ' + size + '</p></div><div class="row"><button class="button" data-analyze-document="' + documentItem.id + '" type="button">Analisar</button><button class="button" data-download-document="' + documentItem.id + '" data-file-name="' + escapeHtml(documentItem.file_name) + '" type="button">Baixar</button><button class="icon-button danger" data-delete-document="' + documentItem.id + '" type="button" aria-label="Excluir documento">${icon("trash")}</button></div></div></article>';
         }).join("");
       }
 
@@ -3370,6 +3448,13 @@ ${logoYaraStyles()}
       }
 
       async function handleDocumentListClick(event) {
+        const analyzeButton = event.target.closest("[data-analyze-document]");
+        if (analyzeButton) {
+          const data = await api("/api/documents/" + analyzeButton.dataset.analyzeDocument + "/analysis");
+          const analysis = data.analysis || {};
+          openModal("Análise do documento", data.document ? data.document.title : "Documento", '<pre class="code-block">' + escapeHtml(JSON.stringify(analysis, null, 2)) + '</pre>');
+          return;
+        }
         const downloadButton = event.target.closest("[data-download-document]");
         if (downloadButton) {
           await downloadDocument(downloadButton.dataset.downloadDocument, downloadButton.dataset.fileName || "documento");
@@ -3381,6 +3466,34 @@ ${logoYaraStyles()}
         await loadDocuments();
         await loadDashboard();
         showToast("Documento removido.");
+      }
+
+      async function uploadDocumentFromInput(file) {
+        if (!file) return;
+        const form = new FormData();
+        form.append("file", file);
+        const data = await apiForm("/api/documents/upload", form);
+        await loadDocuments();
+        await loadDashboard();
+        const analysis = data.document && data.document.metadata ? data.document.metadata.analysis : null;
+        document.getElementById("documentAnalysisList").innerHTML = '<article class="list-item"><strong>' + escapeHtml(data.document.title) + '</strong><p class="muted">Documento enviado e analisado.</p><pre class="code-block">' + escapeHtml(JSON.stringify(analysis || {}, null, 2)) + '</pre></article>';
+        showToast("Documento enviado e analisado.");
+      }
+
+      async function convertSelectedDocument() {
+        const documentId = document.getElementById("documentConvertSource").value;
+        const toFormat = document.getElementById("documentConvertFormat").value;
+        if (!documentId) return showToast("Selecione um documento para converter.");
+        const data = await api("/api/documents/convert", {
+          method: "POST",
+          body: JSON.stringify({ documentId: documentId, toFormat: toFormat })
+        });
+        if (data.success === false) {
+          showToast(data.message || "Conversão ainda não disponível.");
+          return;
+        }
+        await loadDocuments();
+        showToast("Documento convertido com sucesso.");
       }
 
       async function loadAiStatus() {
@@ -4064,6 +4177,32 @@ ${logoYaraStyles()}
       });
       document.getElementById("documentsList").addEventListener("click", handleDocumentListClick);
       document.getElementById("documentsPageList").addEventListener("click", handleDocumentListClick);
+      document.getElementById("documentSearch").addEventListener("input", function() {
+        renderDocumentList("documentsPageList", filteredDocuments());
+      });
+      document.getElementById("documentFormatFilter").addEventListener("change", function() {
+        renderDocumentList("documentsPageList", filteredDocuments());
+      });
+      document.getElementById("documentUploadButton").addEventListener("click", function() {
+        document.getElementById("documentUploadInput").click();
+      });
+      document.getElementById("documentUploadInput").addEventListener("change", async function(event) {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = "";
+        if (!file) return;
+        try {
+          await uploadDocumentFromInput(file);
+        } catch (error) {
+          showToast(error.message || "Não foi possível enviar o documento.");
+        }
+      });
+      document.getElementById("documentConvertButton").addEventListener("click", async function() {
+        try {
+          await convertSelectedDocument();
+        } catch (error) {
+          showToast(error.message || "Não foi possível converter.");
+        }
+      });
 
       document.getElementById("testAiButton").addEventListener("click", async function() {
         try {

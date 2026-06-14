@@ -195,16 +195,35 @@ export function runMigrations() {
     create table if not exists documents (
       id text primary key,
       user_id text not null,
+      project_id text,
       title text not null,
+      type text not null default 'generated',
       template text not null,
-      format text not null check (format in ('pdf', 'csv')),
+      status text not null default 'ready',
+      format text not null,
       file_name text not null,
       file_type text not null,
       file_size integer not null,
       storage_path text not null,
+      original_file_id text,
       metadata_json text not null default '{}',
       created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists document_conversions (
+      id text primary key,
+      user_id text not null,
+      source_document_id text not null,
+      result_document_id text,
+      from_type text not null,
+      to_type text not null,
+      status text not null,
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (source_document_id) references documents(id) on delete cascade,
+      foreign key (result_document_id) references documents(id) on delete set null
     );
 
     create table if not exists search_history (
@@ -247,6 +266,11 @@ export function runMigrations() {
   ensureColumn("user_sessions", "revoked_at", "text");
   ensureColumn("uploads", "message_id", "text");
   ensureColumn("uploads", "original_name", "text");
+  ensureColumn("documents", "project_id", "text");
+  ensureColumn("documents", "type", "text not null default 'generated'");
+  ensureColumn("documents", "status", "text not null default 'ready'");
+  ensureColumn("documents", "original_file_id", "text");
+  ensureColumn("documents", "updated_at", "text");
   ensureColumn("search_history", "results_json", "text not null default '[]'");
   ensureColumn("search_history", "provider", "text not null default 'none'");
   ensureColumn("search_history", "sources_json", "text not null default '[]'");
@@ -254,6 +278,9 @@ export function runMigrations() {
     update users set updated_at = current_timestamp where updated_at is null;
     update projects set updated_at = current_timestamp where updated_at is null;
     update projects set content = output where content is null;
+    update documents set type = 'generated' where type is null;
+    update documents set status = 'ready' where status is null;
+    update documents set updated_at = created_at where updated_at is null;
     update user_settings set language = 'pt-BR' where language is null;
     update user_settings set response_length = 'medium' where response_length is null;
     update user_settings set voice_language = 'pt-BR' where voice_language is null;
@@ -295,6 +322,9 @@ export function runMigrations() {
 
     create index if not exists documents_user_created
       on documents(user_id, created_at);
+
+    create index if not exists document_conversions_user_created
+      on document_conversions(user_id, created_at);
   `);
 }
 

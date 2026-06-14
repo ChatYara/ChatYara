@@ -2,22 +2,24 @@ import "./global.css";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Bot, FolderKanban, MessageSquare, Settings, WandSparkles } from "lucide-react-native";
+import { Bot, FileText, FolderKanban, MessageSquare, Settings, WandSparkles } from "lucide-react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
+import { DocumentsScreen } from "./src/screens/DocumentsScreen";
 import { GeneratorScreen } from "./src/screens/GeneratorScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { WorkspaceScreen } from "./src/screens/WorkspaceScreen";
 import { checkApiHealth } from "./src/api/client";
 import type { User } from "./src/types";
 
-type Tab = "chat" | "generator" | "workspace" | "settings";
+type Tab = "chat" | "generator" | "workspace" | "documents" | "settings";
 
 const tabs = [
   { id: "chat", label: "Chat", Icon: MessageSquare },
   { id: "generator", label: "Gerador", Icon: WandSparkles },
   { id: "workspace", label: "Projetos", Icon: FolderKanban },
+  { id: "documents", label: "Docs", Icon: FileText },
   { id: "settings", label: "Perfil", Icon: Settings }
 ] as const;
 
@@ -87,6 +89,7 @@ export default function App() {
           {tab === "chat" ? <ChatScreen token={token} online={apiOnline} /> : null}
           {tab === "generator" ? <GeneratorScreen token={token} online={apiOnline} /> : null}
           {tab === "workspace" ? <WorkspaceScreen token={token} online={apiOnline} /> : null}
+          {tab === "documents" ? <DocumentsScreen token={token} online={apiOnline} /> : null}
           {tab === "settings" ? <SettingsScreen token={token} user={user} online={apiOnline} onLogout={logout} /> : null}
         </View>
 

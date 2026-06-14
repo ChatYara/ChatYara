@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
+import { buildDocumentContextFromUploads } from "./documentService";
 import { learnFromUserMessage, readLearningContext } from "./learningService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
 import { toPublicUpload } from "./uploadService";
@@ -507,7 +508,8 @@ export async function sendMessage(
   const attachmentContext = uploads
     .map((upload) => `Anexo: ${upload.original_name || upload.file_name} (${upload.file_type}, ${upload.file_size} bytes)`)
     .join("\n");
-  const prompt = attachmentContext ? `${storedMessage}\n\n${attachmentContext}` : storedMessage;
+  const documentContext = buildDocumentContextFromUploads(uploads);
+  const prompt = [storedMessage, attachmentContext, documentContext].filter(Boolean).join("\n\n");
 
   learnFromUserMessage(userId, storedMessage);
 

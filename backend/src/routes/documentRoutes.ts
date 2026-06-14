@@ -2,12 +2,18 @@ import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
 import {
+  analyzeDocument,
+  convertDocument,
   createDocument,
   deleteDocument,
+  getDocument,
+  getDocumentAnalysis,
   getDocumentForDownload,
   listDocuments,
-  listDocumentTemplates
+  listDocumentTemplates,
+  uploadDocument
 } from "../services/documentService";
+import { parseMultipartUpload } from "../services/uploadService";
 import { sendError } from "../utils/http";
 
 export const documentRoutes = Router();
@@ -22,13 +28,14 @@ documentRoutes.get("/documents", (req, res) => {
   return res.json({ documents: listDocuments(req.user!.id) });
 });
 
-documentRoutes.post("/documents", (req, res) => {
+documentRoutes.post("/documents", async (req, res) => {
   const parsed = z
     .object({
       title: z.string().min(2),
       template: z.string().min(2),
-      format: z.enum(["pdf", "csv"]).default("pdf"),
-      fields: z.record(z.unknown()).optional().default({})
+      format: z.enum(["pdf", "csv", "xlsx", "txt", "html"]).default("pdf"),
+      fields: z.record(z.unknown()).optional().default({}),
+      projectId: z.string().optional().nullable()
     })
     .safeParse(req.body);
 
@@ -37,9 +44,62 @@ documentRoutes.post("/documents", (req, res) => {
   }
 
   try {
-    return res.status(201).json({ document: createDocument(req.user!.id, parsed.data) });
+    return res.status(201).json({ document: await createDocument(req.user!.id, parsed.data) });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível gerar documento.");
+  }
+});
+
+documentRoutes.post("/documents/upload", async (req, res) => {
+  try {
+    const { fields, file } = await parseMultipartUpload(req);
+    return res.status(201).json({
+      document: await uploadDocument(req.user!.id, {
+        projectId: fields.projectId || null,
+        file
+      })
+    });
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível enviar o documento.");
+  }
+});
+
+documentRoutes.post("/documents/analyze", (req, res) => {
+  const parsed = z
+    .object({
+      documentId: z.string().optional(),
+      uploadId: z.string().optional()
+    })
+    .refine((data) => data.documentId || data.uploadId)
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    return sendError(res, 400, "Informe o documento para análise.");
+  }
+
+  try {
+    return res.json(analyzeDocument(req.user!.id, parsed.data));
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Documento não encontrado.");
+  }
+});
+
+documentRoutes.post("/documents/convert", async (req, res) => {
+  const parsed = z
+    .object({
+      documentId: z.string().min(1),
+      toFormat: z.enum(["pdf", "csv", "xlsx", "txt", "html"])
+    })
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    return sendError(res, 400, "Informe o documento e o formato de destino.");
+  }
+
+  try {
+    return res.json(await convertDocument(req.user!.id, parsed.data));
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível converter documento.");
   }
 });
 
@@ -52,6 +112,22 @@ documentRoutes.get("/documents/:id/download", (req, res) => {
     res.setHeader("Content-Length", String(document.file_size));
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     return res.sendFile(document.storage_path);
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Documento não encontrado.");
+  }
+});
+
+documentRoutes.get("/documents/:id/analysis", (req, res) => {
+  try {
+    return res.json(getDocumentAnalysis(req.user!.id, req.params.id));
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Documento não encontrado.");
+  }
+});
+
+documentRoutes.get("/documents/:id", (req, res) => {
+  try {
+    return res.json({ document: getDocument(req.user!.id, req.params.id) });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Documento não encontrado.");
   }
