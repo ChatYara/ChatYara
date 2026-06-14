@@ -186,6 +186,21 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists documents (
+      id text primary key,
+      user_id text not null,
+      title text not null,
+      template text not null,
+      format text not null check (format in ('pdf', 'csv')),
+      file_name text not null,
+      file_type text not null,
+      file_size integer not null,
+      storage_path text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists search_history (
       id text primary key,
       user_id text not null,
@@ -259,6 +274,9 @@ export function runMigrations() {
 
     create index if not exists project_uploads_user_project
       on project_uploads(user_id, project_id, created_at);
+
+    create index if not exists documents_user_created
+      on documents(user_id, created_at);
   `);
 }
 

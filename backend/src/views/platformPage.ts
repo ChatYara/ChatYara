@@ -1483,6 +1483,7 @@ ${logoYaraStyles()}
               <button class="tab" data-settings-tab="personality" type="button">Personalidade</button>
               <button class="tab" data-settings-tab="workspace" type="button">Workspace</button>
               <button class="tab" data-settings-tab="files" type="button">Arquivos</button>
+              <button class="tab" data-settings-tab="documents" type="button">Documentos</button>
               <button class="tab" data-settings-tab="notifications" type="button">Notificações</button>
               <button class="tab" data-settings-tab="security" type="button">Segurança</button>
               <button class="tab" data-settings-tab="appearance" type="button">Aparência</button>
@@ -1589,6 +1590,39 @@ ${logoYaraStyles()}
               <article class="card">
                 <h2>Arquivos enviados</h2>
                 <div class="list" id="uploadsList"></div>
+              </article>
+            </div>
+
+            <div class="settings-pane settings-grid" id="settings-documents" hidden>
+              <article class="card">
+                <h2>Central de Documentos</h2>
+                <p class="muted">Gere PDFs e CSVs reais com dados salvos na sua conta YARA AI.</p>
+                <form class="form" id="documentForm">
+                  <label>Título do documento</label>
+                  <input class="field" id="documentTitle" placeholder="Ex.: Orçamento para cliente" required />
+                  <label>Modelo</label>
+                  <select class="select" id="documentTemplate"></select>
+                  <label>Formato</label>
+                  <select class="select" id="documentFormat">
+                    <option value="pdf">PDF</option>
+                    <option value="csv">CSV</option>
+                  </select>
+                  <label>Campos do documento</label>
+                  <textarea class="field" id="documentFields" rows="8">{
+  "cliente": "Cliente Exemplo",
+  "itens": "Item 1, Item 2",
+  "total": "R$ 0,00",
+  "observacoes": "Gerado pela YARA AI"
+}</textarea>
+                  <button class="primary-action" type="submit">${icon("save")}Gerar documento</button>
+                </form>
+              </article>
+              <article class="card">
+                <div class="item-top">
+                  <h2>Documentos gerados</h2>
+                  <button class="button" id="refreshDocumentsButton" type="button">${icon("history")}Atualizar</button>
+                </div>
+                <div class="list" id="documentsList"></div>
               </article>
             </div>
 
@@ -1932,6 +1966,7 @@ ${logoYaraStyles()}
         });
         if (tabName === "memory") loadMemories();
         if (tabName === "files") loadUploads();
+        if (tabName === "documents") loadDocuments();
         if (tabName === "ai") loadAiStatus();
       }
 
@@ -2018,8 +2053,16 @@ ${logoYaraStyles()}
       }
 
       async function downloadUpload(uploadId, fileName) {
+        return downloadProtectedPath("/api/uploads/" + uploadId + "/download", fileName || "arquivo");
+      }
+
+      async function downloadDocument(documentId, fileName) {
+        return downloadProtectedPath("/api/documents/" + documentId + "/download", fileName || "documento");
+      }
+
+      async function downloadProtectedPath(path, fileName) {
         try {
-          const blob = await fetchProtectedFile("/api/uploads/" + uploadId + "/download");
+          const blob = await fetchProtectedFile(path);
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
@@ -2029,7 +2072,7 @@ ${logoYaraStyles()}
           link.remove();
           URL.revokeObjectURL(url);
         } catch (error) {
-          showToast(error.message || "Não foi possível abrir este arquivo.");
+          showToast(error.message || "Não foi possível abrir este documento.");
         }
       }
 
@@ -2412,6 +2455,7 @@ ${logoYaraStyles()}
           ["Projetos", stats.projects || 0, '${icon("folder")}'],
           ["Memórias", stats.memories || 0, '${icon("brain")}'],
           ["Arquivos", stats.uploads || 0, '${icon("file")}'],
+          ["Documentos", stats.documents || 0, '${icon("file")}'],
           ["Tarefas pendentes", stats.pendingTasks || 0, '${icon("save")}']
         ];
         document.getElementById("dashboardStats").innerHTML = statItems.map(function(item) {
@@ -2544,6 +2588,49 @@ ${logoYaraStyles()}
         }
         target.innerHTML = uploads.map(function(file) {
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.original_name || file.file_name) + '</strong><div class="row"><button class="button" data-download-upload="' + file.id + '" data-file-name="' + escapeHtml(file.original_name || file.file_name) + '" type="button">Abrir</button><button class="icon-button danger" data-delete-upload="' + file.id + '" type="button" aria-label="Remover arquivo">${icon("trash")}</button></div></div><p class="muted">' + attachmentMeta(file) + '</p></article>';
+        }).join("");
+      }
+
+      function documentTemplateLabel(id) {
+        const select = document.getElementById("documentTemplate");
+        const option = select ? Array.from(select.options).find(function(item) { return item.value === id; }) : null;
+        return option ? option.textContent : id;
+      }
+
+      function parseDocumentFields() {
+        const raw = document.getElementById("documentFields").value.trim();
+        if (!raw) return {};
+        try {
+          const parsed = JSON.parse(raw);
+          if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
+            throw new Error("Campos inválidos.");
+          }
+          return parsed;
+        } catch {
+          throw new Error("Preencha os campos em JSON válido.");
+        }
+      }
+
+      async function loadDocuments() {
+        const templateData = await api("/api/documents/templates");
+        const documentData = await api("/api/documents");
+        const templates = templateData.templates || [];
+        const documents = documentData.documents || [];
+        const select = document.getElementById("documentTemplate");
+        if (select && !select.options.length) {
+          select.innerHTML = templates.map(function(template) {
+            return '<option value="' + escapeHtml(template.id) + '">' + escapeHtml(template.label) + '</option>';
+          }).join("");
+        }
+        const target = document.getElementById("documentsList");
+        if (!documents.length) {
+          target.innerHTML = '<p class="muted">Nenhum documento gerado ainda.</p>';
+          return;
+        }
+        target.innerHTML = documents.map(function(documentItem) {
+          const size = Math.round(Number(documentItem.file_size || 0) / 1024 * 10) / 10 + " KB";
+          const label = documentTemplateLabel(documentItem.template);
+          return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(documentItem.title) + '</strong><p class="muted">' + escapeHtml(label || documentItem.template) + ' · ' + escapeHtml(String(documentItem.format).toUpperCase()) + ' · ' + size + '</p></div><div class="row"><button class="button" data-download-document="' + documentItem.id + '" data-file-name="' + escapeHtml(documentItem.file_name) + '" type="button">Baixar</button><button class="icon-button danger" data-delete-document="' + documentItem.id + '" type="button" aria-label="Excluir documento">${icon("trash")}</button></div></div></article>';
         }).join("");
       }
 
@@ -3122,6 +3209,50 @@ ${logoYaraStyles()}
         await api("/api/uploads/" + button.dataset.deleteUpload, { method: "DELETE" });
         await loadUploads();
         showToast("Arquivo removido.");
+      });
+
+      document.getElementById("refreshDocumentsButton").addEventListener("click", async function() {
+        await loadDocuments();
+        showToast("Documentos atualizados.");
+      });
+
+      document.getElementById("documentForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        const title = document.getElementById("documentTitle").value.trim();
+        if (title.length < 2) return showToast("Informe um título para o documento.");
+        let fields;
+        try {
+          fields = parseDocumentFields();
+        } catch (error) {
+          return showToast(error.message);
+        }
+        await api("/api/documents", {
+          method: "POST",
+          body: JSON.stringify({
+            title: title,
+            template: document.getElementById("documentTemplate").value,
+            format: document.getElementById("documentFormat").value,
+            fields: fields
+          })
+        });
+        document.getElementById("documentTitle").value = "";
+        await loadDocuments();
+        await loadDashboard();
+        showToast("Documento gerado com sucesso.");
+      });
+
+      document.getElementById("documentsList").addEventListener("click", async function(event) {
+        const downloadButton = event.target.closest("[data-download-document]");
+        if (downloadButton) {
+          await downloadDocument(downloadButton.dataset.downloadDocument, downloadButton.dataset.fileName || "documento");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-document]");
+        if (!deleteButton) return;
+        await api("/api/documents/" + deleteButton.dataset.deleteDocument, { method: "DELETE" });
+        await loadDocuments();
+        await loadDashboard();
+        showToast("Documento removido.");
       });
 
       document.getElementById("testAiButton").addEventListener("click", async function() {

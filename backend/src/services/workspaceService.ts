@@ -434,6 +434,7 @@ export function getDashboard(userId: string) {
       projects: count("select count(*) as total from projects where user_id = ?"),
       memories: count("select count(*) as total from memories where user_id = ?"),
       uploads: count("select count(*) as total from uploads where user_id = ?"),
+      documents: count("select count(*) as total from documents where user_id = ?"),
       pendingTasks
     },
     recentProjects,
