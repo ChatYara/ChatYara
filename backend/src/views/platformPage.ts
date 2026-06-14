@@ -34,6 +34,25 @@ ${logoYaraStyles()}
 
       * { box-sizing: border-box; }
 
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.42) rgba(15, 23, 42, 0.32);
+      }
+
+      *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      *::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.42);
+      }
+
+      *::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.32);
+      }
+
       body {
         margin: 0;
         min-height: 100vh;
@@ -66,17 +85,17 @@ ${logoYaraStyles()}
       .app-shell {
         height: 100vh;
         display: grid;
-        grid-template-columns: 304px minmax(0, 1fr);
+        grid-template-columns: 300px minmax(0, 1fr);
       }
 
       .sidebar {
         min-height: 0;
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 16px;
         border-right: 1px solid var(--line);
-        padding: 18px;
-        background: rgba(2, 6, 23, 0.76);
+        padding: 16px;
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(8, 17, 32, 0.86));
         backdrop-filter: blur(22px);
       }
 
@@ -92,7 +111,7 @@ ${logoYaraStyles()}
         display: flex;
         flex: 1;
         flex-direction: column;
-        gap: 14px;
+        gap: 12px;
       }
 
       .button,
@@ -187,14 +206,29 @@ ${logoYaraStyles()}
       .conversation-list {
         min-height: 0;
         display: grid;
-        gap: 6px;
+        gap: 8px;
         overflow: auto;
         padding-right: 2px;
+      }
+
+      .conversation-period {
+        display: grid;
+        gap: 6px;
+      }
+
+      .conversation-period h3 {
+        margin: 10px 4px 2px;
+        color: rgba(148, 163, 184, 0.82);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .conversation-button {
         min-height: 38px;
         font-size: 13px;
+        border-radius: 10px;
       }
 
       .conversation-title {
@@ -220,6 +254,11 @@ ${logoYaraStyles()}
         border-radius: 16px;
         padding: 12px;
         background: rgba(15, 23, 42, 0.54);
+      }
+
+      .sidebar-footer {
+        display: grid;
+        gap: 8px;
       }
 
       .account-row {
@@ -264,7 +303,7 @@ ${logoYaraStyles()}
       }
 
       .topbar {
-        min-height: 78px;
+        min-height: 72px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -301,6 +340,17 @@ ${logoYaraStyles()}
         gap: 10px;
       }
 
+      .model-select {
+        min-height: 38px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 999px;
+        padding: 8px 12px;
+        color: #dbeafe;
+        background: rgba(15, 23, 42, 0.72);
+        outline: none;
+        font-weight: 700;
+      }
+
       .status {
         display: inline-flex;
         align-items: center;
@@ -321,6 +371,12 @@ ${logoYaraStyles()}
         border-radius: 999px;
         background: var(--ok);
         box-shadow: 0 0 16px var(--ok);
+        animation: pulseStatus 1.7s ease-in-out infinite;
+      }
+
+      @keyframes pulseStatus {
+        0%, 100% { transform: scale(1); opacity: 0.85; }
+        50% { transform: scale(1.35); opacity: 1; }
       }
 
       .view {
@@ -338,7 +394,7 @@ ${logoYaraStyles()}
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 12px;
-        padding-bottom: 18px;
+        padding: 18px clamp(18px, 4vw, 34px);
       }
 
       .search-row {
@@ -355,14 +411,12 @@ ${logoYaraStyles()}
         min-height: 0;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 18px;
         overflow: auto;
-        border: 1px solid var(--line);
-        border-radius: 20px;
-        padding: clamp(16px, 3vw, 26px);
-        background:
-          radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.06), transparent 32rem),
-          rgba(8, 17, 32, 0.72);
+        border: 0;
+        border-radius: 0;
+        padding: clamp(14px, 3vw, 26px) max(0px, calc((100% - 920px) / 2));
+        background: transparent;
       }
 
       .empty-chat {
@@ -379,7 +433,7 @@ ${logoYaraStyles()}
 
       .empty-chat h2 {
         margin: 0 0 10px;
-        font-size: clamp(30px, 5vw, 56px);
+        font-size: clamp(28px, 4vw, 44px);
       }
 
       .empty-chat p,
@@ -408,31 +462,58 @@ ${logoYaraStyles()}
       }
 
       .message {
-        max-width: min(780px, 88%);
+        position: relative;
+        max-width: min(760px, 82%);
         border: 1px solid rgba(148, 163, 184, 0.15);
-        border-radius: 20px;
-        padding: 14px 16px;
+        border-radius: 22px;
+        padding: 14px 16px 12px;
         background: rgba(15, 23, 42, 0.72);
         line-height: 1.65;
-        white-space: pre-wrap;
+        white-space: normal;
         box-shadow: 0 16px 34px rgba(0, 0, 0, 0.16);
       }
 
       .message.user {
         align-self: flex-end;
         border-color: rgba(56, 189, 248, 0.35);
-        background: linear-gradient(145deg, rgba(10, 132, 255, 0.28), rgba(15, 23, 42, 0.78));
+        background: linear-gradient(145deg, rgba(10, 132, 255, 0.34), rgba(15, 23, 42, 0.82));
       }
 
       .message.assistant {
         align-self: flex-start;
+        margin-left: 46px;
+      }
+
+      .message-avatar {
+        position: absolute;
+        top: 8px;
+        left: -46px;
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        border-radius: 999px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0a84ff, #7c3aed);
+        box-shadow: 0 0 22px rgba(10, 132, 255, 0.25);
+        font-size: 12px;
+        font-weight: 900;
       }
 
       .message small {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 6px;
         margin-bottom: 6px;
         color: #bae6fd;
         font-weight: 800;
+      }
+
+      .message-time {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 600;
       }
 
       .message-content {
@@ -445,12 +526,47 @@ ${logoYaraStyles()}
       }
 
       .message-content pre {
-        overflow: auto;
+        margin: 0;
+      }
+
+      .code-block {
+        overflow: hidden;
         border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 12px;
-        padding: 12px;
+        border-radius: 14px;
         background: rgba(2, 6, 23, 0.72);
+      }
+
+      .code-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        padding: 8px 10px;
+        color: #cbd5e1;
+        background: rgba(15, 23, 42, 0.78);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .code-copy {
+        min-height: 28px;
+        border: 1px solid rgba(56, 189, 248, 0.26);
+        border-radius: 999px;
+        padding: 4px 9px;
+        color: #dbeafe;
+        background: rgba(2, 6, 23, 0.44);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .message-content pre code {
+        display: block;
+        overflow-x: auto;
+        padding: 14px;
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
         white-space: pre;
+        color: #dbeafe;
       }
 
       .message-content code {
@@ -458,6 +574,33 @@ ${logoYaraStyles()}
         padding: 2px 5px;
         background: rgba(2, 6, 23, 0.62);
         color: #bae6fd;
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      }
+
+      .code-keyword { color: #60a5fa; }
+      .code-string { color: #86efac; }
+      .code-comment { color: #94a3b8; font-style: italic; }
+
+      .typing-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .typing-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #38bdf8;
+        animation: typingPulse 1s ease-in-out infinite;
+      }
+
+      .typing-dot:nth-child(2) { animation-delay: 0.14s; }
+      .typing-dot:nth-child(3) { animation-delay: 0.28s; }
+
+      @keyframes typingPulse {
+        0%, 100% { transform: translateY(0); opacity: 0.35; }
+        50% { transform: translateY(-4px); opacity: 1; }
       }
 
       .message-actions {
@@ -554,10 +697,12 @@ ${logoYaraStyles()}
         bottom: 0;
         z-index: 20;
         padding-top: 8px;
-        background: linear-gradient(180deg, rgba(8, 17, 32, 0), rgba(8, 17, 32, 0.94) 34%);
+        background: linear-gradient(180deg, rgba(8, 17, 32, 0), rgba(8, 17, 32, 0.96) 32%);
       }
 
       .composer {
+        max-width: 920px;
+        margin: 0 auto;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 8px;
@@ -582,8 +727,8 @@ ${logoYaraStyles()}
 
       .composer textarea {
         min-height: 44px;
-        max-height: 150px;
-        resize: vertical;
+        max-height: 132px;
+        resize: none;
         border: 0;
         background: transparent;
       }
@@ -998,31 +1143,58 @@ ${logoYaraStyles()}
       }
 
       @media (max-width: 860px) {
-        body { overflow: auto; }
-        .app-shell { min-height: 100vh; height: auto; grid-template-columns: 1fr; }
+        body { overflow: hidden; }
+        .app-shell { height: 100dvh; grid-template-columns: 1fr; }
         .sidebar {
-          position: sticky;
+          position: fixed;
           top: 0;
-          z-index: 30;
-          border-right: 0;
-          border-bottom: 1px solid var(--line);
+          left: 0;
+          bottom: 0;
+          z-index: 50;
+          width: min(86vw, 330px);
+          transform: translateX(-102%);
+          border-right: 1px solid var(--line);
+          border-bottom: 0;
+          transition: transform 180ms ease;
         }
         .mobile-toggle { display: inline-flex; }
-        .sidebar-body { display: none; }
-        .sidebar.open .sidebar-body { display: flex; }
-        .main { min-height: calc(100vh - 84px); }
-        .topbar { align-items: flex-start; flex-direction: column; }
-        .topbar-title { align-items: flex-start; }
-        .messages { min-height: calc(100dvh - 360px); }
+        .sidebar-body { display: flex; }
+        .sidebar.open { transform: translateX(0); }
+        .main { height: 100dvh; }
+        .topbar {
+          min-height: 64px;
+          align-items: center;
+          flex-direction: row;
+          padding: 10px 12px;
+        }
+        .topbar-title { align-items: center; }
+        .topbar h1 { font-size: 18px; }
+        .topbar p { display: none; }
+        .status { padding: 7px 9px; font-size: 0; }
+        .status::after { content: "Ativo"; font-size: 12px; }
+        .model-select { max-width: 128px; }
+        .floating-menu.open {
+          position: fixed;
+          inset: auto 12px 12px;
+          width: auto;
+          max-height: calc(100dvh - 120px);
+          overflow: auto;
+        }
+        .messages { padding-inline: 4px; }
       }
 
       @media (max-width: 640px) {
         .sidebar,
         .view,
         .topbar { padding: 14px; }
-        .composer { grid-template-columns: auto minmax(0, 1fr); }
-        .composer .primary-action { grid-column: 1 / -1; width: 100%; }
+        .chat-view { padding: 8px 10px 10px; }
+        .composer { grid-template-columns: auto minmax(0, 1fr) auto; border-radius: 16px; }
+        .composer .primary-action { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
+        .composer .primary-action svg { margin: 0; }
+        .composer textarea { max-height: 96px; }
         .message { max-width: 100%; }
+        .message.assistant { margin-left: 38px; }
+        .message-avatar { left: -38px; width: 30px; height: 30px; }
         .button { width: 100%; }
         .project-toolbar,
         .row { align-items: stretch; flex-direction: column; }
@@ -1030,8 +1202,11 @@ ${logoYaraStyles()}
         .settings-card-grid,
         .option-grid,
         .dashboard-grid { grid-template-columns: 1fr; }
-        .quick-prompts { justify-content: stretch; }
-        .quick-prompt { flex: 1 1 calc(50% - 9px); }
+        .empty-brand { display: none; }
+        .empty-chat h2 { font-size: 26px; }
+        .empty-chat p { display: none; }
+        .quick-prompts { justify-content: center; gap: 7px; }
+        .quick-prompt { flex: 0 1 auto; min-height: 34px; padding: 7px 10px; font-size: 12px; }
         .attachment-card,
         .attachment-preview { grid-template-columns: auto minmax(0, 1fr); }
         .attachment-card .button,
@@ -1077,7 +1252,12 @@ ${logoYaraStyles()}
                 <span id="accountEmail">Conta YARA</span>
               </div>
             </div>
-            <button class="button danger" id="logoutButton" type="button">${icon("logout")}Sair</button>
+            <div class="sidebar-footer">
+              <button class="button" id="sidebarSettingsButton" type="button">${icon("settings")}Configurações</button>
+              <button class="button" id="helpButton" type="button">${icon("sparkles")}Ajuda e suporte</button>
+              <button class="button" id="termsButton" type="button">${icon("shield")}Termos e privacidade</button>
+              <button class="button danger" id="logoutButton" type="button">${icon("logout")}Sair</button>
+            </div>
           </section>
         </div>
       </aside>
@@ -1092,7 +1272,11 @@ ${logoYaraStyles()}
             </div>
           </div>
           <div class="topbar-actions">
-            <div class="status"><span class="dot"></span>YARA Online</div>
+            <select class="model-select" id="modelSelect" aria-label="Modelo da YARA">
+              <option>Modelo ativo</option>
+            </select>
+            <div class="status"><span class="dot"></span>Ativo</div>
+            <button class="icon-button" id="quickSettingsButton" type="button" aria-label="Configurações rápidas">${icon("settings")}</button>
             <button class="icon-button" id="chatMenuButton" type="button" aria-label="Ações da conversa">${icon("dots")}</button>
             <div class="floating-menu" id="chatActionMenu">
               ${menuButton("shareConversation", "Compartilhar conversa", "share")}
@@ -1181,7 +1365,7 @@ ${logoYaraStyles()}
             <div class="attachment-preview" id="attachmentPreview" hidden></div>
             <form class="composer" id="chatForm">
               <button class="icon-button" id="attachButton" type="button" aria-label="Anexar arquivo">${icon("paperclip")}</button>
-              <textarea id="messageInput" placeholder="Digite sua mensagem..." rows="1" autocomplete="off"></textarea>
+              <textarea id="messageInput" placeholder="Mensagem para YARA..." rows="1" autocomplete="off"></textarea>
               <button class="primary-action" type="submit" aria-label="Enviar mensagem">${icon("send")}Enviar</button>
             </form>
           </div>
@@ -1592,18 +1776,36 @@ ${logoYaraStyles()}
         return escapeHtml(file.file_type || file.type || "arquivo") + " · " + formatFileSize(file.file_size || file.size || 0);
       }
 
+      function highlightCode(code) {
+        return escapeHtml(code)
+          .replace(/(\/\/.*)$/gm, '<span class="code-comment">$1</span>')
+          .replace(/(&quot;[^&]*?&quot;|'[^']*?')/g, '<span class="code-string">$1</span>')
+          .replace(/\b(const|let|var|function|return|async|await|import|export|from|class|type|interface|if|else|for|while|try|catch|new)\b/g, '<span class="code-keyword">$1</span>');
+      }
+
       function renderMarkdown(value) {
-        let html = escapeHtml(value || "");
+        let text = String(value || "");
+        const blocks = [];
         const tick = String.fromCharCode(96);
         const fence = tick + tick + tick;
-        html = html.replace(new RegExp(fence + "([\\\\s\\\\S]*?)" + fence, "g"), function(_, code) {
-          return '<pre><code>' + code.trim() + '</code></pre>';
+        text = text.replace(new RegExp(fence + "([^\\n]*)\\n([\\\\s\\\\S]*?)" + fence, "g"), function(_, language, code) {
+          const label = escapeHtml(String(language || "código").trim() || "código");
+          const cleanCode = String(code || "").trim();
+          const html = '<div class="code-block"><div class="code-head"><span>' + label + '</span><button class="code-copy" data-copy-code="' + escapeHtml(cleanCode) + '" type="button">Copiar</button></div><pre><code>' + highlightCode(cleanCode) + '</code></pre></div>';
+          blocks.push(html);
+          return "§§CODE_BLOCK_" + (blocks.length - 1) + "§§";
         });
-        html = html.replace(new RegExp(tick + "([^" + tick + "]+)" + tick, "g"), '<code>$1</code>');
+        let html = escapeHtml(text);
+        html = html.replace(new RegExp(tick + "([^" + tick + "]+)" + tick, "g"), function(_, code) {
+          return '<code>' + escapeHtml(code) + '</code>';
+        });
         html = html.replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>');
         html = html.split(/\\n{2,}/).map(function(block) {
-          return block.startsWith("<pre>") ? block : '<p>' + block.replace(/\\n/g, "<br />") + '</p>';
+          return /^§§CODE_BLOCK_\\d+§§$/.test(block.trim()) ? block.trim() : '<p>' + block.replace(/\\n/g, "<br />") + '</p>';
         }).join("");
+        blocks.forEach(function(block, index) {
+          html = html.replace("§§CODE_BLOCK_" + index + "§§", block);
+        });
         return html;
       }
 
@@ -1646,6 +1848,51 @@ ${logoYaraStyles()}
       function closeModal() {
         els.modalOverlay.classList.remove("open");
         els.modalBody.innerHTML = "";
+      }
+
+      async function openQuickSettingsModal() {
+        const data = await api("/api/settings");
+        const settings = data.settings || {};
+        openModal("Configurações", "Ajustes rápidos da sua experiência com a YARA AI.", [
+          '<div class="tabs modal-tabs" id="quickSettingsTabs">',
+          '<button class="tab active" data-modal-settings-tab="general" type="button">Geral</button>',
+          '<button class="tab" data-modal-settings-tab="appearance" type="button">Aparência</button>',
+          '<button class="tab" data-modal-settings-tab="account" type="button">Conta</button>',
+          '<button class="tab" data-modal-settings-tab="privacy" type="button">Privacidade</button>',
+          '</div>',
+          '<form class="card modal-settings-pane" id="quickSettingsForm" data-modal-pane="general">',
+          '<label class="muted">Idioma</label>',
+          '<select class="select" id="quickLanguage"><option value="pt-BR">Português</option><option value="en-US">Inglês</option><option value="es">Espanhol</option></select>',
+          '<label class="muted">Estilo da YARA</label>',
+          '<select class="select" id="quickAiStyle"><option value="balanced">Equilibrada</option><option value="direct">Direta</option><option value="technical">Técnica</option><option value="creative">Criativa</option><option value="executive">Executiva</option></select>',
+          '<label class="muted">Tamanho das respostas</label>',
+          '<select class="select" id="quickResponseLength"><option value="short">Curta</option><option value="medium">Média</option><option value="detailed">Detalhada</option></select>',
+          '<article class="toggle-row"><div><strong>Enter para enviar</strong><p class="muted">Use Shift + Enter para quebrar linha.</p></div><span class="toggle active"></span></article>',
+          '<button class="primary-action" type="submit">${icon("save")}Salvar alterações</button>',
+          '</form>',
+          '<div class="card modal-settings-pane" data-modal-pane="appearance" hidden>',
+          '<h2>Aparência</h2><article class="toggle-row"><div><strong>Tema escuro</strong><p class="muted">Ativo para toda a plataforma.</p></div><span class="toggle active"></span></article>',
+          '<article class="toggle-row"><div><strong>Interface compacta no celular</strong><p class="muted">Reduz cards grandes e mantém o chat em foco.</p></div><span class="toggle active"></span></article>',
+          '</div>',
+          '<div class="card modal-settings-pane" data-modal-pane="account" hidden>',
+          '<h2>Conta</h2><p class="muted">Gerencie perfil, senha e sessões na área completa de configurações.</p><button class="button" id="openFullSettingsFromModal" type="button">${icon("settings")}Abrir configurações completas</button>',
+          '</div>',
+          '<div class="card modal-settings-pane" data-modal-pane="privacy" hidden>',
+          '<h2>Privacidade</h2><article class="toggle-row"><div><strong>Chaves protegidas no servidor</strong><p class="muted">O app nunca acessa chaves de IA diretamente.</p></div><span class="toggle active"></span></article>',
+          '<article class="toggle-row"><div><strong>Arquivos privados</strong><p class="muted">Downloads exigem login e pertencem ao usuário autenticado.</p></div><span class="toggle active"></span></article>',
+          '</div>'
+        ].join(""));
+        document.getElementById("quickLanguage").value = settings.language || "pt-BR";
+        document.getElementById("quickAiStyle").value = settings.ai_style || "balanced";
+        document.getElementById("quickResponseLength").value = settings.response_length || "medium";
+      }
+
+      function openHelpModal() {
+        openModal("Ajuda e suporte", "Como usar a YARA AI no dia a dia.", '<div class="list"><article class="list-item"><strong>Chat</strong><p class="muted">Faça perguntas, envie arquivos, grave áudio e continue conversas pelo histórico.</p></article><article class="list-item"><strong>Projetos</strong><p class="muted">Vincule conversas, tarefas, notas e arquivos para organizar entregas reais.</p></article><article class="list-item"><strong>Gerador</strong><p class="muted">Use o módulo separado para criar sistemas, APIs, dashboards e apps.</p></article></div>');
+      }
+
+      function openTermsModal() {
+        openModal("Termos e privacidade", "Resumo de segurança da plataforma.", '<div class="list"><article class="list-item"><strong>Privacidade</strong><p class="muted">Seus arquivos e conversas exigem autenticação para acesso.</p></article><article class="list-item"><strong>IA segura</strong><p class="muted">Gemini/OpenAI são acessados apenas pelo backend, nunca diretamente pelo navegador ou APK.</p></article><article class="list-item"><strong>Credenciais</strong><p class="muted">Nenhuma chave, token ou segredo é exibido na interface.</p></article></div>');
       }
 
       function setView(view) {
@@ -1698,11 +1945,38 @@ ${logoYaraStyles()}
         }).join("");
       }
 
+      function conversationBucket(item) {
+        const date = new Date(item.updated_at || item.created_at || Date.now());
+        const now = new Date();
+        const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startItem = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const diffDays = Math.floor((startToday.getTime() - startItem.getTime()) / 86400000);
+        if (diffDays <= 0) return "Hoje";
+        if (diffDays === 1) return "Ontem";
+        if (diffDays <= 7) return "Esta semana";
+        return "Últimos 30 dias";
+      }
+
+      function renderConversationHistory(target, items) {
+        if (!items.length) {
+          target.innerHTML = '<p class="muted">Nenhuma conversa ainda.</p>';
+          return;
+        }
+        const groups = ["Hoje", "Ontem", "Esta semana", "Últimos 30 dias"];
+        target.innerHTML = groups.map(function(group) {
+          const groupItems = items.filter(function(item) { return conversationBucket(item) === group; });
+          if (!groupItems.length) return "";
+          return '<section class="conversation-period"><h3>' + group + '</h3>' + groupItems.map(function(item) {
+            return '<button class="conversation-button ' + (item.id === currentConversationId ? "active" : "") + '" data-conversation="' + item.id + '" type="button">${icon("chat")}<span class="conversation-title">' + escapeHtml(item.title) + '</span></button>';
+          }).join("") + '</section>';
+        }).join("");
+      }
+
       function renderConversations() {
         const pinned = conversations.filter(function(item) { return Number(item.is_pinned) === 1; });
         const history = conversations.filter(function(item) { return Number(item.is_pinned) !== 1; });
         renderConversationGroup(els.pinnedList, pinned, "Nenhuma conversa fixada.");
-        renderConversationGroup(els.conversationList, history, "Nenhuma conversa ainda.");
+        renderConversationHistory(els.conversationList, history);
       }
 
       async function loadConversations() {
@@ -1763,6 +2037,20 @@ ${logoYaraStyles()}
         return currentMessages.find(function(message) { return message.id === messageId; });
       }
 
+      function formatTime(value) {
+        if (!value) return "";
+        try {
+          return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+        } catch {
+          return "";
+        }
+      }
+
+      function autoGrowMessageInput() {
+        els.messageInput.style.height = "auto";
+        els.messageInput.style.height = Math.min(132, els.messageInput.scrollHeight) + "px";
+      }
+
       async function reloadCurrentConversation() {
         if (!currentConversationId) return;
         const conversation = await api("/api/conversations/" + currentConversationId);
@@ -1814,6 +2102,8 @@ ${logoYaraStyles()}
         els.messages.innerHTML = currentMessages.map(function(message) {
           const who = message.role === "user" ? "Você" : "YARA";
           const id = escapeHtml(message.id || "");
+          const avatar = message.role === "assistant" ? '<span class="message-avatar">YA</span>' : "";
+          const time = formatTime(message.created_at);
           const uploads = message.uploads && message.uploads.length
             ? '<div class="message-attachments">' + message.uploads.map(renderAttachment).join("") + '</div>'
             : "";
@@ -1822,7 +2112,10 @@ ${logoYaraStyles()}
             (message.role === "user" && id ? '<button class="message-action" data-edit-message="' + id + '" type="button">Editar</button>' : "") +
             (message.role === "assistant" && id ? '<button class="message-action" data-regenerate-message="' + id + '" type="button">Regenerar</button><button class="message-action ' + (message.feedback === "like" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="like" type="button">Curtir</button><button class="message-action ' + (message.feedback === "dislike" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="dislike" type="button">Não curtir</button>' : "") +
             '</div>';
-          return '<article class="message ' + message.role + '" data-message-id="' + id + '"><small>' + who + edited + '</small><div class="message-content">' + renderMarkdown(message.content) + '</div>' + uploads + actions + '</article>';
+          const contentHtml = message.typing
+            ? '<div class="typing-indicator" aria-label="YARA está pensando"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span><span class="muted">YARA está pensando...</span></div>'
+            : renderMarkdown(message.content);
+          return '<article class="message ' + message.role + '" data-message-id="' + id + '">' + avatar + '<small>' + who + edited + (time ? '<span class="message-time">' + time + '</span>' : "") + '</small><div class="message-content">' + contentHtml + '</div>' + uploads + actions + '</article>';
         }).join("");
         hydrateProtectedImages();
         els.messages.scrollTop = els.messages.scrollHeight;
@@ -1920,7 +2213,7 @@ ${logoYaraStyles()}
 
         renderMessages(baseMessages.concat([
           { role: "user", content: userMessageText || "Anexo enviado.", uploads: [] },
-          { role: "assistant", content: "" }
+          { role: "assistant", content: "", typing: true }
         ]));
 
         while (true) {
@@ -1960,6 +2253,7 @@ ${logoYaraStyles()}
         const message = els.messageInput.value.trim();
         if (!message && !pendingAttachment) return;
         els.messageInput.value = "";
+        autoGrowMessageInput();
         const baseMessages = currentMessages.slice();
         try {
           const upload = await uploadPendingAttachment();
@@ -2258,6 +2552,11 @@ ${logoYaraStyles()}
         document.getElementById("aiProvider").textContent = data.provider || "YARA";
         document.getElementById("aiModel").textContent = data.model || "Modelo ativo";
         document.getElementById("aiOnline").textContent = data.online ? "Online" : "Offline";
+        const modelSelect = document.getElementById("modelSelect");
+        if (modelSelect) {
+          const label = (data.provider ? data.provider.toUpperCase() + " · " : "") + (data.model || "Modelo ativo");
+          modelSelect.innerHTML = '<option>' + escapeHtml(label) + '</option>';
+        }
       }
 
       async function loadSessions(targetId = "sessionList") {
@@ -2303,6 +2602,7 @@ ${logoYaraStyles()}
           await refreshUser();
           setView("chat");
           await loadConversations();
+          await loadAiStatus().catch(function() {});
         } catch {
           localStorage.removeItem("yaraToken");
           localStorage.removeItem("yaraUser");
@@ -2344,6 +2644,7 @@ ${logoYaraStyles()}
         }
       });
       document.getElementById("chatForm").addEventListener("submit", sendMessage);
+      document.getElementById("messageInput").addEventListener("input", autoGrowMessageInput);
       document.getElementById("messageInput").addEventListener("keydown", function(event) {
         if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();
@@ -2351,6 +2652,10 @@ ${logoYaraStyles()}
         }
       });
       document.getElementById("mobileToggle").addEventListener("click", function() { els.sidebar.classList.toggle("open"); });
+      document.getElementById("quickSettingsButton").addEventListener("click", openQuickSettingsModal);
+      document.getElementById("sidebarSettingsButton").addEventListener("click", function() { setView("settings"); });
+      document.getElementById("helpButton").addEventListener("click", openHelpModal);
+      document.getElementById("termsButton").addEventListener("click", openTermsModal);
       document.getElementById("chatMenuButton").addEventListener("click", function() { els.chatActionMenu.classList.toggle("open"); });
       document.getElementById("attachButton").addEventListener("click", function() { els.attachMenu.classList.toggle("open"); });
       document.getElementById("modalClose").addEventListener("click", closeModal);
@@ -2365,7 +2670,15 @@ ${logoYaraStyles()}
         const promptButton = event.target.closest("[data-prompt]");
         if (promptButton) {
           els.messageInput.value = promptButton.dataset.prompt || "";
+          autoGrowMessageInput();
           els.messageInput.focus();
+          return;
+        }
+
+        const codeButton = event.target.closest("[data-copy-code]");
+        if (codeButton) {
+          await navigator.clipboard.writeText(codeButton.dataset.copyCode || "").catch(function() {});
+          showToast("Código copiado.");
           return;
         }
 
@@ -2428,6 +2741,24 @@ ${logoYaraStyles()}
       });
 
       document.getElementById("modalBody").addEventListener("click", async function(event) {
+        const settingsTab = event.target.closest("[data-modal-settings-tab]");
+        if (settingsTab) {
+          document.querySelectorAll("[data-modal-settings-tab]").forEach(function(tab) {
+            tab.classList.toggle("active", tab === settingsTab);
+          });
+          document.querySelectorAll("[data-modal-pane]").forEach(function(pane) {
+            pane.hidden = pane.dataset.modalPane !== settingsTab.dataset.modalSettingsTab;
+          });
+          return;
+        }
+
+        const fullSettingsButton = event.target.closest("#openFullSettingsFromModal");
+        if (fullSettingsButton) {
+          closeModal();
+          setView("settings");
+          return;
+        }
+
         const downloadButton = event.target.closest("[data-download-upload]");
         if (downloadButton) {
           await downloadUpload(downloadButton.dataset.downloadUpload, downloadButton.dataset.fileName || "arquivo");
@@ -2441,6 +2772,23 @@ ${logoYaraStyles()}
         });
         closeModal();
         showToast("Conversa adicionada ao projeto.");
+      });
+
+      document.getElementById("modalBody").addEventListener("submit", async function(event) {
+        if (event.target && event.target.id === "quickSettingsForm") {
+          event.preventDefault();
+          await api("/api/settings", {
+            method: "PATCH",
+            body: JSON.stringify({
+              language: document.getElementById("quickLanguage").value,
+              aiStyle: document.getElementById("quickAiStyle").value,
+              responseLength: document.getElementById("quickResponseLength").value,
+              theme: "dark"
+            })
+          });
+          closeModal();
+          showToast("Configurações salvas.");
+        }
       });
 
       document.getElementById("chatSearchInput").addEventListener("input", function(event) {

@@ -412,11 +412,18 @@ export async function regenerateAssistantMessage(userId: string, messageId: stri
     throw new Error("Não encontrei a mensagem original para regenerar.");
   }
 
-  const ai = await askYara({
-    prompt: previousUser.content,
-    memory: readUserContext(userId),
-    context: readRecentContext(assistant.conversation_id)
-  });
+  const direct = directAnswer(previousUser.content);
+  const ai = direct
+    ? {
+        provider: "gemini" as const,
+        model: "direct",
+        response: direct
+      }
+    : await askYara({
+        prompt: previousUser.content,
+        memory: readUserContext(userId),
+        context: readRecentContext(assistant.conversation_id)
+      });
 
   getDatabase()
     .prepare("update messages set content = ?, edited_at = current_timestamp where id = ?")
