@@ -130,7 +130,8 @@ chatRoutes.post("/chat", async (req, res) => {
     .object({
       conversationId: z.string().optional(),
       message: z.string().optional().default(""),
-      uploadIds: z.array(z.string().min(1)).max(5).optional().default([])
+      uploadIds: z.array(z.string().min(1)).max(5).optional().default([]),
+      useWebSearch: z.boolean().optional().default(false)
     })
     .refine((data) => data.message.trim().length > 0 || data.uploadIds.length > 0)
     .safeParse(req.body);
@@ -151,7 +152,8 @@ chatRoutes.post("/chat/stream", async (req, res) => {
     .object({
       conversationId: z.string().optional(),
       message: z.string().optional().default(""),
-      uploadIds: z.array(z.string().min(1)).max(5).optional().default([])
+      uploadIds: z.array(z.string().min(1)).max(5).optional().default([]),
+      useWebSearch: z.boolean().optional().default(false)
     })
     .refine((data) => data.message.trim().length > 0 || data.uploadIds.length > 0)
     .safeParse(req.body);

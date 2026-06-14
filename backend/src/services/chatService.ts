@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
 import { learnFromUserMessage, readLearningContext } from "./learningService";
-import { runSearch, shouldUseOnlineSearch } from "./searchService";
+import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
 import { toPublicUpload } from "./uploadService";
 
 type ConversationRow = {
@@ -438,7 +438,7 @@ export async function regenerateAssistantMessage(userId: string, messageId: stri
 
 export async function sendMessage(
   userId: string,
-  input: { conversationId?: string; message?: string; uploadIds?: string[] }
+  input: { conversationId?: string; message?: string; uploadIds?: string[]; useWebSearch?: boolean }
 ) {
   const db = getDatabase();
   const message = (input.message || "").trim();
@@ -511,29 +511,52 @@ export async function sendMessage(
 
   learnFromUserMessage(userId, storedMessage);
 
-  const searchNeeded = shouldUseOnlineSearch(storedMessage);
+  const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
-  const ai = direct
-    ? {
-        provider: "gemini" as const,
-        model: "direct",
-        response: direct
-      }
-    : searchNeeded
-      ? {
-          provider: "gemini" as const,
-          model: "search-prepared",
-          response: (await runSearch(userId, storedMessage)).response
-        }
-      : await askYara({
-          prompt,
-          memory: readUserContext(userId),
-          context: readRecentContext(conversationId)
-        });
+  const search = searchNeeded ? await runSearch(userId, storedMessage) : null;
+  let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini"; model: string; response: string };
+
+  if (direct && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "direct",
+      response: direct
+    };
+  } else if (search && ["not_configured", "youtube_transcript_not_configured", "failed"].includes(search.status)) {
+    ai = {
+      provider: "gemini",
+      model: "search-status",
+      response: search.response
+    };
+  } else {
+    try {
+      ai = await askYara({
+        prompt: search
+          ? [
+              prompt,
+              "",
+              "Use a pesquisa real abaixo para responder. Não invente fontes e cite apenas as fontes fornecidas.",
+              buildSearchContext(search)
+            ].join("\n")
+          : prompt,
+        memory: readUserContext(userId),
+        context: readRecentContext(conversationId)
+      });
+    } catch (error) {
+      if (!search) throw error;
+      ai = {
+        provider: "gemini",
+        model: "search-fallback",
+        response: search.response
+      };
+    }
+  }
+
+  const finalResponse = search && search.sources.length > 0 ? formatAnswerWithSources(ai.response, search.sources) : ai.response;
 
   const assistantMessageId = uuid();
   db.prepare("insert into messages (id, conversation_id, role, content) values (?, ?, 'assistant', ?)")
-    .run(assistantMessageId, conversationId, ai.response);
+    .run(assistantMessageId, conversationId, finalResponse);
 
   db.prepare("update conversations set updated_at = current_timestamp where id = ?").run(conversationId);
 
@@ -553,7 +576,7 @@ export async function sendMessage(
       {
         id: assistantMessageId,
         role: "assistant",
-        content: ai.response
+        content: finalResponse
       }
     ]
   };

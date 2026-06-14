@@ -798,6 +798,33 @@ ${logoYaraStyles()}
         background: linear-gradient(180deg, rgba(8, 17, 32, 0), rgba(8, 17, 32, 0.96) 32%);
       }
 
+      .composer-tools {
+        max-width: 920px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+        margin: 0 auto 8px;
+      }
+
+      .web-search-toggle {
+        min-height: 34px;
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        border-radius: 999px;
+        padding: 7px 11px;
+        color: #bfdbfe;
+        background: rgba(15, 23, 42, 0.58);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .web-search-toggle.active {
+        color: #031425;
+        border-color: rgba(56, 189, 248, 0.74);
+        background: linear-gradient(135deg, #38bdf8, #0a84ff);
+        box-shadow: 0 0 20px rgba(10, 132, 255, 0.18);
+      }
+
       .composer {
         max-width: 920px;
         margin: 0 auto;
@@ -1320,6 +1347,7 @@ ${logoYaraStyles()}
         .chat-view { padding: 8px 10px 10px; gap: 8px; }
         .messages { gap: 14px; padding-bottom: 4px; }
         .composer-wrap { padding-top: 6px; }
+        .composer-tools { margin-bottom: 6px; overflow-x: auto; }
         .composer { grid-template-columns: auto minmax(0, 1fr) auto; border-radius: 16px; }
         .composer .primary-action { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
         .composer .primary-action svg { margin: 0; }
@@ -1448,6 +1476,7 @@ ${logoYaraStyles()}
               ${menuButton("pinConversation", "Fixar", "pin")}
               ${menuButton("filesConversation", "Arquivos enviados", "file")}
               ${menuButton("searchConversation", "Buscar no chat", "search")}
+              ${menuButton("searchHistory", "Histórico de pesquisas", "history")}
               ${menuButton("projectConversation", "Adicionar ao projeto", "folder")}
               ${menuButton("archiveConversation", "Arquivar", "archive")}
               ${menuButton("deleteConversation", "Excluir", "trash", true)}
@@ -1516,6 +1545,9 @@ ${logoYaraStyles()}
             <input id="fileInputPdf" type="file" accept="application/pdf,.pdf" hidden />
             <input id="fileInputCamera" type="file" accept="image/*" capture="environment" hidden />
             <div class="attachment-preview" id="attachmentPreview" hidden></div>
+            <div class="composer-tools">
+              <button class="web-search-toggle" id="webSearchToggle" type="button">${icon("search")}Pesquisar na web</button>
+            </div>
             <form class="composer" id="chatForm">
               <button class="icon-button" id="attachButton" type="button" aria-label="Anexar arquivo">${icon("paperclip")}</button>
               <textarea id="messageInput" placeholder="Mensagem para YARA..." rows="1" autocomplete="off"></textarea>
@@ -1914,6 +1946,7 @@ ${logoYaraStyles()}
       let documentTemplates = [];
       let responseState = "done";
       let isResponding = false;
+      let useWebSearchNext = false;
 
       const els = {
         accountName: document.getElementById("accountName"),
@@ -1929,6 +1962,7 @@ ${logoYaraStyles()}
         messages: document.getElementById("messages"),
         messageInput: document.getElementById("messageInput"),
         sendButton: document.getElementById("sendButton"),
+        webSearchToggle: document.getElementById("webSearchToggle"),
         attachmentPreview: document.getElementById("attachmentPreview"),
         fileInputImages: document.getElementById("fileInputImages"),
         fileInputDocument: document.getElementById("fileInputDocument"),
@@ -2323,6 +2357,37 @@ ${logoYaraStyles()}
           : '${icon("send")}Enviar';
       }
 
+      function setWebSearchNext(active) {
+        useWebSearchNext = Boolean(active);
+        els.webSearchToggle.classList.toggle("active", useWebSearchNext);
+        els.webSearchToggle.setAttribute("aria-pressed", useWebSearchNext ? "true" : "false");
+      }
+
+      function renderSources(sources) {
+        if (!sources || !sources.length) return '<p class="muted">Nenhuma fonte registrada.</p>';
+        return sources.map(function(source, index) {
+          return '<article class="list-item"><div class="item-top"><strong>' + (index + 1) + '. ' + escapeHtml(source.title || "Fonte") + '</strong><a class="button" href="' + escapeHtml(source.url || "#") + '" target="_blank" rel="noopener noreferrer">Abrir</a></div><p class="muted">' + escapeHtml(source.domain || source.url || "") + '</p></article>';
+        }).join("");
+      }
+
+      async function showSearchHistory() {
+        const data = await api("/api/search/history");
+        const history = data.history || [];
+        openModal("Histórico de pesquisas", "Fontes usadas pela YARA nas buscas recentes.", history.length ? history.map(function(item) {
+          const sourceCount = item.sources ? item.sources.length : 0;
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.query) + '</strong><button class="button" data-open-search="' + item.id + '" type="button">Ver fontes</button></div><p class="muted">' + escapeHtml(item.provider || "busca") + ' · ' + escapeHtml(item.status || "") + ' · ' + sourceCount + ' fonte' + (sourceCount === 1 ? "" : "s") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma pesquisa registrada ainda.</p>');
+      }
+
+      async function showSearchDetails(searchId) {
+        const data = await api("/api/search/" + searchId);
+        const search = data.search;
+        openModal("Fontes da pesquisa", search.query || "Pesquisa YARA", [
+          '<article class="card"><h2>Resposta registrada</h2><p class="muted">' + escapeHtml(search.response || "") + '</p></article>',
+          '<div class="list">' + renderSources(search.sources || []) + '</div>'
+        ].join(""));
+      }
+
       async function reloadCurrentConversation() {
         if (!currentConversationId) return;
         const conversation = await api("/api/conversations/" + currentConversationId);
@@ -2542,9 +2607,11 @@ ${logoYaraStyles()}
           const payload = {
             conversationId: currentConversationId || undefined,
             message: message,
-            uploadIds: upload ? [upload.id] : []
+            uploadIds: upload ? [upload.id] : [],
+            useWebSearch: useWebSearchNext
           };
           const data = await streamChat(payload, baseMessages, message);
+          setWebSearchNext(false);
           currentConversationId = data.conversationId;
           const conversation = await api("/api/conversations/" + currentConversationId);
           currentConversation = conversation.conversation;
@@ -3036,6 +3103,10 @@ ${logoYaraStyles()}
       document.getElementById("termsButton").addEventListener("click", openTermsModal);
       document.getElementById("chatMenuButton").addEventListener("click", toggleChatMenu);
       document.getElementById("attachButton").addEventListener("click", function() { els.attachMenu.classList.toggle("open"); });
+      document.getElementById("webSearchToggle").addEventListener("click", function() {
+        setWebSearchNext(!useWebSearchNext);
+        showToast(useWebSearchNext ? "A próxima mensagem usará pesquisa online." : "Pesquisa online desativada.");
+      });
       document.getElementById("modalClose").addEventListener("click", closeModal);
       els.modalOverlay.addEventListener("click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
       document.addEventListener("click", function(event) {
@@ -3115,6 +3186,7 @@ ${logoYaraStyles()}
         if (action === "projectConversation") await showProjectPicker();
         if (action === "filesConversation") await showConversationFiles();
         if (action === "searchConversation") toggleSearch();
+        if (action === "searchHistory") await showSearchHistory();
         if (action === "archiveConversation") await archiveConversation();
         if (action === "deleteConversation") await deleteCurrentConversation();
       });
@@ -3149,6 +3221,12 @@ ${logoYaraStyles()}
         if (fullSettingsButton) {
           closeModal();
           setView("settings");
+          return;
+        }
+
+        const searchButton = event.target.closest("[data-open-search]");
+        if (searchButton) {
+          await showSearchDetails(searchButton.dataset.openSearch);
           return;
         }
 

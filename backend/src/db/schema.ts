@@ -205,9 +205,11 @@ export function runMigrations() {
       id text primary key,
       user_id text not null,
       query text not null,
+      provider text not null default 'none',
       status text not null,
       response text not null,
       results_json text not null default '[]',
+      sources_json text not null default '[]',
       created_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
     );
@@ -234,6 +236,8 @@ export function runMigrations() {
   ensureColumn("uploads", "message_id", "text");
   ensureColumn("uploads", "original_name", "text");
   ensureColumn("search_history", "results_json", "text not null default '[]'");
+  ensureColumn("search_history", "provider", "text not null default 'none'");
+  ensureColumn("search_history", "sources_json", "text not null default '[]'");
   db.exec(`
     update users set updated_at = current_timestamp where updated_at is null;
     update projects set updated_at = current_timestamp where updated_at is null;

@@ -6,7 +6,9 @@ dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 
 const missing = (name: string) => !process.env[name] || process.env[name]?.trim() === "";
 const allowedProviders = ["gemini", "openai"] as const;
+const allowedSearchProviders = ["tavily", "serpapi", "brave", "firecrawl"] as const;
 export type AIProviderName = (typeof allowedProviders)[number];
+export type SearchProviderName = (typeof allowedSearchProviders)[number];
 
 function readAIProvider(): AIProviderName {
   const provider = process.env.AI_PROVIDER?.trim().toLowerCase() || "gemini";
@@ -19,6 +21,16 @@ function readAIProvider(): AIProviderName {
 }
 
 const aiProvider = readAIProvider();
+
+function readSearchProvider(): SearchProviderName {
+  const provider = process.env.SEARCH_PROVIDER?.trim().toLowerCase() || "tavily";
+
+  if (!allowedSearchProviders.includes(provider as SearchProviderName)) {
+    return "tavily";
+  }
+
+  return provider as SearchProviderName;
+}
 
 export function validateEnvironment() {
   const errors: string[] = [];
@@ -56,6 +68,11 @@ export const env = {
   geminiModel: process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL?.trim() || "gpt-5.5",
+  searchProvider: readSearchProvider(),
+  tavilyApiKey: process.env.TAVILY_API_KEY ?? "",
+  serpapiApiKey: process.env.SERPAPI_API_KEY ?? "",
+  braveSearchApiKey: process.env.BRAVE_SEARCH_API_KEY ?? "",
+  firecrawlApiKey: process.env.FIRECRAWL_API_KEY ?? "",
   uploadDir: process.env.UPLOAD_DIR?.trim() || "",
   clientOrigin: process.env.CLIENT_ORIGIN?.trim() || "*"
 };

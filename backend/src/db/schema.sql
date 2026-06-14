@@ -206,9 +206,11 @@ create table if not exists search_history (
   id text primary key,
   user_id text not null,
   query text not null,
+  provider text not null default 'none',
   status text not null,
   response text not null,
   results_json text not null default '[]',
+  sources_json text not null default '[]',
   created_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
