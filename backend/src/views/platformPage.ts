@@ -660,6 +660,12 @@ ${logoYaraStyles()}
         gap: 18px;
       }
 
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+      }
+
       .panel,
       .card {
         border: 1px solid var(--line);
@@ -679,6 +685,42 @@ ${logoYaraStyles()}
         display: grid;
         gap: 10px;
         padding: 16px;
+      }
+
+      .compact-card {
+        background: rgba(2, 6, 23, 0.28);
+      }
+
+      .project-workspace {
+        display: grid;
+        gap: 12px;
+      }
+
+      .project-workspace[hidden] {
+        display: none;
+      }
+
+      .inline-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .note-form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .task-title.done {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+
+      .audio-preview,
+      .audio-player {
+        width: 100%;
+        min-width: 180px;
       }
 
       .card h2,
@@ -951,6 +993,8 @@ ${logoYaraStyles()}
         .layout-grid,
         .settings-grid { grid-template-columns: 1fr; }
         .settings-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .inline-form { grid-template-columns: 1fr; }
       }
 
       @media (max-width: 860px) {
@@ -984,7 +1028,8 @@ ${logoYaraStyles()}
         .row { align-items: stretch; flex-direction: column; }
         .settings-hero { align-items: flex-start; flex-direction: column; }
         .settings-card-grid,
-        .option-grid { grid-template-columns: 1fr; }
+        .option-grid,
+        .dashboard-grid { grid-template-columns: 1fr; }
         .quick-prompts { justify-content: stretch; }
         .quick-prompt { flex: 1 1 calc(50% - 9px); }
         .attachment-card,
@@ -1005,6 +1050,7 @@ ${logoYaraStyles()}
           <button class="primary-action" id="newConversationButton" type="button">${icon("plus")}Nova conversa</button>
           <nav class="nav" aria-label="Navegação">
             ${navButton("chat", "Histórico", "history", true)}
+            ${navButton("dashboard", "Dashboard", "sparkles")}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("memory", "Memória da YARA", "brain")}
@@ -1061,6 +1107,43 @@ ${logoYaraStyles()}
           </div>
         </header>
 
+        <section class="view" id="view-dashboard" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Dashboard YARA</h2>
+                <p class="muted">Acompanhe sua atividade, projetos, arquivos e tarefas em um único espaço.</p>
+              </div>
+              <button class="button" id="refreshDashboardButton" type="button">${icon("sparkles")}Atualizar</button>
+            </div>
+            <div class="dashboard-grid" id="dashboardStats"></div>
+            <div class="layout-grid">
+              <article class="card">
+                <div class="item-top">
+                  <h2>Últimos projetos</h2>
+                  <button class="button" data-view-target="projects" type="button">${icon("folder")}Abrir projetos</button>
+                </div>
+                <div class="list" id="dashboardProjects"></div>
+              </article>
+              <article class="card">
+                <div class="item-top">
+                  <h2>Tarefas em andamento</h2>
+                  <button class="button" data-view-target="projects" type="button">${icon("save")}Gerenciar</button>
+                </div>
+                <div class="list" id="dashboardTasks"></div>
+              </article>
+            </div>
+            <article class="card">
+              <h2>Próximas ações sugeridas</h2>
+              <div class="list" id="dashboardSuggestions"></div>
+            </article>
+            <article class="card">
+              <h2>Últimas conversas</h2>
+              <div class="list" id="dashboardConversations"></div>
+            </article>
+          </div>
+        </section>
+
         <section class="view chat-view" id="view-chat">
           <div class="search-row" id="chatSearchRow">
             <input class="field" id="chatSearchInput" placeholder="Buscar nesta conversa..." />
@@ -1089,6 +1172,7 @@ ${logoYaraStyles()}
               ${menuButton("attachDocument", "Documento", "file")}
               ${menuButton("attachPdf", "PDF", "file")}
               ${menuButton("attachCamera", "Tirar foto", "camera")}
+              ${menuButton("attachAudio", "Gravar áudio", "mic")}
             </div>
             <input id="fileInputImages" type="file" accept="image/*" hidden />
             <input id="fileInputDocument" type="file" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
@@ -1145,6 +1229,47 @@ ${logoYaraStyles()}
                 <h2 id="projectDetailTitle">Selecione um projeto</h2>
                 <p class="muted" id="projectDetailDescription">Abra um projeto para ver detalhes, continuar no chat ou excluir.</p>
                 <div class="project-detail" id="projectDetail">Nenhum projeto selecionado.</div>
+                <div class="project-workspace" id="projectWorkspace" hidden>
+                  <article class="card compact-card">
+                    <div class="item-top">
+                      <h2>Tarefas</h2>
+                      <span class="status"><span class="dot"></span>Projeto ativo</span>
+                    </div>
+                    <form class="inline-form" id="projectTaskForm">
+                      <input class="field" id="projectTaskTitle" placeholder="Nova tarefa do projeto" />
+                      <input class="field" id="projectTaskDueDate" type="date" />
+                      <button class="button" type="submit">${icon("plus")}Adicionar</button>
+                    </form>
+                    <div class="list" id="projectTaskList"></div>
+                  </article>
+                  <article class="card compact-card">
+                    <h2>Notas</h2>
+                    <form class="note-form" id="projectNoteForm">
+                      <textarea class="field" id="projectNoteContent" placeholder="Registre uma decisão, referência ou próximo passo..." rows="3"></textarea>
+                      <button class="button" type="submit">${icon("save")}Salvar nota</button>
+                    </form>
+                    <div class="list" id="projectNoteList"></div>
+                  </article>
+                  <article class="card compact-card">
+                    <div class="item-top">
+                      <h2>Arquivos vinculados</h2>
+                      <button class="button" id="refreshProjectFilesButton" type="button">${icon("file")}Atualizar</button>
+                    </div>
+                    <div class="inline-form">
+                      <select class="select" id="projectUploadSelect"></select>
+                      <button class="button" id="linkProjectFileButton" type="button">${icon("paperclip")}Vincular arquivo</button>
+                    </div>
+                    <div class="list" id="projectFileList"></div>
+                  </article>
+                  <article class="card compact-card">
+                    <h2>Conversas vinculadas</h2>
+                    <div class="list" id="projectConversationList"></div>
+                  </article>
+                  <article class="card compact-card">
+                    <h2>Histórico do projeto</h2>
+                    <div class="list" id="projectHistoryList"></div>
+                  </article>
+                </div>
                 <div class="row">
                   <button class="button" id="continueProjectButton" type="button">${icon("chat")}Continuar com a YARA</button>
                   <button class="button danger" id="deleteProjectButton" type="button">${icon("trash")}Excluir projeto</button>
@@ -1370,6 +1495,10 @@ ${logoYaraStyles()}
       let selectedProject = null;
       let generatedProject = null;
       let pendingAttachment = null;
+      let currentProjectDetails = null;
+      let audioRecorder = null;
+      let audioStream = null;
+      let audioChunks = [];
 
       const els = {
         accountName: document.getElementById("accountName"),
@@ -1455,6 +1584,10 @@ ${logoYaraStyles()}
         return String(type || "").startsWith("image/");
       }
 
+      function isAudioType(type) {
+        return String(type || "").startsWith("audio/");
+      }
+
       function attachmentMeta(file) {
         return escapeHtml(file.file_type || file.type || "arquivo") + " · " + formatFileSize(file.file_size || file.size || 0);
       }
@@ -1528,6 +1661,7 @@ ${logoYaraStyles()}
         });
         const labels = {
           chat: ["YARA AI", "Converse com a YARA, pergunte qualquer coisa e organize ideias, estudos, trabalho e projetos."],
+          dashboard: ["Dashboard", "Veja sua atividade real, projetos recentes, arquivos e tarefas pendentes."],
           generator: ["Gerador de Sistemas", "Crie sistemas completos e salve automaticamente como projeto."],
           projects: ["Meus Projetos", "Organize, busque e continue projetos com a YARA."],
           settings: ["Configurações", "Perfil, segurança, preferências e memória da YARA."]
@@ -1537,6 +1671,7 @@ ${logoYaraStyles()}
         els.sidebar.classList.remove("open");
         els.chatActionMenu.classList.remove("open");
         els.attachMenu.classList.remove("open");
+        if (view === "dashboard") loadDashboard();
         if (view === "projects") loadProjects();
         if (view === "settings") loadSettings();
       }
@@ -1582,6 +1717,8 @@ ${logoYaraStyles()}
         const id = escapeHtml(upload.id);
         const iconMarkup = isImageType(upload.file_type)
           ? '<img class="attachment-thumb" data-upload-image="' + id + '" alt="' + name + '" />'
+          : isAudioType(upload.file_type)
+            ? '<audio class="audio-player" controls preload="metadata" data-upload-audio="' + id + '"></audio>'
           : '<span class="attachment-icon">${icon("file")}</span>';
 
         return '<div class="attachment-card">' + iconMarkup + '<span class="attachment-meta"><strong>' + name + '</strong><span>' + meta + '</span></span><button class="button" data-download-upload="' + id + '" data-file-name="' + name + '" type="button">Abrir</button></div>';
@@ -1595,6 +1732,14 @@ ${logoYaraStyles()}
           fetchProtectedFile("/api/uploads/" + uploadId + "/download")
             .then(function(blob) { image.src = URL.createObjectURL(blob); })
             .catch(function() { image.alt = "Imagem indisponível"; });
+        });
+        document.querySelectorAll("[data-upload-audio]").forEach(function(audio) {
+          const uploadId = audio.getAttribute("data-upload-audio");
+          if (!uploadId || audio.dataset.loaded === "true") return;
+          audio.dataset.loaded = "true";
+          fetchProtectedFile("/api/uploads/" + uploadId + "/download")
+            .then(function(blob) { audio.src = URL.createObjectURL(blob); })
+            .catch(function() { audio.replaceWith(document.createTextNode("Áudio indisponível")); });
         });
       }
 
@@ -1728,10 +1873,12 @@ ${logoYaraStyles()}
         }
         clearPendingAttachment();
 
-        const previewUrl = isImageType(file.type) ? URL.createObjectURL(file) : null;
+        const previewUrl = isImageType(file.type) || isAudioType(file.type) ? URL.createObjectURL(file) : null;
         pendingAttachment = { file: file, previewUrl: previewUrl };
-        const visual = previewUrl
+        const visual = isImageType(file.type) && previewUrl
           ? '<img class="attachment-thumb" src="' + previewUrl + '" alt="' + escapeHtml(file.name) + '" />'
+          : isAudioType(file.type) && previewUrl
+            ? '<audio class="audio-preview" controls preload="metadata" src="' + previewUrl + '"></audio>'
           : '<span class="attachment-icon">${icon("file")}</span>';
 
         els.attachmentPreview.innerHTML = visual + '<span class="attachment-meta"><strong>' + escapeHtml(file.name) + '</strong><span>' + escapeHtml(file.type || "arquivo") + " · " + formatFileSize(file.size) + '</span></span><button class="icon-button danger" id="removeAttachmentButton" type="button" aria-label="Remover anexo">${icon("trash")}</button>';
@@ -1921,6 +2068,85 @@ ${logoYaraStyles()}
         if (action === "attachDocument") els.fileInputDocument.click();
         if (action === "attachPdf") els.fileInputPdf.click();
         if (action === "attachCamera") els.fileInputCamera.click();
+        if (action === "attachAudio") toggleAudioRecording();
+      }
+
+      async function toggleAudioRecording() {
+        if (audioRecorder && audioRecorder.state === "recording") {
+          audioRecorder.stop();
+          showToast("Processando áudio...");
+          return;
+        }
+
+        if (!navigator.mediaDevices || !window.MediaRecorder) {
+          showToast("Gravação de áudio não suportada neste navegador.");
+          return;
+        }
+
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioChunks = [];
+          audioRecorder = new MediaRecorder(audioStream);
+          audioRecorder.addEventListener("dataavailable", function(event) {
+            if (event.data && event.data.size > 0) audioChunks.push(event.data);
+          });
+          audioRecorder.addEventListener("stop", function() {
+            const mimeType = audioRecorder.mimeType || "audio/webm";
+            const blob = new Blob(audioChunks, { type: mimeType });
+            const extension = mimeType.includes("mp4") ? "m4a" : "webm";
+            const file = new File([blob], "audio-yara-" + Date.now() + "." + extension, { type: mimeType });
+            audioStream?.getTracks().forEach(function(track) { track.stop(); });
+            audioStream = null;
+            audioRecorder = null;
+            audioChunks = [];
+            setPendingAttachment(file);
+            showToast("Áudio gravado. Envie a mensagem para anexar.");
+          });
+          audioRecorder.start();
+          showToast("Gravando áudio. Toque em Gravar áudio novamente para parar.");
+        } catch {
+          showToast("Não foi possível acessar o microfone.");
+        }
+      }
+
+      async function loadDashboard() {
+        const data = await api("/api/dashboard");
+        const dashboard = data.dashboard || {};
+        const stats = dashboard.stats || {};
+        const statItems = [
+          ["Conversas", stats.conversations || 0, '${icon("chat")}'],
+          ["Projetos", stats.projects || 0, '${icon("folder")}'],
+          ["Memórias", stats.memories || 0, '${icon("brain")}'],
+          ["Arquivos", stats.uploads || 0, '${icon("file")}'],
+          ["Tarefas pendentes", stats.pendingTasks || 0, '${icon("save")}']
+        ];
+        document.getElementById("dashboardStats").innerHTML = statItems.map(function(item) {
+          return '<article class="card"><div class="item-top"><span class="avatar">' + item[2] + '</span><strong>' + escapeHtml(item[0]) + '</strong></div><h2>' + item[1] + '</h2></article>';
+        }).join("");
+
+        const projectTarget = document.getElementById("dashboardProjects");
+        const recentProjects = dashboard.recentProjects || [];
+        projectTarget.innerHTML = recentProjects.length ? recentProjects.map(function(project) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(project.name) + '</strong><button class="button" data-dashboard-project="' + project.id + '" type="button">Abrir</button></div><p class="muted">' + escapeHtml(project.description || project.type || "Projeto YARA AI") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhum projeto criado ainda.</p>';
+
+        const taskTarget = document.getElementById("dashboardTasks");
+        const recentTasks = dashboard.recentTasks || [];
+        taskTarget.innerHTML = recentTasks.length ? recentTasks.map(function(task) {
+          const due = task.due_date ? " · prazo " + escapeHtml(task.due_date) : "";
+          return '<article class="list-item"><div class="item-top"><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong><span class="status"><span class="dot"></span>' + (task.status === "done" ? "Concluída" : "Pendente") + '</span></div><p class="muted">' + escapeHtml(task.project_name || "Projeto") + due + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma tarefa registrada.</p>';
+
+        const conversationTarget = document.getElementById("dashboardConversations");
+        const recentConversations = dashboard.recentConversations || [];
+        conversationTarget.innerHTML = recentConversations.length ? recentConversations.map(function(conversation) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(conversation.title || "Conversa") + '</strong><button class="button" data-dashboard-conversation="' + conversation.id + '" type="button">Abrir</button></div><p class="muted">Atualizada em ' + escapeHtml(conversation.updated_at || "") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma conversa recente.</p>';
+
+        const suggestionTarget = document.getElementById("dashboardSuggestions");
+        suggestionTarget.innerHTML = (dashboard.suggestions || []).map(function(text) {
+          return '<article class="list-item"><p class="muted">' + escapeHtml(text) + '</p></article>';
+        }).join("");
       }
 
       async function loadProjects(render = true) {
@@ -1944,12 +2170,57 @@ ${logoYaraStyles()}
         }).join("");
       }
 
-      function selectProject(projectId) {
+      async function loadProjectUploadOptions() {
+        const select = document.getElementById("projectUploadSelect");
+        const data = await api("/api/uploads");
+        const uploads = data.uploads || [];
+        select.innerHTML = uploads.length
+          ? uploads.map(function(file) {
+              return '<option value="' + escapeHtml(file.id) + '">' + escapeHtml(file.original_name || file.file_name || "Arquivo") + " · " + attachmentMeta(file) + '</option>';
+            }).join("")
+          : '<option value="">Nenhum arquivo enviado ainda</option>';
+      }
+
+      function renderProjectDetails(details) {
+        currentProjectDetails = details;
+        const tasks = details.tasks || [];
+        const notes = details.notes || [];
+        const files = details.files || [];
+        const conversations = details.conversations || [];
+        const history = details.history || [];
+
+        document.getElementById("projectTaskList").innerHTML = tasks.length ? tasks.map(function(task) {
+          return '<article class="list-item"><div class="item-top"><label class="row"><input type="checkbox" data-toggle-task="' + task.id + '" ' + (task.status === "done" ? "checked" : "") + ' /><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong></label><button class="icon-button danger" data-delete-task="' + task.id + '" type="button" aria-label="Excluir tarefa">${icon("trash")}</button></div><p class="muted">' + escapeHtml(task.description || (task.due_date ? "Prazo: " + task.due_date : "Sem prazo definido")) + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma tarefa criada para este projeto.</p>';
+
+        document.getElementById("projectNoteList").innerHTML = notes.length ? notes.map(function(note) {
+          return '<article class="list-item"><div class="item-top"><strong>Nota do projeto</strong><div class="row"><button class="icon-button" data-edit-note="' + note.id + '" data-content="' + escapeHtml(note.content) + '" type="button" aria-label="Editar nota">${icon("save")}</button><button class="icon-button danger" data-delete-note="' + note.id + '" type="button" aria-label="Excluir nota">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(note.content) + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma nota salva.</p>';
+
+        document.getElementById("projectFileList").innerHTML = files.length ? files.map(function(file) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.original_name || file.file_name || "Arquivo") + '</strong><button class="button" data-download-upload="' + file.id + '" data-file-name="' + escapeHtml(file.original_name || file.file_name || "arquivo") + '" type="button">Abrir</button></div><p class="muted">' + attachmentMeta(file) + '</p></article>';
+        }).join("") : '<p class="muted">Nenhum arquivo vinculado a este projeto.</p>';
+
+        document.getElementById("projectConversationList").innerHTML = conversations.length ? conversations.map(function(conversation) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(conversation.title || "Conversa") + '</strong><button class="button" data-open-conversation="' + conversation.id + '" type="button">Abrir</button></div><p class="muted">Atualizada em ' + escapeHtml(conversation.updated_at || "") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma conversa vinculada ainda.</p>';
+
+        document.getElementById("projectHistoryList").innerHTML = history.length ? history.map(function(item) {
+          const label = item.type === "task" ? "Tarefa" : item.type === "file" ? "Arquivo" : "Nota";
+          return '<article class="list-item"><div class="item-top"><strong>' + label + '</strong><span class="muted">' + escapeHtml(item.updated_at || "") + '</span></div><p class="muted">' + escapeHtml(item.label || "") + '</p></article>';
+        }).join("") : '<p class="muted">O histórico aparecerá conforme você criar tarefas, notas e arquivos.</p>';
+      }
+
+      async function selectProject(projectId) {
         selectedProject = projects.find(function(project) { return project.id === projectId; }) || null;
         if (!selectedProject) return;
         document.getElementById("projectDetailTitle").textContent = selectedProject.name;
         document.getElementById("projectDetailDescription").textContent = selectedProject.description || selectedProject.prompt || "Projeto criado na YARA AI.";
         document.getElementById("projectDetail").textContent = selectedProject.content || selectedProject.output || selectedProject.prompt || "";
+        document.getElementById("projectWorkspace").hidden = false;
+        const data = await api("/api/projects/" + selectedProject.id + "/details");
+        renderProjectDetails(data);
+        await loadProjectUploadOptions();
       }
 
       async function loadMemories() {
@@ -2042,6 +2313,10 @@ ${logoYaraStyles()}
       document.querySelectorAll(".nav-button").forEach(function(button) {
         button.addEventListener("click", function() { setView(button.dataset.view); });
       });
+      document.body.addEventListener("click", function(event) {
+        const target = event.target.closest("[data-view-target]");
+        if (target) setView(target.dataset.viewTarget);
+      });
 
       els.pinnedList.addEventListener("click", function(event) {
         const button = event.target.closest("[data-conversation]");
@@ -2053,6 +2328,21 @@ ${logoYaraStyles()}
       });
 
       document.getElementById("newConversationButton").addEventListener("click", newConversation);
+      document.getElementById("refreshDashboardButton").addEventListener("click", loadDashboard);
+      document.getElementById("view-dashboard").addEventListener("click", async function(event) {
+        const projectButton = event.target.closest("[data-dashboard-project]");
+        if (projectButton) {
+          setView("projects");
+          await loadProjects();
+          await selectProject(projectButton.dataset.dashboardProject);
+          return;
+        }
+        const conversationButton = event.target.closest("[data-dashboard-conversation]");
+        if (conversationButton) {
+          setView("chat");
+          await openConversation(conversationButton.dataset.dashboardConversation);
+        }
+      });
       document.getElementById("chatForm").addEventListener("submit", sendMessage);
       document.getElementById("messageInput").addEventListener("keydown", function(event) {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -2191,7 +2481,7 @@ ${logoYaraStyles()}
         if (!generatedProject) return showToast("Gere um projeto primeiro.");
         setView("projects");
         await loadProjects();
-        selectProject(generatedProject.id);
+        await selectProject(generatedProject.id);
       });
 
       document.getElementById("continueGeneratedChat").addEventListener("click", async function() {
@@ -2206,6 +2496,97 @@ ${logoYaraStyles()}
         const button = event.target.closest("[data-open-project]");
         if (button) selectProject(button.dataset.openProject);
       });
+      document.getElementById("projectTaskForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        if (!selectedProject) return showToast("Selecione um projeto.");
+        const title = document.getElementById("projectTaskTitle").value.trim();
+        const dueDate = document.getElementById("projectTaskDueDate").value;
+        if (title.length < 2) return showToast("Informe uma tarefa válida.");
+        await api("/api/projects/" + selectedProject.id + "/tasks", {
+          method: "POST",
+          body: JSON.stringify({ title: title, dueDate: dueDate || null })
+        });
+        event.currentTarget.reset();
+        await selectProject(selectedProject.id);
+        showToast("Tarefa adicionada.");
+      });
+      document.getElementById("projectTaskList").addEventListener("click", async function(event) {
+        if (!selectedProject) return;
+        const toggle = event.target.closest("[data-toggle-task]");
+        if (toggle) {
+          await api("/api/projects/" + selectedProject.id + "/tasks/" + toggle.dataset.toggleTask, {
+            method: "PATCH",
+            body: JSON.stringify({ status: toggle.checked ? "done" : "pending" })
+          });
+          await selectProject(selectedProject.id);
+          showToast("Tarefa atualizada.");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-task]");
+        if (!deleteButton) return;
+        await api("/api/projects/" + selectedProject.id + "/tasks/" + deleteButton.dataset.deleteTask, { method: "DELETE" });
+        await selectProject(selectedProject.id);
+        showToast("Tarefa removida.");
+      });
+      document.getElementById("projectNoteForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        if (!selectedProject) return showToast("Selecione um projeto.");
+        const content = document.getElementById("projectNoteContent").value.trim();
+        if (content.length < 2) return showToast("Escreva uma nota válida.");
+        await api("/api/projects/" + selectedProject.id + "/notes", {
+          method: "POST",
+          body: JSON.stringify({ content: content })
+        });
+        event.currentTarget.reset();
+        await selectProject(selectedProject.id);
+        showToast("Nota salva.");
+      });
+      document.getElementById("projectNoteList").addEventListener("click", async function(event) {
+        if (!selectedProject) return;
+        const editButton = event.target.closest("[data-edit-note]");
+        if (editButton) {
+          const content = window.prompt("Editar nota do projeto", editButton.dataset.content || "");
+          if (content === null) return;
+          await api("/api/projects/" + selectedProject.id + "/notes/" + editButton.dataset.editNote, {
+            method: "PATCH",
+            body: JSON.stringify({ content: content })
+          });
+          await selectProject(selectedProject.id);
+          showToast("Nota atualizada.");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-note]");
+        if (!deleteButton) return;
+        await api("/api/projects/" + selectedProject.id + "/notes/" + deleteButton.dataset.deleteNote, { method: "DELETE" });
+        await selectProject(selectedProject.id);
+        showToast("Nota removida.");
+      });
+      document.getElementById("linkProjectFileButton").addEventListener("click", async function() {
+        if (!selectedProject) return showToast("Selecione um projeto.");
+        const uploadId = document.getElementById("projectUploadSelect").value;
+        if (!uploadId) return showToast("Envie um arquivo antes de vincular.");
+        await api("/api/projects/" + selectedProject.id + "/files", {
+          method: "POST",
+          body: JSON.stringify({ uploadId: uploadId })
+        });
+        await selectProject(selectedProject.id);
+        showToast("Arquivo vinculado ao projeto.");
+      });
+      document.getElementById("refreshProjectFilesButton").addEventListener("click", async function() {
+        if (!selectedProject) return showToast("Selecione um projeto.");
+        await selectProject(selectedProject.id);
+        showToast("Arquivos do projeto atualizados.");
+      });
+      document.getElementById("projectFileList").addEventListener("click", async function(event) {
+        const button = event.target.closest("[data-download-upload]");
+        if (button) await downloadUpload(button.dataset.downloadUpload, button.dataset.fileName || "arquivo");
+      });
+      document.getElementById("projectConversationList").addEventListener("click", async function(event) {
+        const button = event.target.closest("[data-open-conversation]");
+        if (!button) return;
+        setView("chat");
+        await openConversation(button.dataset.openConversation);
+      });
       document.getElementById("continueProjectButton").addEventListener("click", async function() {
         if (!selectedProject) return showToast("Selecione um projeto.");
         await newConversation();
@@ -2217,8 +2598,11 @@ ${logoYaraStyles()}
         if (!window.confirm("Excluir este projeto?")) return;
         await api("/api/projects/" + selectedProject.id, { method: "DELETE" });
         selectedProject = null;
+        currentProjectDetails = null;
         document.getElementById("projectDetailTitle").textContent = "Selecione um projeto";
+        document.getElementById("projectDetailDescription").textContent = "Abra um projeto para ver detalhes, continuar no chat ou excluir.";
         document.getElementById("projectDetail").textContent = "Nenhum projeto selecionado.";
+        document.getElementById("projectWorkspace").hidden = true;
         await loadProjects();
         showToast("Projeto excluído.");
       });
@@ -2445,6 +2829,7 @@ type IconName =
   | "image"
   | "logout"
   | "menu"
+  | "mic"
   | "paperclip"
   | "pin"
   | "plus"
@@ -2474,6 +2859,7 @@ function icon(name: IconName) {
     image: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z" stroke="currentColor" stroke-width="1.8"/><path d="m5 17 4.5-4.5 3 3L15 13l4 4M9 8.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     logout: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 6H6.5A2.5 2.5 0 0 0 4 8.5v7A2.5 2.5 0 0 0 6.5 18H10m4-3 3-3-3-3m3 3H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     menu: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     paperclip: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m21 11.5-8.5 8.5a5 5 0 0 1-7.1-7.1l9.2-9.2a3.4 3.4 0 1 1 4.8 4.8l-9.3 9.3a1.8 1.8 0 0 1-2.5-2.5l8.5-8.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     pin: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 4 6 6-3 1-4 4v4l-2 2-2-6-6-2 2-2h4l4-4 1-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',

@@ -148,6 +148,42 @@ create table if not exists conversation_projects (
   foreign key (user_id) references users(id) on delete cascade
 );
 
+create table if not exists project_tasks (
+  id text primary key,
+  user_id text not null,
+  project_id text not null,
+  title text not null,
+  description text,
+  status text not null default 'pending' check (status in ('pending', 'done')),
+  due_date text,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references projects(id) on delete cascade
+);
+
+create table if not exists project_notes (
+  id text primary key,
+  user_id text not null,
+  project_id text not null,
+  content text not null,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references projects(id) on delete cascade
+);
+
+create table if not exists project_uploads (
+  project_id text not null,
+  upload_id text not null,
+  user_id text not null,
+  created_at text not null default current_timestamp,
+  primary key (project_id, upload_id),
+  foreign key (project_id) references projects(id) on delete cascade,
+  foreign key (upload_id) references uploads(id) on delete cascade,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
 create table if not exists search_history (
   id text primary key,
   user_id text not null,

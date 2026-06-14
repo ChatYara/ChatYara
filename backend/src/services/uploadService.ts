@@ -13,6 +13,12 @@ const allowedTypes = new Set([
   "application/pdf",
   "text/plain",
   "text/csv",
+  "audio/webm",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/x-m4a",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
@@ -28,6 +34,10 @@ const allowedExtensions = new Set([
   ".pdf",
   ".txt",
   ".csv",
+  ".webm",
+  ".wav",
+  ".mp3",
+  ".m4a",
   ".doc",
   ".docx",
   ".xls",
@@ -165,7 +175,9 @@ export async function parseMultipartUpload(req: Request) {
 
     if (filename) {
       const typeHeader = rawHeaders.split("\r\n").find((line) => line.toLowerCase().startsWith("content-type"));
-      const fileType = typeHeader?.split(":").slice(1).join(":").trim().toLowerCase() || "application/octet-stream";
+      const fileType =
+        typeHeader?.split(":").slice(1).join(":").trim().toLowerCase().split(";")[0].trim() ||
+        "application/octet-stream";
       file = {
         buffer: value,
         originalName: filename,

@@ -4,6 +4,7 @@ import { askYara } from "./ai/aiService";
 import { getUserById } from "./authService";
 import { readMemory } from "./chatService";
 import { deleteLearning, listUserLearning } from "./learningService";
+import { toPublicUpload } from "./uploadService";
 
 type MemoryListItem = {
   id: string;
@@ -15,6 +16,33 @@ type MemoryListItem = {
   created_at?: string;
   updated_at?: string;
 };
+
+type UploadRow = {
+  id: string;
+  user_id: string;
+  conversation_id: string | null;
+  message_id: string | null;
+  file_name: string;
+  original_name: string | null;
+  file_type: string;
+  file_size: number;
+  storage_path: string;
+  created_at: string;
+};
+
+function publicUploadSelect(alias = "uploads") {
+  return `${alias}.id, ${alias}.user_id, ${alias}.conversation_id, ${alias}.message_id, ${alias}.file_name, ${alias}.original_name, ${alias}.file_type, ${alias}.file_size, ${alias}.storage_path, ${alias}.created_at`;
+}
+
+function assertProjectOwner(userId: string, projectId: string) {
+  const project = getDatabase()
+    .prepare("select id from projects where id = ? and user_id = ?")
+    .get(projectId, userId);
+
+  if (!project) {
+    throw new Error("Projeto não encontrado.");
+  }
+}
 
 export function listMemories(userId: string) {
   const manual = getDatabase()
@@ -144,6 +172,275 @@ export function getProject(userId: string, projectId: string) {
   }
 
   return project;
+}
+
+export function getProjectDetails(userId: string, projectId: string) {
+  const db = getDatabase();
+  const conversations = db
+    .prepare(
+      `select conversations.id, conversations.title, conversations.updated_at
+       from conversation_projects
+       join conversations on conversations.id = conversation_projects.conversation_id
+       where conversation_projects.user_id = ? and conversation_projects.project_id = ?
+       order by conversation_projects.created_at desc`
+    )
+    .all(userId, projectId);
+  const history = db
+    .prepare(
+      `select 'task' as type, title as label, updated_at from project_tasks where user_id = ? and project_id = ?
+       union all
+       select 'note' as type, substr(content, 1, 80) as label, updated_at from project_notes where user_id = ? and project_id = ?
+       union all
+       select 'file' as type, coalesce(uploads.original_name, uploads.file_name) as label, project_uploads.created_at as updated_at
+       from project_uploads
+       join uploads on uploads.id = project_uploads.upload_id
+       where project_uploads.user_id = ? and project_uploads.project_id = ?
+       order by updated_at desc
+       limit 8`
+    )
+    .all(userId, projectId, userId, projectId, userId, projectId);
+
+  return {
+    project: getProject(userId, projectId),
+    tasks: listProjectTasks(userId, projectId),
+    notes: listProjectNotes(userId, projectId),
+    files: listProjectFiles(userId, projectId),
+    conversations,
+    history
+  };
+}
+
+export function listProjectTasks(userId: string, projectId: string) {
+  assertProjectOwner(userId, projectId);
+  return getDatabase()
+    .prepare(
+      `select id, project_id, title, description, status, due_date, created_at, updated_at
+       from project_tasks
+       where user_id = ? and project_id = ?
+       order by status asc, coalesce(due_date, '9999-12-31') asc, updated_at desc`
+    )
+    .all(userId, projectId);
+}
+
+export function createProjectTask(
+  userId: string,
+  projectId: string,
+  input: { title: string; description?: string; dueDate?: string | null }
+) {
+  assertProjectOwner(userId, projectId);
+  const id = uuid();
+  const title = input.title.trim();
+  const description = input.description?.trim() || "";
+  const dueDate = input.dueDate?.trim() || null;
+
+  getDatabase()
+    .prepare(
+      `insert into project_tasks (id, user_id, project_id, title, description, due_date)
+       values (?, ?, ?, ?, ?, ?)`
+    )
+    .run(id, userId, projectId, title, description || null, dueDate);
+
+  return { id, project_id: projectId, title, description, status: "pending", due_date: dueDate };
+}
+
+export function updateProjectTask(
+  userId: string,
+  projectId: string,
+  taskId: string,
+  input: { title?: string; description?: string; status?: "pending" | "done"; dueDate?: string | null }
+) {
+  assertProjectOwner(userId, projectId);
+  const current = getDatabase()
+    .prepare(
+      `select id, title, description, status, due_date
+       from project_tasks
+       where id = ? and project_id = ? and user_id = ?`
+    )
+    .get(taskId, projectId, userId) as
+    | { id: string; title: string; description: string | null; status: "pending" | "done"; due_date: string | null }
+    | undefined;
+
+  if (!current) {
+    throw new Error("Tarefa não encontrada.");
+  }
+
+  const title = input.title?.trim() || current.title;
+  const description = input.description?.trim() ?? current.description ?? "";
+  const status = input.status || current.status;
+  const dueDate = input.dueDate === undefined ? current.due_date : input.dueDate?.trim() || null;
+
+  getDatabase()
+    .prepare(
+      `update project_tasks
+       set title = ?, description = ?, status = ?, due_date = ?, updated_at = current_timestamp
+       where id = ? and project_id = ? and user_id = ?`
+    )
+    .run(title, description || null, status, dueDate, taskId, projectId, userId);
+
+  return { id: taskId, project_id: projectId, title, description, status, due_date: dueDate };
+}
+
+export function deleteProjectTask(userId: string, projectId: string, taskId: string) {
+  assertProjectOwner(userId, projectId);
+  const result = getDatabase()
+    .prepare("delete from project_tasks where id = ? and project_id = ? and user_id = ?")
+    .run(taskId, projectId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Tarefa não encontrada.");
+  }
+
+  return { id: taskId };
+}
+
+export function listProjectNotes(userId: string, projectId: string) {
+  assertProjectOwner(userId, projectId);
+  return getDatabase()
+    .prepare(
+      `select id, project_id, content, created_at, updated_at
+       from project_notes
+       where user_id = ? and project_id = ?
+       order by updated_at desc, created_at desc`
+    )
+    .all(userId, projectId);
+}
+
+export function createProjectNote(userId: string, projectId: string, input: { content: string }) {
+  assertProjectOwner(userId, projectId);
+  const id = uuid();
+  const content = input.content.trim();
+
+  getDatabase()
+    .prepare("insert into project_notes (id, user_id, project_id, content) values (?, ?, ?, ?)")
+    .run(id, userId, projectId, content);
+
+  return { id, project_id: projectId, content };
+}
+
+export function updateProjectNote(userId: string, projectId: string, noteId: string, input: { content: string }) {
+  assertProjectOwner(userId, projectId);
+  const content = input.content.trim();
+  const result = getDatabase()
+    .prepare(
+      `update project_notes
+       set content = ?, updated_at = current_timestamp
+       where id = ? and project_id = ? and user_id = ?`
+    )
+    .run(content, noteId, projectId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Nota não encontrada.");
+  }
+
+  return { id: noteId, project_id: projectId, content };
+}
+
+export function deleteProjectNote(userId: string, projectId: string, noteId: string) {
+  assertProjectOwner(userId, projectId);
+  const result = getDatabase()
+    .prepare("delete from project_notes where id = ? and project_id = ? and user_id = ?")
+    .run(noteId, projectId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Nota não encontrada.");
+  }
+
+  return { id: noteId };
+}
+
+export function listProjectFiles(userId: string, projectId: string) {
+  assertProjectOwner(userId, projectId);
+  const rows = getDatabase()
+    .prepare(
+      `select ${publicUploadSelect("uploads")}
+       from project_uploads
+       join uploads on uploads.id = project_uploads.upload_id
+       where project_uploads.user_id = ? and project_uploads.project_id = ?
+       order by project_uploads.created_at desc`
+    )
+    .all(userId, projectId) as UploadRow[];
+
+  return rows.map(toPublicUpload);
+}
+
+export function addProjectFile(userId: string, projectId: string, uploadId: string) {
+  assertProjectOwner(userId, projectId);
+  const upload = getDatabase()
+    .prepare("select id from uploads where id = ? and user_id = ?")
+    .get(uploadId, userId);
+
+  if (!upload) {
+    throw new Error("Arquivo não encontrado.");
+  }
+
+  getDatabase()
+    .prepare("insert or ignore into project_uploads (project_id, upload_id, user_id) values (?, ?, ?)")
+    .run(projectId, uploadId, userId);
+
+  return { projectId, uploadId };
+}
+
+export function getDashboard(userId: string) {
+  const db = getDatabase();
+  const count = (sql: string) => Number((db.prepare(sql).get(userId) as { total: number } | undefined)?.total || 0);
+  const pendingTasks = Number(
+    (
+      db
+        .prepare("select count(*) as total from project_tasks where user_id = ? and status = 'pending'")
+        .get(userId) as { total: number } | undefined
+    )?.total || 0
+  );
+
+  const recentProjects = db
+    .prepare(
+      `select id, name, type, description, updated_at
+       from projects
+       where user_id = ?
+       order by updated_at desc, created_at desc
+       limit 4`
+    )
+    .all(userId);
+  const recentTasks = db
+    .prepare(
+      `select project_tasks.id, project_tasks.title, project_tasks.status, project_tasks.due_date, projects.name as project_name
+       from project_tasks
+       join projects on projects.id = project_tasks.project_id
+       where project_tasks.user_id = ?
+       order by project_tasks.status asc, project_tasks.updated_at desc
+       limit 5`
+    )
+    .all(userId);
+  const recentConversations = db
+    .prepare(
+      `select id, title, updated_at
+       from conversations
+       where user_id = ? and is_archived = 0
+       order by updated_at desc
+       limit 5`
+    )
+    .all(userId);
+
+  const suggestions = [
+    pendingTasks > 0 ? `Você tem ${pendingTasks} tarefa${pendingTasks === 1 ? "" : "s"} pendente${pendingTasks === 1 ? "" : "s"} para revisar.` : "Crie tarefas nos projetos para acompanhar execução com a YARA.",
+    count("select count(*) as total from uploads where user_id = ?") > 0
+      ? "Vincule arquivos importantes aos projetos para manter contexto organizado."
+      : "Envie documentos, imagens ou áudio no chat para enriquecer o contexto.",
+    "Use o Gerador de Sistemas para transformar conversas em projetos estruturados."
+  ];
+
+  return {
+    stats: {
+      conversations: count("select count(*) as total from conversations where user_id = ? and is_archived = 0"),
+      projects: count("select count(*) as total from projects where user_id = ?"),
+      memories: count("select count(*) as total from memories where user_id = ?"),
+      uploads: count("select count(*) as total from uploads where user_id = ?"),
+      pendingTasks
+    },
+    recentProjects,
+    recentConversations,
+    recentTasks,
+    suggestions
+  };
 }
 
 export function deleteProject(userId: string, projectId: string) {
