@@ -618,6 +618,124 @@ ${logoYaraStyles()}
         display: none;
       }
 
+      .settings-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 20px;
+        padding: clamp(18px, 3vw, 26px);
+        background:
+          radial-gradient(circle at 18% 10%, rgba(56, 189, 248, 0.12), transparent 24rem),
+          rgba(15, 23, 42, 0.7);
+      }
+
+      .settings-hero h2 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 4vw, 44px);
+      }
+
+      .settings-metric {
+        min-width: 178px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(2, 6, 23, 0.36);
+      }
+
+      .settings-metric strong {
+        display: block;
+        font-size: 24px;
+      }
+
+      .settings-card-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .option-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .option-button {
+        min-height: 42px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 12px;
+        padding: 10px;
+        color: #dbeafe;
+        background: rgba(15, 23, 42, 0.56);
+        font-weight: 700;
+      }
+
+      .option-button.active {
+        color: #031425;
+        border-color: rgba(56, 189, 248, 0.82);
+        background: linear-gradient(135deg, #38bdf8, #0a84ff);
+      }
+
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+        padding: 13px;
+        background: rgba(2, 6, 23, 0.28);
+      }
+
+      .toggle {
+        width: 48px;
+        height: 26px;
+        position: relative;
+        border: 1px solid rgba(56, 189, 248, 0.26);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.9);
+      }
+
+      .toggle::after {
+        content: "";
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: #94a3b8;
+        transition: transform 160ms ease, background 160ms ease;
+      }
+
+      .toggle.active::after {
+        transform: translateX(21px);
+        background: #38bdf8;
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+      }
+
+      .storage {
+        height: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        border-radius: 999px;
+        background: rgba(2, 6, 23, 0.72);
+      }
+
+      .storage span {
+        display: block;
+        height: 100%;
+        width: 37%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #0a84ff, #38bdf8);
+      }
+
+      .danger-zone {
+        border-color: rgba(251, 113, 133, 0.3);
+        background: rgba(127, 29, 29, 0.12);
+      }
+
       .toast {
         position: fixed;
         right: 18px;
@@ -676,6 +794,7 @@ ${logoYaraStyles()}
       @media (max-width: 1060px) {
         .layout-grid,
         .settings-grid { grid-template-columns: 1fr; }
+        .settings-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
 
       @media (max-width: 860px) {
@@ -706,6 +825,9 @@ ${logoYaraStyles()}
         .button { width: 100%; }
         .project-toolbar,
         .row { align-items: stretch; flex-direction: column; }
+        .settings-hero { align-items: flex-start; flex-direction: column; }
+        .settings-card-grid,
+        .option-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -722,8 +844,18 @@ ${logoYaraStyles()}
             ${navButton("chat", "Histórico", "history", true)}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
+            ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
           </nav>
+          <article class="account">
+            <div class="account-row">
+              <span class="avatar">AI</span>
+              <div>
+                <strong>Plano atual</strong>
+                <span>Essencial · Workspace ativo</span>
+              </div>
+            </div>
+          </article>
           <p class="section-title">Fixadas</p>
           <div class="conversation-list" id="pinnedList"></div>
           <p class="section-title">Histórico</p>
@@ -847,27 +979,34 @@ ${logoYaraStyles()}
 
         <section class="view" id="view-settings" hidden>
           <div class="panel">
-            <h2>Configurações</h2>
+            <div class="settings-hero">
+              <div>
+                <h2>Configurações</h2>
+                <p class="muted">Gerencie suas preferências e personalize sua experiência com a YARA AI.</p>
+              </div>
+              <div class="settings-metric">
+                <span class="muted">Plano atual</span>
+                <strong>Essencial</strong>
+                <span class="muted">Workspace ativo</span>
+              </div>
+            </div>
+
             <div class="tabs" id="settingsTabs">
               <button class="tab active" data-settings-tab="profile" type="button">Perfil</button>
-              <button class="tab" data-settings-tab="account" type="button">Conta</button>
-              <button class="tab" data-settings-tab="security" type="button">Segurança</button>
-              <button class="tab" data-settings-tab="preferences" type="button">Preferências da YARA</button>
               <button class="tab" data-settings-tab="memory" type="button">Memória</button>
+              <button class="tab" data-settings-tab="personality" type="button">Personalidade</button>
+              <button class="tab" data-settings-tab="workspace" type="button">Workspace</button>
+              <button class="tab" data-settings-tab="files" type="button">Arquivos</button>
+              <button class="tab" data-settings-tab="notifications" type="button">Notificações</button>
+              <button class="tab" data-settings-tab="security" type="button">Segurança</button>
+              <button class="tab" data-settings-tab="appearance" type="button">Aparência</button>
+              <button class="tab" data-settings-tab="ai" type="button">IA</button>
+              <button class="tab" data-settings-tab="about" type="button">Sobre</button>
             </div>
 
             <div class="settings-pane settings-grid" id="settings-profile">
               <form class="card" id="profileForm">
                 <h2>Perfil</h2>
-                <input class="field" id="displayName" placeholder="Como você quer ser chamado?" />
-                <input class="field" id="fullName" placeholder="Nome completo" />
-                <input class="field" id="profileEmail" placeholder="E-mail" type="email" />
-                <input class="field" id="profilePhone" placeholder="Telefone opcional" />
-                <input class="field" id="avatarUrl" placeholder="Avatar/foto de perfil (URL futura)" />
-                <button class="primary-action" type="submit">${icon("save")}Salvar perfil</button>
-              </form>
-              <article class="card">
-                <h2>Identidade da conta</h2>
                 <div class="account-row">
                   <span class="avatar" id="settingsAvatar">YA</span>
                   <div>
@@ -875,14 +1014,108 @@ ${logoYaraStyles()}
                     <p class="muted" id="settingsEmail">Conta YARA</p>
                   </div>
                 </div>
+                <input class="field" id="displayName" placeholder="Como deseja ser chamado" />
+                <input class="field" id="fullName" placeholder="Nome completo" />
+                <input class="field" id="profileEmail" placeholder="E-mail" type="email" />
+                <input class="field" id="profilePhone" placeholder="Telefone opcional" />
+                <input class="field" id="avatarUrl" placeholder="Foto/avatar (URL)" />
+                <button class="primary-action" type="submit">${icon("save")}Salvar alterações</button>
+              </form>
+              <article class="card">
+                <h2>Conta</h2>
+                <button class="button" data-soft-action="Alterar e-mail" type="button">${icon("file")}Alterar e-mail</button>
+                <button class="button" data-settings-tab-target="security" type="button">${icon("shield")}Alterar senha</button>
+                <button class="button" id="loadSessionsButton" type="button">${icon("history")}Sessões ativas</button>
+                <button class="button" id="logoutAllButton" type="button">${icon("logout")}Encerrar sessões</button>
+                <button class="button danger" data-soft-action="Excluir conta" type="button">${icon("trash")}Excluir conta</button>
+                <div class="list" id="sessionList"></div>
               </article>
             </div>
 
-            <div class="settings-pane settings-grid" id="settings-account" hidden>
+            <div class="settings-pane settings-grid" id="settings-memory" hidden>
+              <form class="card" id="memoryForm">
+                <h2>Memória da YARA</h2>
+                <p class="muted">A YARA usa essas informações para personalizar respostas.</p>
+                <input class="field" id="memoryTitle" placeholder="Título opcional" />
+                <textarea class="field" id="memoryContent" rows="5" placeholder="O que a YARA deve lembrar?"></textarea>
+                <button class="primary-action" type="submit">${icon("plus")}Adicionar memória</button>
+                <button class="button danger" id="clearMemoriesButton" type="button">${icon("trash")}Limpar todas</button>
+              </form>
               <article class="card">
-                <h2>Conta</h2>
-                <p class="muted">Altere e-mail e telefone pela aba Perfil. Exclusão de conta será preparada em uma próxima etapa com confirmação reforçada.</p>
+                <h2>Memórias salvas</h2>
+                <div class="list" id="memoryList"></div>
               </article>
+            </div>
+
+            <div class="settings-pane settings-grid" id="settings-personality" hidden>
+              <form class="card" id="preferencesForm">
+                <h2>Personalidade da YARA</h2>
+                <label class="muted">Estilo de resposta</label>
+                <select class="select" id="aiStyle">
+                  <option value="balanced">Equilibrada</option>
+                  <option value="direct">Direta</option>
+                  <option value="technical">Técnica</option>
+                  <option value="creative">Criativa</option>
+                  <option value="executive">Executiva</option>
+                </select>
+                <label class="muted">Tamanho das respostas</label>
+                <select class="select" id="responseLength">
+                  <option value="short">Curta</option>
+                  <option value="medium">Média</option>
+                  <option value="detailed">Detalhada</option>
+                </select>
+                <label class="muted">Idioma principal</label>
+                <select class="select" id="language">
+                  <option value="pt-BR">Português</option>
+                  <option value="en-US">Inglês</option>
+                  <option value="es">Espanhol</option>
+                </select>
+                <button class="primary-action" type="submit">${icon("save")}Salvar personalidade</button>
+              </form>
+              <article class="card">
+                <h2>Prévia</h2>
+                <p class="muted">As respostas da YARA serão ajustadas conforme estilo, idioma e profundidade escolhidos.</p>
+              </article>
+            </div>
+
+            <div class="settings-pane" id="settings-workspace" hidden>
+              <div class="settings-card-grid">
+                ${settingsInfoCard("Projetos", "Projetos ativos conectados ao gerador.", "folder")}
+                ${settingsInfoCard("Projetos favoritos", "Fixe projetos importantes no topo.", "pin")}
+                ${settingsInfoCard("Arquivados", "Itens guardados sem apagar dados.", "archive")}
+                ${settingsInfoCard("Histórico de sistemas", "Gerações recentes salvas automaticamente.", "history")}
+                ${settingsInfoCard("Templates favoritos", "Modelos prontos para acelerar criação.", "sparkles")}
+                <article class="card"><h2>Tecnologias preferidas</h2><input class="field" id="preferredTech" placeholder="React, Node, PostgreSQL..." /><button class="button" data-soft-action="Tecnologias preferidas" type="button">${icon("save")}Salvar tecnologias</button></article>
+              </div>
+            </div>
+
+            <div class="settings-pane settings-grid" id="settings-files" hidden>
+              <article class="card">
+                <h2>Arquivos</h2>
+                <div class="settings-card-grid">
+                  ${settingsInfoCard("Imagens", "Anexos visuais preparados.", "image")}
+                  ${settingsInfoCard("Documentos", "Documentos e textos validados.", "file")}
+                  ${settingsInfoCard("PDFs", "PDFs com limite seguro.", "file")}
+                  ${settingsInfoCard("Planilhas", "Estrutura pronta para planilhas.", "file")}
+                </div>
+                <div class="storage"><span></span></div>
+                <p class="muted" id="storageText">0 MB usados de 10 MB preparados por arquivo.</p>
+                <button class="primary-action" id="manageFilesButton" type="button">${icon("folder")}Gerenciar arquivos</button>
+              </article>
+              <article class="card">
+                <h2>Arquivos enviados</h2>
+                <div class="list" id="uploadsList"></div>
+              </article>
+            </div>
+
+            <div class="settings-pane" id="settings-notifications" hidden>
+              <div class="settings-card-grid">
+                ${toggleRow("Novas respostas", "Avisar quando a YARA concluir respostas.", true)}
+                ${toggleRow("Atualizações de projetos", "Notificar mudanças importantes nos projetos.", true)}
+                ${toggleRow("Conclusão de geração", "Avisar quando sistemas forem gerados.", true)}
+                ${toggleRow("Atualizações da plataforma", "Novidades da YARA AI.", true)}
+                ${toggleRow("Ofertas e novidades", "Comunicações comerciais opcionais.", false)}
+              </div>
             </div>
 
             <div class="settings-pane settings-grid" id="settings-security" hidden>
@@ -895,45 +1128,43 @@ ${logoYaraStyles()}
               </form>
               <article class="card">
                 <h2>Segurança</h2>
-                <p class="muted">A YARA nunca mostra sua senha atual e o backend salva a nova senha com criptografia.</p>
+                ${toggleRow("Autenticação em dois fatores", "Preparado para ativação futura.", false)}
+                <button class="button" id="securitySessionsButton" type="button">${icon("history")}Histórico de login</button>
+                <button class="button" id="securityDevicesButton" type="button">${icon("users")}Dispositivos conectados</button>
               </article>
             </div>
 
-            <div class="settings-pane settings-grid" id="settings-preferences" hidden>
-              <form class="card" id="preferencesForm">
-                <h2>Preferências da YARA</h2>
-                <select class="select" id="aiStyle">
-                  <option value="balanced">Equilibrada</option>
-                  <option value="direct">Direta</option>
-                  <option value="technical">Técnica</option>
-                  <option value="creative">Criativa</option>
-                </select>
-                <select class="select" id="language">
-                  <option value="pt-BR">Português</option>
-                  <option value="en-US">Inglês</option>
-                  <option value="es">Espanhol</option>
-                </select>
-                <select class="select" id="responseLength">
-                  <option value="short">Curta</option>
-                  <option value="medium">Média</option>
-                  <option value="detailed">Detalhada</option>
-                </select>
-                <button class="primary-action" type="submit">${icon("save")}Salvar preferências</button>
-              </form>
+            <div class="settings-pane" id="settings-appearance" hidden>
+              <div class="settings-card-grid">
+                <article class="card"><h2>Tema</h2><div class="option-grid"><button class="option-button" data-choice-group="theme">Claro</button><button class="option-button active" data-choice-group="theme">Escuro</button><button class="option-button" data-choice-group="theme">Automático</button></div></article>
+                <article class="card"><h2>Interface</h2><div class="option-grid"><button class="option-button" data-choice-group="density">Compacta</button><button class="option-button active" data-choice-group="density">Padrão</button><button class="option-button" data-choice-group="density">Espaçosa</button></div></article>
+                <article class="card"><h2>Cores</h2><div class="option-grid"><button class="option-button active" data-choice-group="color">Azul</button><button class="option-button" data-choice-group="color">Roxo</button><button class="option-button" data-choice-group="color">Verde</button><button class="option-button" data-choice-group="color">Laranja</button><button class="option-button" data-choice-group="color">Rosa</button><button class="option-button" data-choice-group="color">Personalizada</button></div></article>
+              </div>
             </div>
 
-            <div class="settings-pane settings-grid" id="settings-memory" hidden>
-              <form class="card" id="memoryForm">
-                <h2>Memória da YARA</h2>
-                <p class="muted">A YARA usa essas informações para personalizar respostas.</p>
-                <input class="field" id="memoryTitle" placeholder="Título opcional" />
-                <textarea class="field" id="memoryContent" rows="5" placeholder="O que a YARA deve lembrar?"></textarea>
-                <button class="primary-action" type="submit">${icon("plus")}Adicionar memória</button>
-              </form>
+            <div class="settings-pane settings-grid" id="settings-ai" hidden>
               <article class="card">
-                <h2>Memórias salvas</h2>
-                <div class="list" id="memoryList"></div>
+                <h2>IA</h2>
+                <p class="muted">Provedor atual: <strong id="aiProvider">Carregando...</strong></p>
+                <p class="muted">Modelo: <strong id="aiModel">Carregando...</strong></p>
+                <p class="muted">Status: <strong id="aiOnline">Verificando...</strong></p>
+                <button class="primary-action" id="testAiButton" type="button">${icon("sparkles")}Testar conexão</button>
               </article>
+              <article class="card">
+                <h2>Camada segura</h2>
+                <p class="muted">O APK e o frontend nunca recebem chaves do provedor. Todas as chamadas passam pelo backend.</p>
+              </article>
+            </div>
+
+            <div class="settings-pane" id="settings-about" hidden>
+              <div class="settings-card-grid">
+                ${settingsInfoCard("Versão da plataforma", "YARA AI Web 1.0", "sparkles")}
+                ${settingsInfoCard("Versão do backend", "API Render 1.0", "code")}
+                ${settingsInfoCard("Licença", "Projeto YARA AI", "file")}
+                ${settingsInfoCard("Termos de uso", "Documento preparado para publicação.", "file")}
+                ${settingsInfoCard("Política de privacidade", "Documento preparado para publicação.", "shield")}
+                ${settingsInfoCard("Suporte técnico", "Canal oficial via workspace.", "users")}
+              </div>
             </div>
           </div>
         </section>
@@ -1038,6 +1269,10 @@ ${logoYaraStyles()}
       }
 
       function setView(view) {
+        if (view === "memory") {
+          view = "settings";
+          window.setTimeout(function() { selectSettingsTab("memory"); }, 0);
+        }
         document.querySelectorAll(".view").forEach(function(item) {
           item.hidden = item.id !== "view-" + view;
         });
@@ -1057,6 +1292,18 @@ ${logoYaraStyles()}
         els.attachMenu.classList.remove("open");
         if (view === "projects") loadProjects();
         if (view === "settings") loadSettings();
+      }
+
+      function selectSettingsTab(tabName) {
+        document.querySelectorAll(".tab").forEach(function(tab) {
+          tab.classList.toggle("active", tab.dataset.settingsTab === tabName);
+        });
+        document.querySelectorAll(".settings-pane").forEach(function(pane) {
+          pane.hidden = pane.id !== "settings-" + tabName;
+        });
+        if (tabName === "memory") loadMemories();
+        if (tabName === "files") loadUploads();
+        if (tabName === "ai") loadAiStatus();
       }
 
       function renderConversationGroup(target, items, emptyText) {
@@ -1285,11 +1532,43 @@ ${logoYaraStyles()}
           return;
         }
         target.innerHTML = memories.map(function(memory) {
-          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(memory.title || "Memória") + '</strong><button class="icon-button danger" data-delete-memory="' + memory.id + '" type="button" aria-label="Excluir memória">${icon("trash")}</button></div><p class="muted">' + escapeHtml(memory.content) + '</p></article>';
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(memory.title || "Memória") + '</strong><div class="row"><button class="icon-button" data-edit-memory="' + memory.id + '" data-title="' + escapeHtml(memory.title || "Memória") + '" data-content="' + escapeHtml(memory.content) + '" type="button" aria-label="Editar memória">${icon("save")}</button><button class="icon-button danger" data-delete-memory="' + memory.id + '" type="button" aria-label="Excluir memória">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(memory.content) + '</p></article>';
+        }).join("");
+      }
+
+      async function loadUploads() {
+        const data = await api("/api/uploads");
+        const uploads = data.uploads || [];
+        const target = document.getElementById("uploadsList");
+        const total = uploads.reduce(function(sum, item) { return sum + Number(item.file_size || 0); }, 0);
+        document.getElementById("storageText").textContent = Math.round(total / 1024 / 1024 * 10) / 10 + " MB em arquivos preparados.";
+        if (!uploads.length) {
+          target.innerHTML = '<p class="muted">Nenhum arquivo preparado ainda.</p>';
+          return;
+        }
+        target.innerHTML = uploads.map(function(file) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.file_name) + '</strong><button class="icon-button danger" data-delete-upload="' + file.id + '" type="button" aria-label="Remover arquivo">${icon("trash")}</button></div><p class="muted">' + escapeHtml(file.file_type) + " · " + Math.ceil(file.file_size / 1024) + ' KB</p></article>';
+        }).join("");
+      }
+
+      async function loadAiStatus() {
+        const data = await api("/api/ai/status");
+        document.getElementById("aiProvider").textContent = data.provider || "YARA";
+        document.getElementById("aiModel").textContent = data.model || "Modelo ativo";
+        document.getElementById("aiOnline").textContent = data.online ? "Online" : "Offline";
+      }
+
+      async function loadSessions(targetId = "sessionList") {
+        const data = await api("/api/users/sessions");
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        target.innerHTML = (data.sessions || []).map(function(session) {
+          return '<article class="list-item"><strong>' + escapeHtml(session.device) + '</strong><p class="muted">' + escapeHtml(session.location) + " · " + (session.active ? "Ativa" : "Encerrada") + '</p></article>';
         }).join("");
       }
 
       async function loadSettings() {
+        await api("/api/users/profile").catch(function() { return null; });
         const data = await api("/api/settings");
         const settings = data.settings || {};
         document.getElementById("displayName").value = settings.display_name || (currentUser ? currentUser.name : "");
@@ -1303,7 +1582,6 @@ ${logoYaraStyles()}
         document.getElementById("settingsName").textContent = currentUser ? currentUser.name : "Usuário";
         document.getElementById("settingsEmail").textContent = currentUser ? currentUser.email : "Conta YARA";
         els.settingsAvatar.textContent = initials(currentUser ? currentUser.name : "YA");
-        await loadMemories();
       }
 
       async function refreshUser() {
@@ -1466,9 +1744,30 @@ ${logoYaraStyles()}
       document.getElementById("settingsTabs").addEventListener("click", function(event) {
         const button = event.target.closest("[data-settings-tab]");
         if (!button) return;
-        document.querySelectorAll(".tab").forEach(function(tab) { tab.classList.toggle("active", tab === button); });
-        document.querySelectorAll(".settings-pane").forEach(function(pane) { pane.hidden = pane.id !== "settings-" + button.dataset.settingsTab; });
-        if (button.dataset.settingsTab === "memory") loadMemories();
+        selectSettingsTab(button.dataset.settingsTab);
+      });
+
+      document.getElementById("view-settings").addEventListener("click", async function(event) {
+        const tabTarget = event.target.closest("[data-settings-tab-target]");
+        if (tabTarget) {
+          selectSettingsTab(tabTarget.dataset.settingsTabTarget);
+          return;
+        }
+
+        const soft = event.target.closest("[data-soft-action]");
+        if (soft) {
+          showToast(soft.dataset.softAction + " está preparado para uma próxima etapa.");
+          return;
+        }
+
+        const choice = event.target.closest("[data-choice-group]");
+        if (choice) {
+          document.querySelectorAll('[data-choice-group="' + choice.dataset.choiceGroup + '"]').forEach(function(item) {
+            item.classList.toggle("active", item === choice);
+          });
+          showToast("Preferência visual aplicada nesta sessão.");
+          return;
+        }
       });
 
       document.getElementById("profileForm").addEventListener("submit", async function(event) {
@@ -1533,11 +1832,74 @@ ${logoYaraStyles()}
       });
 
       document.getElementById("memoryList").addEventListener("click", async function(event) {
+        const editButton = event.target.closest("[data-edit-memory]");
+        if (editButton) {
+          const title = window.prompt("Editar título da memória", editButton.dataset.title || "Memória");
+          if (title === null) return;
+          const content = window.prompt("Editar conteúdo da memória", editButton.dataset.content || "");
+          if (content === null) return;
+          await api("/api/memories/" + editButton.dataset.editMemory, {
+            method: "PATCH",
+            body: JSON.stringify({ title: title, content: content })
+          });
+          await loadMemories();
+          showToast("Memória atualizada.");
+          return;
+        }
         const button = event.target.closest("[data-delete-memory]");
         if (!button) return;
         await api("/api/memories/" + button.dataset.deleteMemory, { method: "DELETE" });
         await loadMemories();
         showToast("Memória removida.");
+      });
+
+      document.getElementById("clearMemoriesButton").addEventListener("click", async function() {
+        if (!window.confirm("Limpar todas as memórias da YARA?")) return;
+        await api("/api/memories", { method: "DELETE" });
+        await loadMemories();
+        showToast("Memórias limpas.");
+      });
+
+      document.getElementById("loadSessionsButton").addEventListener("click", function() {
+        loadSessions("sessionList");
+      });
+
+      document.getElementById("logoutAllButton").addEventListener("click", async function() {
+        const data = await api("/api/users/logout-all", { method: "POST" });
+        showToast(data.message || "Sessões encerradas.");
+      });
+
+      document.getElementById("securitySessionsButton").addEventListener("click", function() {
+        loadSessions("sessionList");
+        selectSettingsTab("profile");
+        showToast("Sessões carregadas na aba Perfil.");
+      });
+
+      document.getElementById("securityDevicesButton").addEventListener("click", function() {
+        showToast("Dispositivos conectados preparados para controle persistente.");
+      });
+
+      document.getElementById("manageFilesButton").addEventListener("click", function() {
+        loadUploads();
+        showToast("Arquivos atualizados.");
+      });
+
+      document.getElementById("uploadsList").addEventListener("click", async function(event) {
+        const button = event.target.closest("[data-delete-upload]");
+        if (!button) return;
+        await api("/api/uploads/" + button.dataset.deleteUpload, { method: "DELETE" });
+        await loadUploads();
+        showToast("Arquivo removido.");
+      });
+
+      document.getElementById("testAiButton").addEventListener("click", async function() {
+        try {
+          const data = await api("/api/ai/test", { method: "POST" });
+          showToast("IA conectada: " + (data.model || "modelo ativo"));
+          await loadAiStatus();
+        } catch (error) {
+          showToast(error.message);
+        }
       });
 
       document.getElementById("logoutButton").addEventListener("click", function() {
@@ -1560,9 +1922,18 @@ function menuButton(action: string, label: string, iconName: IconName, danger = 
   return `<button class="menu-item ${danger ? "danger" : ""}" data-action="${action}" type="button">${icon(iconName)}${label}</button>`;
 }
 
+function settingsInfoCard(title: string, description: string, iconName: IconName) {
+  return `<article class="card"><div class="item-top"><h2>${title}</h2><span class="avatar">${icon(iconName)}</span></div><p class="muted">${description}</p><button class="button" data-soft-action="${title}" type="button">Gerenciar</button></article>`;
+}
+
+function toggleRow(title: string, description: string, active: boolean) {
+  return `<article class="toggle-row"><div><strong>${title}</strong><p class="muted">${description}</p></div><button class="toggle ${active ? "active" : ""}" data-soft-action="${title}" type="button" aria-label="${title}"></button></article>`;
+}
+
 type IconName =
   | "archive"
   | "arrowUp"
+  | "brain"
   | "camera"
   | "chat"
   | "close"
@@ -1591,6 +1962,7 @@ function icon(name: IconName) {
   const icons: Record<IconName, string> = {
     archive: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16v13H4V7Zm2-4h12l2 4H4l2-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     arrowUp: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20V5m0 0-6 6m6-6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    brain: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4.5A3 3 0 0 0 6 7.5v.2A3.4 3.4 0 0 0 4 11a3.4 3.4 0 0 0 2 3.1v.4A3 3 0 0 0 9 17.5h1V4.5H9Zm6 0a3 3 0 0 1 3 3v.2A3.4 3.4 0 0 1 20 11a3.4 3.4 0 0 1-2 3.1v.4a3 3 0 0 1-3 3h-1V4.5h1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h2m4 0h2M8 13h2m4 0h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     camera: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H9l1.5-2h3L15 6h2.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.8"/></svg>',
     chat: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 6.5A3.5 3.5 0 0 1 8.5 3h7A3.5 3.5 0 0 1 19 6.5v4A3.5 3.5 0 0 1 15.5 14H11l-4.5 4v-4A3.5 3.5 0 0 1 3 10.5v-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',

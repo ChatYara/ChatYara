@@ -1,12 +1,25 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
-import { changeUserPassword, updateUserProfile } from "../services/authService";
+import { changeUserPassword, getUserById, updateUserProfile } from "../services/authService";
+import { getSettings } from "../services/workspaceService";
 import { sendError } from "../utils/http";
 
 export const userRoutes = Router();
 
 userRoutes.use(authRequired);
+
+userRoutes.get("/users/profile", (req, res) => {
+  const user = getUserById(req.user!.id);
+  if (!user) {
+    return sendError(res, 404, "Usuário não encontrado.");
+  }
+
+  return res.json({
+    user,
+    settings: getSettings(req.user!.id)
+  });
+});
 
 userRoutes.patch("/users/profile", (req, res) => {
   const parsed = z
@@ -26,6 +39,27 @@ userRoutes.patch("/users/profile", (req, res) => {
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Erro ao atualizar perfil.");
   }
+});
+
+userRoutes.get("/users/sessions", (_req, res) => {
+  return res.json({
+    sessions: [
+      {
+        id: "current",
+        device: "Sessão atual",
+        location: "YARA AI",
+        active: true,
+        created_at: new Date().toISOString()
+      }
+    ]
+  });
+});
+
+userRoutes.post("/users/logout-all", (_req, res) => {
+  return res.json({
+    message: "Sessões futuras serão encerradas quando o controle de sessões persistentes for ativado.",
+    revoked: 0
+  });
 });
 
 userRoutes.patch("/users/password", async (req, res) => {

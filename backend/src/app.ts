@@ -5,6 +5,7 @@ import morgan from "morgan";
 import path from "node:path";
 import { env } from "./config/env";
 import { authRoutes } from "./routes/authRoutes";
+import { aiRoutes } from "./routes/aiRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { uploadRoutes } from "./routes/uploadRoutes";
@@ -61,6 +62,7 @@ export function createApp() {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/system", systemRoutes);
+  app.use("/api", aiRoutes);
   app.use("/api", userRoutes);
   app.use("/api", uploadRoutes);
   app.use("/api", chatRoutes);

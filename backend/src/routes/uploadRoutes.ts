@@ -1,12 +1,16 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
-import { createUpload } from "../services/uploadService";
+import { createUpload, deleteUpload, listUploads } from "../services/uploadService";
 import { sendError } from "../utils/http";
 
 export const uploadRoutes = Router();
 
 uploadRoutes.use(authRequired);
+
+uploadRoutes.get("/uploads", (req, res) => {
+  return res.json({ uploads: listUploads(req.user!.id) });
+});
 
 uploadRoutes.post("/uploads", (req, res) => {
   const parsed = z
@@ -26,5 +30,13 @@ uploadRoutes.post("/uploads", (req, res) => {
     return res.status(201).json({ upload: createUpload(req.user!.id, parsed.data) });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível preparar o upload.");
+  }
+});
+
+uploadRoutes.delete("/uploads/:id", (req, res) => {
+  try {
+    return res.json({ upload: deleteUpload(req.user!.id, req.params.id) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Arquivo não encontrado.");
   }
 });

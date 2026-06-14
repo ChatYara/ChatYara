@@ -20,6 +20,30 @@ export function saveMemory(userId: string, input: { title?: string; content: str
   return { id, title, content };
 }
 
+export function updateMemory(userId: string, memoryId: string, input: { title?: string; content?: string }) {
+  const db = getDatabase();
+  const current = db
+    .prepare("select id, title, content from memories where id = ? and user_id = ?")
+    .get(memoryId, userId) as { id: string; title: string; content: string } | undefined;
+
+  if (!current) {
+    throw new Error("Memória não encontrada.");
+  }
+
+  const title = input.title?.trim() || current.title;
+  const content = input.content?.trim() || current.content;
+
+  db.prepare(
+    `update memories
+     set title = ?,
+         content = ?,
+         updated_at = current_timestamp
+     where id = ? and user_id = ?`
+  ).run(title, content, memoryId, userId);
+
+  return { id: memoryId, title, content };
+}
+
 export function deleteMemory(userId: string, memoryId: string) {
   const result = getDatabase()
     .prepare("delete from memories where id = ? and user_id = ?")
@@ -30,6 +54,11 @@ export function deleteMemory(userId: string, memoryId: string) {
   }
 
   return { id: memoryId };
+}
+
+export function deleteAllMemories(userId: string) {
+  const result = getDatabase().prepare("delete from memories where user_id = ?").run(userId);
+  return { deleted: result.changes };
 }
 
 export function listProjects(userId: string) {

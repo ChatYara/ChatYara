@@ -63,3 +63,26 @@ export function createUpload(
     status: "pending_storage"
   };
 }
+
+export function listUploads(userId: string) {
+  return getDatabase()
+    .prepare(
+      `select id, conversation_id, file_name, file_type, file_size, storage_path, created_at
+       from uploads
+       where user_id = ?
+       order by created_at desc`
+    )
+    .all(userId);
+}
+
+export function deleteUpload(userId: string, uploadId: string) {
+  const result = getDatabase()
+    .prepare("delete from uploads where id = ? and user_id = ?")
+    .run(uploadId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Arquivo não encontrado.");
+  }
+
+  return { id: uploadId };
+}

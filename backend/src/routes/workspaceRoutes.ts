@@ -5,6 +5,7 @@ import {
   addFavorite,
   createProject,
   deleteMemory,
+  deleteAllMemories,
   deleteProject,
   generateSystem,
   getProject,
@@ -13,6 +14,7 @@ import {
   listMemories,
   listProjects,
   saveMemory,
+  updateMemory,
   updateSettings
 } from "../services/workspaceService";
 import { sendError } from "../utils/http";
@@ -45,12 +47,29 @@ workspaceRoutes.post("/memories", (req, res) => {
   return res.status(201).json({ memory: saveMemory(req.user!.id, parsed.data) });
 });
 
+workspaceRoutes.patch("/memories/:id", (req, res) => {
+  const parsed = z.object({ title: z.string().min(2).optional(), content: z.string().min(2).optional() }).safeParse(req.body);
+  if (!parsed.success) {
+    return sendError(res, 400, "Memória inválida.");
+  }
+
+  try {
+    return res.json({ memory: updateMemory(req.user!.id, req.params.id, parsed.data) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Memória não encontrada.");
+  }
+});
+
 workspaceRoutes.delete("/memories/:id", (req, res) => {
   try {
     return res.json({ memory: deleteMemory(req.user!.id, req.params.id) });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Memória não encontrada.");
   }
+});
+
+workspaceRoutes.delete("/memories", (req, res) => {
+  return res.json({ memories: deleteAllMemories(req.user!.id) });
 });
 
 workspaceRoutes.get("/projects", (req, res) => {
