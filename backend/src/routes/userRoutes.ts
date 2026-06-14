@@ -1,7 +1,13 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
-import { changeUserPassword, getUserById, updateUserProfile } from "../services/authService";
+import {
+  changeUserPassword,
+  getUserById,
+  listUserSessions,
+  revokeOtherSessions,
+  updateUserProfile
+} from "../services/authService";
 import { getSettings } from "../services/workspaceService";
 import { sendError } from "../utils/http";
 
@@ -41,24 +47,20 @@ userRoutes.patch("/users/profile", (req, res) => {
   }
 });
 
-userRoutes.get("/users/sessions", (_req, res) => {
+userRoutes.get("/users/sessions", (req, res) => {
   return res.json({
-    sessions: [
-      {
-        id: "current",
-        device: "Sessão atual",
-        location: "YARA AI",
-        active: true,
-        created_at: new Date().toISOString()
-      }
-    ]
+    sessions: listUserSessions(req.user!.id).map((session) => ({
+      ...(session as object),
+      current: (session as { id: string }).id === req.user!.sessionId
+    }))
   });
 });
 
-userRoutes.post("/users/logout-all", (_req, res) => {
+userRoutes.post("/users/logout-all", (req, res) => {
+  const result = revokeOtherSessions(req.user!.id, req.user!.sessionId);
   return res.json({
-    message: "Sessões futuras serão encerradas quando o controle de sessões persistentes for ativado.",
-    revoked: 0
+    message: result.revoked > 0 ? "Outras sessões encerradas com segurança." : "Nenhuma outra sessão ativa encontrada.",
+    revoked: result.revoked
   });
 });
 

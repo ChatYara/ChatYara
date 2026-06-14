@@ -6,14 +6,17 @@ import {
   archiveConversation,
   createConversation,
   deleteConversation,
+  editUserMessage,
   getConversation,
   getMessages,
   listConversationFiles,
   listConversations,
   moveConversationToTop,
   pinConversation,
+  regenerateAssistantMessage,
   renameConversation,
-  sendMessage
+  sendMessage,
+  setMessageFeedback
 } from "../services/chatService";
 import { sendError } from "../utils/http";
 
@@ -140,5 +143,72 @@ chatRoutes.post("/chat", async (req, res) => {
     return res.json(await sendMessage(req.user!.id, parsed.data));
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Erro ao conversar com YARA.");
+  }
+});
+
+chatRoutes.post("/chat/stream", async (req, res) => {
+  const parsed = z
+    .object({
+      conversationId: z.string().optional(),
+      message: z.string().optional().default(""),
+      uploadIds: z.array(z.string().min(1)).max(5).optional().default([])
+    })
+    .refine((data) => data.message.trim().length > 0 || data.uploadIds.length > 0)
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    return sendError(res, 400, "Mensagem invalida.");
+  }
+
+  try {
+    const data = await sendMessage(req.user!.id, parsed.data);
+    const assistant = data.messages.find((message) => message.role === "assistant");
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+
+    const content = assistant?.content || "";
+    for (let index = 0; index < content.length; index += 24) {
+      res.write(`event: chunk\ndata: ${JSON.stringify({ text: content.slice(index, index + 24) })}\n\n`);
+    }
+    res.write(`event: done\ndata: ${JSON.stringify(data)}\n\n`);
+    return res.end();
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Erro ao conversar com YARA.");
+  }
+});
+
+chatRoutes.patch("/messages/:id", (req, res) => {
+  const parsed = z.object({ content: z.string().min(1) }).safeParse(req.body);
+  if (!parsed.success) {
+    return sendError(res, 400, "Mensagem inválida.");
+  }
+
+  try {
+    return res.json({ message: editUserMessage(req.user!.id, req.params.id, parsed.data.content) });
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível editar a mensagem.");
+  }
+});
+
+chatRoutes.post("/messages/:id/regenerate", async (req, res) => {
+  try {
+    return res.json(await regenerateAssistantMessage(req.user!.id, req.params.id));
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível regenerar a resposta.");
+  }
+});
+
+chatRoutes.post("/messages/:id/feedback", (req, res) => {
+  const parsed = z.object({ value: z.enum(["like", "dislike"]) }).safeParse(req.body);
+  if (!parsed.success) {
+    return sendError(res, 400, "Feedback inválido.");
+  }
+
+  try {
+    return res.json({ feedback: setMessageFeedback(req.user!.id, req.params.id, parsed.data.value) });
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível registrar o feedback.");
   }
 });

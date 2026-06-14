@@ -17,6 +17,11 @@ const authSchema = z.object({
   password: z.string().min(6)
 });
 
+function requestDevice(req: { headers: { "user-agent"?: string | string[] } }) {
+  const userAgent = req.headers["user-agent"];
+  return Array.isArray(userAgent) ? userAgent.join(" ") : userAgent;
+}
+
 authRoutes.post("/register", async (req, res) => {
   const parsed = z
     .object({
@@ -42,7 +47,8 @@ authRoutes.post("/register", async (req, res) => {
         name: parsed.data.name,
         email: parsed.data.email,
         phone: parsed.data.phone,
-        password: parsed.data.password
+        password: parsed.data.password,
+        device: requestDevice(req)
       })
     );
   } catch (error) {
@@ -58,7 +64,7 @@ authRoutes.post("/login", async (req, res) => {
   }
 
   try {
-    return res.json(await loginUser(parsed.data));
+    return res.json(await loginUser({ ...parsed.data, device: requestDevice(req) }));
   } catch (error) {
     return sendError(res, 401, error instanceof Error ? error.message : "Erro ao entrar.");
   }

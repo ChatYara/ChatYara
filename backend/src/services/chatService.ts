@@ -21,6 +21,8 @@ type MessageRow = {
   conversation_id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  edited_at?: string | null;
+  feedback?: "like" | "dislike" | null;
   created_at: string;
 };
 
@@ -68,8 +70,18 @@ function attachUploadsToMessages(userId: string, messages: MessageRow[]) {
     byMessage.set(upload.message_id, current);
   });
 
+  const feedback = getDatabase()
+    .prepare(
+      `select message_id, value
+       from message_feedback
+       where user_id = ? and message_id in (${placeholders})`
+    )
+    .all(userId, ...ids) as Array<{ message_id: string; value: "like" | "dislike" }>;
+  const feedbackByMessage = new Map(feedback.map((item) => [item.message_id, item.value]));
+
   return messages.map((message) => ({
     ...message,
+    feedback: feedbackByMessage.get(message.id) || null,
     uploads: byMessage.get(message.id) || []
   }));
 }
@@ -249,7 +261,7 @@ export function getMessages(userId: string, conversationId: string) {
 
   const messages = getDatabase()
     .prepare(
-      "select id, conversation_id, role, content, created_at from messages where conversation_id = ? order by created_at asc"
+      "select id, conversation_id, role, content, edited_at, created_at from messages where conversation_id = ? order by created_at asc"
     )
     .all(conversationId) as MessageRow[];
 
@@ -322,6 +334,99 @@ function directAnswer(message: string) {
   }
 
   return null;
+}
+
+function getOwnedMessage(userId: string, messageId: string) {
+  const message = getDatabase()
+    .prepare(
+      `select messages.id, messages.conversation_id, messages.role, messages.content, messages.edited_at, messages.created_at
+       from messages
+       join conversations on conversations.id = messages.conversation_id
+       where messages.id = ? and conversations.user_id = ?`
+    )
+    .get(messageId, userId) as MessageRow | undefined;
+
+  if (!message) {
+    throw new Error("Mensagem não encontrada.");
+  }
+
+  return message;
+}
+
+export function editUserMessage(userId: string, messageId: string, content: string) {
+  const message = getOwnedMessage(userId, messageId);
+  const cleanContent = content.replace(/\s+/g, " ").trim();
+
+  if (message.role !== "user") {
+    throw new Error("Apenas mensagens do usuário podem ser editadas.");
+  }
+
+  if (cleanContent.length < 1) {
+    throw new Error("A mensagem não pode ficar vazia.");
+  }
+
+  getDatabase()
+    .prepare("update messages set content = ?, edited_at = current_timestamp where id = ?")
+    .run(cleanContent, messageId);
+
+  return { ...message, content: cleanContent, edited_at: new Date().toISOString() };
+}
+
+export function setMessageFeedback(userId: string, messageId: string, value: "like" | "dislike") {
+  const message = getOwnedMessage(userId, messageId);
+  if (message.role !== "assistant") {
+    throw new Error("Feedback só pode ser aplicado a respostas da YARA.");
+  }
+
+  const id = uuid();
+  getDatabase()
+    .prepare(
+      `insert into message_feedback (id, user_id, message_id, value, updated_at)
+       values (?, ?, ?, ?, current_timestamp)
+       on conflict(user_id, message_id) do update set
+         value = excluded.value,
+         updated_at = current_timestamp`
+    )
+    .run(id, userId, messageId, value);
+
+  return { messageId, value };
+}
+
+export async function regenerateAssistantMessage(userId: string, messageId: string) {
+  const assistant = getOwnedMessage(userId, messageId);
+  if (assistant.role !== "assistant") {
+    throw new Error("Selecione uma resposta da YARA para regenerar.");
+  }
+
+  const previousUser = getDatabase()
+    .prepare(
+      `select id, conversation_id, role, content, edited_at, created_at
+       from messages
+       where conversation_id = ? and role = 'user' and created_at <= ?
+       order by created_at desc
+       limit 1`
+    )
+    .get(assistant.conversation_id, assistant.created_at) as MessageRow | undefined;
+
+  if (!previousUser) {
+    throw new Error("Não encontrei a mensagem original para regenerar.");
+  }
+
+  const ai = await askYara({
+    prompt: previousUser.content,
+    memory: readUserContext(userId),
+    context: readRecentContext(assistant.conversation_id)
+  });
+
+  getDatabase()
+    .prepare("update messages set content = ?, edited_at = current_timestamp where id = ?")
+    .run(ai.response, messageId);
+
+  return {
+    message: { ...assistant, content: ai.response, edited_at: new Date().toISOString() },
+    provider: ai.provider,
+    model: ai.model
+  };
 }
 
 export async function sendMessage(
@@ -411,7 +516,7 @@ export async function sendMessage(
       ? {
           provider: "gemini" as const,
           model: "search-prepared",
-          response: runSearch(userId, storedMessage).response
+          response: (await runSearch(userId, storedMessage)).response
         }
       : await askYara({
           prompt,

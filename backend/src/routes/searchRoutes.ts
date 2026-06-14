@@ -8,14 +8,14 @@ export const searchRoutes = Router();
 
 searchRoutes.use(authRequired);
 
-searchRoutes.post("/search", (req, res) => {
+searchRoutes.post("/search", async (req, res) => {
   const parsed = z.object({ query: z.string().min(3) }).safeParse(req.body);
   if (!parsed.success) {
     return sendError(res, 400, "Informe o que a YARA deve pesquisar.");
   }
 
   try {
-    return res.json({ search: runSearch(req.user!.id, parsed.data.query) });
+    return res.json({ search: await runSearch(req.user!.id, parsed.data.query) });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível preparar a busca.");
   }

@@ -435,6 +435,55 @@ ${logoYaraStyles()}
         font-weight: 800;
       }
 
+      .message-content {
+        display: grid;
+        gap: 10px;
+      }
+
+      .message-content p {
+        margin: 0;
+      }
+
+      .message-content pre {
+        overflow: auto;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 12px;
+        padding: 12px;
+        background: rgba(2, 6, 23, 0.72);
+        white-space: pre;
+      }
+
+      .message-content code {
+        border-radius: 6px;
+        padding: 2px 5px;
+        background: rgba(2, 6, 23, 0.62);
+        color: #bae6fd;
+      }
+
+      .message-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .message-action {
+        min-height: 32px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 999px;
+        padding: 6px 9px;
+        color: #dbeafe;
+        background: rgba(15, 23, 42, 0.58);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .message-action.active {
+        color: #031425;
+        border-color: rgba(56, 189, 248, 0.72);
+        background: linear-gradient(135deg, #38bdf8, #0a84ff);
+      }
+
       .message-attachments {
         display: grid;
         gap: 10px;
@@ -1002,7 +1051,6 @@ ${logoYaraStyles()}
             <div class="floating-menu" id="chatActionMenu">
               ${menuButton("shareConversation", "Compartilhar conversa", "share")}
               ${menuButton("pinConversation", "Fixar conversa", "pin")}
-              ${menuButton("peopleConversation", "Adicionar pessoas", "users")}
               ${menuButton("projectConversation", "Adicionar ao projeto", "folder")}
               ${menuButton("filesConversation", "Arquivos enviados", "file")}
               ${menuButton("searchConversation", "Buscar no chat", "search")}
@@ -1152,11 +1200,9 @@ ${logoYaraStyles()}
               </form>
               <article class="card">
                 <h2>Conta</h2>
-                <button class="button" data-soft-action="Alterar e-mail" type="button">${icon("file")}Alterar e-mail</button>
                 <button class="button" data-settings-tab-target="security" type="button">${icon("shield")}Alterar senha</button>
                 <button class="button" id="loadSessionsButton" type="button">${icon("history")}Sessões ativas</button>
                 <button class="button" id="logoutAllButton" type="button">${icon("logout")}Encerrar sessões</button>
-                <button class="button danger" data-soft-action="Excluir conta" type="button">${icon("trash")}Excluir conta</button>
                 <div class="list" id="sessionList"></div>
               </article>
             </div>
@@ -1214,7 +1260,7 @@ ${logoYaraStyles()}
                 ${settingsInfoCard("Arquivados", "Itens guardados sem apagar dados.", "archive")}
                 ${settingsInfoCard("Histórico de sistemas", "Gerações recentes salvas automaticamente.", "history")}
                 ${settingsInfoCard("Templates favoritos", "Modelos prontos para acelerar criação.", "sparkles")}
-                <article class="card"><h2>Tecnologias preferidas</h2><input class="field" id="preferredTech" placeholder="React, Node, PostgreSQL..." /><button class="button" data-soft-action="Tecnologias preferidas" type="button">${icon("save")}Salvar tecnologias</button></article>
+                <article class="card"><h2>Tecnologias preferidas</h2><input class="field" id="preferredTech" placeholder="React, Node, PostgreSQL..." /><button class="button" id="savePreferredTechButton" type="button">${icon("save")}Salvar tecnologias</button></article>
               </div>
             </div>
 
@@ -1222,13 +1268,13 @@ ${logoYaraStyles()}
               <article class="card">
                 <h2>Arquivos</h2>
                 <div class="settings-card-grid">
-                  ${settingsInfoCard("Imagens", "Anexos visuais preparados.", "image")}
+                  ${settingsInfoCard("Imagens", "Anexos visuais enviados no chat.", "image")}
                   ${settingsInfoCard("Documentos", "Documentos e textos validados.", "file")}
                   ${settingsInfoCard("PDFs", "PDFs com limite seguro.", "file")}
                   ${settingsInfoCard("Planilhas", "Estrutura pronta para planilhas.", "file")}
                 </div>
                 <div class="storage"><span></span></div>
-                <p class="muted" id="storageText">0 MB usados de 10 MB preparados por arquivo.</p>
+                <p class="muted" id="storageText">0 MB usados em arquivos enviados.</p>
                 <button class="primary-action" id="manageFilesButton" type="button">${icon("folder")}Gerenciar arquivos</button>
               </article>
               <article class="card">
@@ -1257,7 +1303,6 @@ ${logoYaraStyles()}
               </form>
               <article class="card">
                 <h2>Segurança</h2>
-                ${toggleRow("Autenticação em dois fatores", "Preparado para ativação futura.", false)}
                 <button class="button" id="securitySessionsButton" type="button">${icon("history")}Histórico de login</button>
                 <button class="button" id="securityDevicesButton" type="button">${icon("users")}Dispositivos conectados</button>
               </article>
@@ -1290,8 +1335,8 @@ ${logoYaraStyles()}
                 ${settingsInfoCard("Versão da plataforma", "YARA AI Web 1.0", "sparkles")}
                 ${settingsInfoCard("Versão do backend", "API Render 1.0", "code")}
                 ${settingsInfoCard("Licença", "Projeto YARA AI", "file")}
-                ${settingsInfoCard("Termos de uso", "Documento preparado para publicação.", "file")}
-                ${settingsInfoCard("Política de privacidade", "Documento preparado para publicação.", "shield")}
+                ${settingsInfoCard("Termos de uso", "Documento institucional da plataforma.", "file")}
+                ${settingsInfoCard("Política de privacidade", "Informações sobre proteção de dados.", "shield")}
                 ${settingsInfoCard("Suporte técnico", "Canal oficial via workspace.", "users")}
               </div>
             </div>
@@ -1412,6 +1457,21 @@ ${logoYaraStyles()}
 
       function attachmentMeta(file) {
         return escapeHtml(file.file_type || file.type || "arquivo") + " · " + formatFileSize(file.file_size || file.size || 0);
+      }
+
+      function renderMarkdown(value) {
+        let html = escapeHtml(value || "");
+        const tick = String.fromCharCode(96);
+        const fence = tick + tick + tick;
+        html = html.replace(new RegExp(fence + "([\\\\s\\\\S]*?)" + fence, "g"), function(_, code) {
+          return '<pre><code>' + code.trim() + '</code></pre>';
+        });
+        html = html.replace(new RegExp(tick + "([^" + tick + "]+)" + tick, "g"), '<code>$1</code>');
+        html = html.replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>');
+        html = html.split(/\\n{2,}/).map(function(block) {
+          return block.startsWith("<pre>") ? block : '<p>' + block.replace(/\\n/g, "<br />") + '</p>';
+        }).join("");
+        return html;
       }
 
       function emptyChatHtml() {
@@ -1554,6 +1614,52 @@ ${logoYaraStyles()}
         }
       }
 
+      function findMessage(messageId) {
+        return currentMessages.find(function(message) { return message.id === messageId; });
+      }
+
+      async function reloadCurrentConversation() {
+        if (!currentConversationId) return;
+        const conversation = await api("/api/conversations/" + currentConversationId);
+        currentConversation = conversation.conversation;
+        renderMessages(conversation.messages || []);
+      }
+
+      async function copyMessage(messageId) {
+        const message = findMessage(messageId);
+        if (!message) return showToast("Mensagem não encontrada.");
+        await navigator.clipboard.writeText(message.content).catch(function() {});
+        showToast("Mensagem copiada.");
+      }
+
+      async function editMessage(messageId) {
+        const message = findMessage(messageId);
+        if (!message) return showToast("Mensagem não encontrada.");
+        const content = window.prompt("Editar mensagem", message.content);
+        if (content === null) return;
+        await api("/api/messages/" + messageId, {
+          method: "PATCH",
+          body: JSON.stringify({ content: content })
+        });
+        await reloadCurrentConversation();
+        showToast("Mensagem editada.");
+      }
+
+      async function regenerateMessage(messageId) {
+        await api("/api/messages/" + messageId + "/regenerate", { method: "POST" });
+        await reloadCurrentConversation();
+        showToast("Resposta regenerada.");
+      }
+
+      async function sendFeedback(messageId, value) {
+        await api("/api/messages/" + messageId + "/feedback", {
+          method: "POST",
+          body: JSON.stringify({ value: value })
+        });
+        await reloadCurrentConversation();
+        showToast(value === "like" ? "Feedback positivo registrado." : "Feedback negativo registrado.");
+      }
+
       function renderMessages(messages) {
         currentMessages = messages || [];
         if (!currentMessages.length) {
@@ -1562,10 +1668,16 @@ ${logoYaraStyles()}
         }
         els.messages.innerHTML = currentMessages.map(function(message) {
           const who = message.role === "user" ? "Você" : "YARA";
+          const id = escapeHtml(message.id || "");
           const uploads = message.uploads && message.uploads.length
             ? '<div class="message-attachments">' + message.uploads.map(renderAttachment).join("") + '</div>'
             : "";
-          return '<article class="message ' + message.role + '"><small>' + who + '</small>' + escapeHtml(message.content) + uploads + '</article>';
+          const edited = message.edited_at ? '<span class="muted"> · editada</span>' : "";
+          const actions = '<div class="message-actions"><button class="message-action" data-copy-message="' + id + '" type="button">Copiar</button>' +
+            (message.role === "user" && id ? '<button class="message-action" data-edit-message="' + id + '" type="button">Editar</button>' : "") +
+            (message.role === "assistant" && id ? '<button class="message-action" data-regenerate-message="' + id + '" type="button">Regenerar</button><button class="message-action ' + (message.feedback === "like" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="like" type="button">Curtir</button><button class="message-action ' + (message.feedback === "dislike" ? "active" : "") + '" data-feedback-message="' + id + '" data-feedback-value="dislike" type="button">Não curtir</button>' : "") +
+            '</div>';
+          return '<article class="message ' + message.role + '" data-message-id="' + id + '"><small>' + who + edited + '</small><div class="message-content">' + renderMarkdown(message.content) + '</div>' + uploads + actions + '</article>';
         }).join("");
         hydrateProtectedImages();
         els.messages.scrollTop = els.messages.scrollHeight;
@@ -1638,25 +1750,78 @@ ${logoYaraStyles()}
         return data.upload;
       }
 
+      async function streamChat(payload, baseMessages, userMessageText) {
+        const response = await fetch("/api/chat/stream", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok || !response.body) {
+          const data = await response.json().catch(function() { return {}; });
+          throw new Error(data.error && data.error.message ? data.error.message : "Erro ao conversar com YARA.");
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let assistantText = "";
+        let donePayload = null;
+
+        renderMessages(baseMessages.concat([
+          { role: "user", content: userMessageText || "Anexo enviado.", uploads: [] },
+          { role: "assistant", content: "" }
+        ]));
+
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          buffer += decoder.decode(chunk.value, { stream: true });
+          const events = buffer.split("\\n\\n");
+          buffer = events.pop() || "";
+
+          events.forEach(function(rawEvent) {
+            const eventName = /event: ([^\\n]+)/.exec(rawEvent)?.[1];
+            const rawData = /data: ([\\s\\S]+)/.exec(rawEvent)?.[1];
+            if (!rawData) return;
+            const data = JSON.parse(rawData);
+            if (eventName === "chunk") {
+              assistantText += data.text || "";
+              renderMessages(baseMessages.concat([
+                { role: "user", content: userMessageText || "Anexo enviado.", uploads: [] },
+                { role: "assistant", content: assistantText }
+              ]));
+            }
+            if (eventName === "done") {
+              donePayload = data;
+            }
+          });
+        }
+
+        if (!donePayload) {
+          throw new Error("A resposta em tempo real foi interrompida.");
+        }
+
+        return donePayload;
+      }
+
       async function sendMessage(event) {
         event.preventDefault();
         const message = els.messageInput.value.trim();
         if (!message && !pendingAttachment) return;
         els.messageInput.value = "";
-        renderMessages(currentMessages.concat([
-          { role: "user", content: message || "Anexo enviado.", uploads: [] },
-          { role: "assistant", content: "YARA está pensando..." }
-        ]));
+        const baseMessages = currentMessages.slice();
         try {
           const upload = await uploadPendingAttachment();
-          const data = await api("/api/chat", {
-            method: "POST",
-            body: JSON.stringify({
-              conversationId: currentConversationId || undefined,
-              message: message,
-              uploadIds: upload ? [upload.id] : []
-            })
-          });
+          const payload = {
+            conversationId: currentConversationId || undefined,
+            message: message,
+            uploadIds: upload ? [upload.id] : []
+          };
+          const data = await streamChat(payload, baseMessages, message);
           currentConversationId = data.conversationId;
           const conversation = await api("/api/conversations/" + currentConversationId);
           currentConversation = conversation.conversation;
@@ -1732,7 +1897,7 @@ ${logoYaraStyles()}
         if (!currentConversationId) return showToast("Selecione uma conversa.");
         const data = await api("/api/conversations/" + currentConversationId + "/files");
         const files = data.files || [];
-        openModal("Arquivos enviados", "Anexos preparados para esta conversa.", files.length ? files.map(function(file) {
+        openModal("Arquivos enviados", "Anexos salvos nesta conversa.", files.length ? files.map(function(file) {
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.original_name || file.file_name) + '</strong><button class="button" data-download-upload="' + file.id + '" data-file-name="' + escapeHtml(file.original_name || file.file_name) + '" type="button">Abrir</button></div><p class="muted">' + attachmentMeta(file) + '</p></article>';
         }).join("") : '<p class="muted">Nenhum arquivo enviado nesta conversa.</p>');
       }
@@ -1743,10 +1908,6 @@ ${logoYaraStyles()}
         openModal("Adicionar ao projeto", "Escolha um projeto para conectar esta conversa.", projects.length ? projects.map(function(project) {
           return '<button class="menu-item" data-link-project="' + project.id + '" type="button">${icon("folder")}' + escapeHtml(project.name) + '</button>';
         }).join("") : '<p class="muted">Nenhum projeto disponível.</p>');
-      }
-
-      function showPeopleModal() {
-        openModal("Adicionar pessoas", "Colaboração será ativada em uma próxima etapa.", '<div class="card"><p class="muted">Convide membros, defina papéis e acompanhe colaboração em conversas compartilhadas.</p></div>');
       }
 
       function toggleSearch() {
@@ -1918,6 +2079,30 @@ ${logoYaraStyles()}
           return;
         }
 
+        const copyButton = event.target.closest("[data-copy-message]");
+        if (copyButton) {
+          await copyMessage(copyButton.dataset.copyMessage);
+          return;
+        }
+
+        const editButton = event.target.closest("[data-edit-message]");
+        if (editButton) {
+          await editMessage(editButton.dataset.editMessage);
+          return;
+        }
+
+        const regenerateButton = event.target.closest("[data-regenerate-message]");
+        if (regenerateButton) {
+          await regenerateMessage(regenerateButton.dataset.regenerateMessage);
+          return;
+        }
+
+        const feedbackButton = event.target.closest("[data-feedback-message]");
+        if (feedbackButton) {
+          await sendFeedback(feedbackButton.dataset.feedbackMessage, feedbackButton.dataset.feedbackValue);
+          return;
+        }
+
         const button = event.target.closest("[data-download-upload]");
         if (!button) return;
         await downloadUpload(button.dataset.downloadUpload, button.dataset.fileName || "arquivo");
@@ -1930,7 +2115,6 @@ ${logoYaraStyles()}
         els.chatActionMenu.classList.remove("open");
         if (action === "shareConversation") await shareConversation();
         if (action === "pinConversation") await pinConversation();
-        if (action === "peopleConversation") showPeopleModal();
         if (action === "projectConversation") await showProjectPicker();
         if (action === "filesConversation") await showConversationFiles();
         if (action === "searchConversation") toggleSearch();
@@ -2052,18 +2236,18 @@ ${logoYaraStyles()}
           return;
         }
 
-        const soft = event.target.closest("[data-soft-action]");
-        if (soft) {
-          showToast(soft.dataset.softAction + " está preparado para uma próxima etapa.");
-          return;
-        }
-
         const choice = event.target.closest("[data-choice-group]");
         if (choice) {
           document.querySelectorAll('[data-choice-group="' + choice.dataset.choiceGroup + '"]').forEach(function(item) {
             item.classList.toggle("active", item === choice);
           });
-          showToast("Preferência visual aplicada nesta sessão.");
+          if (choice.dataset.choiceGroup === "theme") {
+            await api("/api/settings", {
+              method: "PATCH",
+              body: JSON.stringify({ theme: choice.textContent.trim().toLowerCase() })
+            });
+          }
+          showToast("Preferência salva.");
           return;
         }
       });
@@ -2174,7 +2358,20 @@ ${logoYaraStyles()}
       });
 
       document.getElementById("securityDevicesButton").addEventListener("click", function() {
-        showToast("Dispositivos conectados preparados para controle persistente.");
+        loadSessions("securityLoginHistory");
+        showToast("Dispositivos conectados carregados.");
+      });
+
+      document.getElementById("savePreferredTechButton").addEventListener("click", async function() {
+        const value = document.getElementById("preferredTech").value.trim();
+        if (!value) return showToast("Informe as tecnologias preferidas.");
+        await api("/api/memories", {
+          method: "POST",
+          body: JSON.stringify({ title: "Tecnologias preferidas", content: value })
+        });
+        document.getElementById("preferredTech").value = "";
+        await loadMemories();
+        showToast("Tecnologias preferidas salvas na memória.");
       });
 
       document.getElementById("manageFilesButton").addEventListener("click", function() {
@@ -2226,11 +2423,11 @@ function menuButton(action: string, label: string, iconName: IconName, danger = 
 }
 
 function settingsInfoCard(title: string, description: string, iconName: IconName) {
-  return `<article class="card"><div class="item-top"><h2>${title}</h2><span class="avatar">${icon(iconName)}</span></div><p class="muted">${description}</p><button class="button" data-soft-action="${title}" type="button">Gerenciar</button></article>`;
+  return `<article class="card"><div class="item-top"><h2>${title}</h2><span class="avatar">${icon(iconName)}</span></div><p class="muted">${description}</p></article>`;
 }
 
 function toggleRow(title: string, description: string, active: boolean) {
-  return `<article class="toggle-row"><div><strong>${title}</strong><p class="muted">${description}</p></div><button class="toggle ${active ? "active" : ""}" data-soft-action="${title}" type="button" aria-label="${title}"></button></article>`;
+  return `<article class="toggle-row"><div><strong>${title}</strong><p class="muted">${description}</p></div><span class="toggle ${active ? "active" : ""}" aria-label="${title}"></span></article>`;
 }
 
 type IconName =

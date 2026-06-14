@@ -33,8 +33,21 @@ create table if not exists messages (
   conversation_id text not null,
   role text not null check (role in ('user', 'assistant', 'system')),
   content text not null,
+  edited_at text,
   created_at text not null default current_timestamp,
   foreign key (conversation_id) references conversations(id) on delete cascade
+);
+
+create table if not exists message_feedback (
+  id text primary key,
+  user_id text not null,
+  message_id text not null,
+  value text not null check (value in ('like', 'dislike')),
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, message_id),
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (message_id) references messages(id) on delete cascade
 );
 
 create table if not exists favorites (
@@ -84,6 +97,17 @@ create table if not exists user_settings (
   foreign key (user_id) references users(id) on delete cascade
 );
 
+create table if not exists user_sessions (
+  id text primary key,
+  user_id text not null,
+  device text not null,
+  active integer not null default 1,
+  created_at text not null default current_timestamp,
+  last_seen_at text not null default current_timestamp,
+  revoked_at text,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
 create table if not exists user_learning (
   id text primary key,
   user_id text not null,
@@ -130,6 +154,7 @@ create table if not exists search_history (
   query text not null,
   status text not null,
   response text not null,
+  results_json text not null default '[]',
   created_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );

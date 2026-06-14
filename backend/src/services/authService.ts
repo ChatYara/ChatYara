@@ -36,11 +36,12 @@ function toPublicUser(user: UserRow): PublicUser {
   };
 }
 
-function createToken(user: UserRow) {
+function createToken(user: UserRow, sessionId?: string) {
   return jwt.sign(
     {
       email: user.email,
-      role: user.role
+      role: user.role,
+      sid: sessionId
     },
     env.jwtSecret,
     {
@@ -48,6 +49,14 @@ function createToken(user: UserRow) {
       expiresIn: "7d"
     }
   );
+}
+
+function createSession(userId: string, device?: string) {
+  const id = uuid();
+  getDatabase()
+    .prepare("insert into user_sessions (id, user_id, device) values (?, ?, ?)")
+    .run(id, userId, device?.trim().slice(0, 180) || "Navegador");
+  return id;
 }
 
 function normalizeEmail(email: string) {
@@ -66,7 +75,7 @@ function hashResetToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function registerUser(input: { name: string; email: string; phone?: string; password: string }) {
+export async function registerUser(input: { name: string; email: string; phone?: string; password: string; device?: string }) {
   const db = getDatabase();
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phone);
@@ -92,13 +101,16 @@ export async function registerUser(input: { name: string; email: string; phone?:
     "insert into users (id, name, email, phone, password_hash, role) values (?, ?, ?, ?, ?, ?)"
   ).run(user.id, user.name, user.email, user.phone, user.password_hash, user.role);
 
+  const sessionId = createSession(user.id, input.device);
+
   return {
     user: toPublicUser(user),
-    token: createToken(user)
+    token: createToken(user, sessionId),
+    sessionId
   };
 }
 
-export async function loginUser(input: { identifier: string; password: string }) {
+export async function loginUser(input: { identifier: string; password: string; device?: string }) {
   const db = getDatabase();
   const identifier = input.identifier.trim().toLowerCase();
   const phone = normalizePhone(identifier);
@@ -110,9 +122,12 @@ export async function loginUser(input: { identifier: string; password: string })
     throw new Error("E-mail ou senha inválidos.");
   }
 
+  const sessionId = createSession(user.id, input.device);
+
   return {
     user: toPublicUser(user),
-    token: createToken(user)
+    token: createToken(user, sessionId),
+    sessionId
   };
 }
 
@@ -194,6 +209,52 @@ export async function changeUserPassword(
   return {
     message: "Senha atualizada com segurança."
   };
+}
+
+export function listUserSessions(userId: string) {
+  return getDatabase()
+    .prepare(
+      `select id, device, active, created_at, last_seen_at, revoked_at
+       from user_sessions
+       where user_id = ?
+       order by active desc, last_seen_at desc`
+    )
+    .all(userId);
+}
+
+export function touchSession(userId: string, sessionId: string) {
+  const session = getDatabase()
+    .prepare("select id, active from user_sessions where id = ? and user_id = ?")
+    .get(sessionId, userId) as { id: string; active: number } | undefined;
+
+  if (!session || Number(session.active) !== 1) {
+    return false;
+  }
+
+  getDatabase()
+    .prepare("update user_sessions set last_seen_at = current_timestamp where id = ? and user_id = ?")
+    .run(sessionId, userId);
+  return true;
+}
+
+export function revokeOtherSessions(userId: string, currentSessionId?: string) {
+  const result = currentSessionId
+    ? getDatabase()
+        .prepare(
+          `update user_sessions
+           set active = 0, revoked_at = current_timestamp
+           where user_id = ? and id <> ? and active = 1`
+        )
+        .run(userId, currentSessionId)
+    : getDatabase()
+        .prepare(
+          `update user_sessions
+           set active = 0, revoked_at = current_timestamp
+           where user_id = ? and active = 1`
+        )
+        .run(userId);
+
+  return { revoked: Number(result.changes) };
 }
 
 export async function requestPasswordReset(input: { identifier: string }) {

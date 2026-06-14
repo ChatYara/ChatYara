@@ -35,8 +35,21 @@ export function runMigrations() {
       conversation_id text not null,
       role text not null check (role in ('user', 'assistant', 'system')),
       content text not null,
+      edited_at text,
       created_at text not null default current_timestamp,
       foreign key (conversation_id) references conversations(id) on delete cascade
+    );
+
+    create table if not exists message_feedback (
+      id text primary key,
+      user_id text not null,
+      message_id text not null,
+      value text not null check (value in ('like', 'dislike')),
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, message_id),
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (message_id) references messages(id) on delete cascade
     );
 
     create table if not exists favorites (
@@ -86,6 +99,17 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists user_sessions (
+      id text primary key,
+      user_id text not null,
+      device text not null,
+      active integer not null default 1,
+      created_at text not null default current_timestamp,
+      last_seen_at text not null default current_timestamp,
+      revoked_at text,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists user_learning (
       id text primary key,
       user_id text not null,
@@ -132,6 +156,7 @@ export function runMigrations() {
       query text not null,
       status text not null,
       response text not null,
+      results_json text not null default '[]',
       created_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
     );
@@ -148,12 +173,16 @@ export function runMigrations() {
   ensureColumn("projects", "description", "text");
   ensureColumn("projects", "content", "text");
   ensureColumn("projects", "updated_at", "text");
+  ensureColumn("messages", "edited_at", "text");
   ensureColumn("user_settings", "full_name", "text");
   ensureColumn("user_settings", "avatar_url", "text");
   ensureColumn("user_settings", "language", "text not null default 'pt-BR'");
   ensureColumn("user_settings", "response_length", "text not null default 'medium'");
+  ensureColumn("user_sessions", "last_seen_at", "text");
+  ensureColumn("user_sessions", "revoked_at", "text");
   ensureColumn("uploads", "message_id", "text");
   ensureColumn("uploads", "original_name", "text");
+  ensureColumn("search_history", "results_json", "text not null default '[]'");
   db.exec(`
     update users set updated_at = current_timestamp where updated_at is null;
     update projects set updated_at = current_timestamp where updated_at is null;
@@ -179,6 +208,12 @@ export function runMigrations() {
 
     create index if not exists search_history_user_created
       on search_history(user_id, created_at);
+
+    create index if not exists message_feedback_user_message
+      on message_feedback(user_id, message_id);
+
+    create index if not exists user_sessions_user_active
+      on user_sessions(user_id, active, last_seen_at);
   `);
 }
 
