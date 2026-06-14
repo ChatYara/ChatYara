@@ -56,5 +56,6 @@ export const env = {
   geminiModel: process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL?.trim() || "gpt-5.5",
+  uploadDir: process.env.UPLOAD_DIR?.trim() || "",
   clientOrigin: process.env.CLIENT_ORIGIN?.trim() || "*"
 };

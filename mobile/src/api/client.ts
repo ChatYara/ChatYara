@@ -17,16 +17,32 @@ type RequestOptions = {
 
 export type UploadMetadata = {
   conversationId?: string | null;
-  fileName: string;
-  fileType: string;
-  fileSize: number;
+  file: {
+    uri: string;
+    name: string;
+    type: string;
+  };
 };
 
 export function prepareUpload(token: string, metadata: UploadMetadata) {
-  return apiRequest<{ upload: unknown }>("/api/uploads", {
-    token,
+  const formData = new FormData();
+  if (metadata.conversationId) {
+    formData.append("conversationId", metadata.conversationId);
+  }
+  formData.append("file", metadata.file as unknown as Blob);
+
+  return fetch(`${API_BASE_URL}/api/uploads`, {
     method: "POST",
-    body: metadata
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData
+  }).then(async (response) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error?.message || "Nao foi possivel enviar este arquivo.");
+    }
+    return data as { upload: unknown };
   });
 }
 

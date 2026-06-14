@@ -88,13 +88,16 @@ create table if not exists uploads (
   id text primary key,
   user_id text not null,
   conversation_id text,
+  message_id text,
   file_name text not null,
+  original_name text,
   file_type text not null,
   file_size integer not null,
   storage_path text not null,
   created_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade,
-  foreign key (conversation_id) references conversations(id) on delete cascade
+  foreign key (conversation_id) references conversations(id) on delete cascade,
+  foreign key (message_id) references messages(id) on delete set null
 );
 
 create table if not exists conversation_projects (

@@ -417,6 +417,67 @@ ${logoYaraStyles()}
         font-weight: 800;
       }
 
+      .message-attachments {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+        white-space: normal;
+      }
+
+      .attachment-card,
+      .attachment-preview {
+        border: 1px solid rgba(56, 189, 248, 0.24);
+        border-radius: 15px;
+        padding: 10px;
+        background: rgba(2, 6, 23, 0.42);
+      }
+
+      .attachment-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .attachment-thumb {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.82);
+      }
+
+      .attachment-icon {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        border-radius: 12px;
+        color: #bae6fd;
+        background: rgba(10, 132, 255, 0.12);
+      }
+
+      .attachment-meta {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+
+      .attachment-meta strong,
+      .attachment-meta span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .attachment-meta span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
       .message.hidden-by-search {
         display: none;
       }
@@ -492,6 +553,19 @@ ${logoYaraStyles()}
         left: 0;
         bottom: 64px;
         gap: 4px;
+      }
+
+      .attachment-preview {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 10px;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.2);
+      }
+
+      .attachment-preview[hidden] {
+        display: none;
       }
 
       .menu-item {
@@ -915,9 +989,15 @@ ${logoYaraStyles()}
             <div class="attach-menu" id="attachMenu">
               ${menuButton("attachGallery", "Foto da galeria", "image")}
               ${menuButton("attachImage", "Imagem", "image")}
-              ${menuButton("attachDocument", "Documento/PDF", "file")}
-              ${menuButton("attachCamera", "Câmera", "camera")}
+              ${menuButton("attachDocument", "Documento", "file")}
+              ${menuButton("attachPdf", "PDF", "file")}
+              ${menuButton("attachCamera", "Tirar foto", "camera")}
             </div>
+            <input id="fileInputImages" type="file" accept="image/*" hidden />
+            <input id="fileInputDocument" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" hidden />
+            <input id="fileInputPdf" type="file" accept="application/pdf,.pdf" hidden />
+            <input id="fileInputCamera" type="file" accept="image/*" capture="environment" hidden />
+            <div class="attachment-preview" id="attachmentPreview" hidden></div>
             <form class="composer" id="chatForm">
               <button class="icon-button" id="attachButton" type="button" aria-label="Anexar arquivo">${icon("paperclip")}</button>
               <textarea id="messageInput" placeholder="Digite sua mensagem..." rows="1" autocomplete="off"></textarea>
@@ -1195,6 +1275,7 @@ ${logoYaraStyles()}
       let projects = [];
       let selectedProject = null;
       let generatedProject = null;
+      let pendingAttachment = null;
 
       const els = {
         accountName: document.getElementById("accountName"),
@@ -1209,6 +1290,11 @@ ${logoYaraStyles()}
         conversationList: document.getElementById("conversationList"),
         messages: document.getElementById("messages"),
         messageInput: document.getElementById("messageInput"),
+        attachmentPreview: document.getElementById("attachmentPreview"),
+        fileInputImages: document.getElementById("fileInputImages"),
+        fileInputDocument: document.getElementById("fileInputDocument"),
+        fileInputPdf: document.getElementById("fileInputPdf"),
+        fileInputCamera: document.getElementById("fileInputCamera"),
         toast: document.getElementById("toast"),
         sidebar: document.getElementById("sidebar"),
         chatActionMenu: document.getElementById("chatActionMenu"),
@@ -1234,6 +1320,28 @@ ${logoYaraStyles()}
         });
       }
 
+      function apiForm(path, formData) {
+        return fetch(path, {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: formData
+        }).then(async function(response) {
+          const data = await response.json().catch(function() { return {}; });
+          if (!response.ok) {
+            const message = data.error && data.error.message ? data.error.message : "Não foi possível enviar este arquivo.";
+            throw new Error(message);
+          }
+          return data;
+        });
+      }
+
+      function fetchProtectedFile(url) {
+        return fetch(url, { headers: { Authorization: "Bearer " + token } }).then(function(response) {
+          if (!response.ok) throw new Error("Não foi possível abrir este arquivo.");
+          return response.blob();
+        });
+      }
+
       function escapeHtml(value) {
         return String(value || "")
           .replace(/&/g, "&amp;")
@@ -1241,6 +1349,20 @@ ${logoYaraStyles()}
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
+      }
+
+      function formatFileSize(bytes) {
+        const size = Number(bytes || 0);
+        if (size >= 1024 * 1024) return (Math.round(size / 1024 / 102.4) / 10) + " MB";
+        return Math.max(1, Math.ceil(size / 1024)) + " KB";
+      }
+
+      function isImageType(type) {
+        return String(type || "").startsWith("image/");
+      }
+
+      function attachmentMeta(file) {
+        return escapeHtml(file.file_type || file.type || "arquivo") + " · " + formatFileSize(file.file_size || file.size || 0);
       }
 
       function initials(name) {
@@ -1329,6 +1451,44 @@ ${logoYaraStyles()}
         renderConversations();
       }
 
+      function renderAttachment(upload) {
+        const name = escapeHtml(upload.original_name || upload.file_name || "Arquivo");
+        const meta = attachmentMeta(upload);
+        const id = escapeHtml(upload.id);
+        const iconMarkup = isImageType(upload.file_type)
+          ? '<img class="attachment-thumb" data-upload-image="' + id + '" alt="' + name + '" />'
+          : '<span class="attachment-icon">${icon("file")}</span>';
+
+        return '<div class="attachment-card">' + iconMarkup + '<span class="attachment-meta"><strong>' + name + '</strong><span>' + meta + '</span></span><button class="button" data-download-upload="' + id + '" data-file-name="' + name + '" type="button">Abrir</button></div>';
+      }
+
+      function hydrateProtectedImages() {
+        document.querySelectorAll("[data-upload-image]").forEach(function(image) {
+          const uploadId = image.getAttribute("data-upload-image");
+          if (!uploadId || image.dataset.loaded === "true") return;
+          image.dataset.loaded = "true";
+          fetchProtectedFile("/api/uploads/" + uploadId + "/download")
+            .then(function(blob) { image.src = URL.createObjectURL(blob); })
+            .catch(function() { image.alt = "Imagem indisponível"; });
+        });
+      }
+
+      async function downloadUpload(uploadId, fileName) {
+        try {
+          const blob = await fetchProtectedFile("/api/uploads/" + uploadId + "/download");
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName || "arquivo";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          showToast(error.message || "Não foi possível abrir este arquivo.");
+        }
+      }
+
       function renderMessages(messages) {
         currentMessages = messages || [];
         if (!currentMessages.length) {
@@ -1337,8 +1497,12 @@ ${logoYaraStyles()}
         }
         els.messages.innerHTML = currentMessages.map(function(message) {
           const who = message.role === "user" ? "Você" : "YARA";
-          return '<article class="message ' + message.role + '"><small>' + who + '</small>' + escapeHtml(message.content) + '</article>';
+          const uploads = message.uploads && message.uploads.length
+            ? '<div class="message-attachments">' + message.uploads.map(renderAttachment).join("") + '</div>'
+            : "";
+          return '<article class="message ' + message.role + '"><small>' + who + '</small>' + escapeHtml(message.content) + uploads + '</article>';
         }).join("");
+        hydrateProtectedImages();
         els.messages.scrollTop = els.messages.scrollHeight;
       }
 
@@ -1370,16 +1534,63 @@ ${logoYaraStyles()}
         }
       }
 
+      function clearPendingAttachment() {
+        if (pendingAttachment && pendingAttachment.previewUrl) {
+          URL.revokeObjectURL(pendingAttachment.previewUrl);
+        }
+        pendingAttachment = null;
+        els.attachmentPreview.hidden = true;
+        els.attachmentPreview.innerHTML = "";
+      }
+
+      function setPendingAttachment(file) {
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+          showToast("Arquivo muito grande.");
+          return;
+        }
+        clearPendingAttachment();
+
+        const previewUrl = isImageType(file.type) ? URL.createObjectURL(file) : null;
+        pendingAttachment = { file: file, previewUrl: previewUrl };
+        const visual = previewUrl
+          ? '<img class="attachment-thumb" src="' + previewUrl + '" alt="' + escapeHtml(file.name) + '" />'
+          : '<span class="attachment-icon">${icon("file")}</span>';
+
+        els.attachmentPreview.innerHTML = visual + '<span class="attachment-meta"><strong>' + escapeHtml(file.name) + '</strong><span>' + escapeHtml(file.type || "arquivo") + " · " + formatFileSize(file.size) + '</span></span><button class="icon-button danger" id="removeAttachmentButton" type="button" aria-label="Remover anexo">${icon("trash")}</button>';
+        els.attachmentPreview.hidden = false;
+      }
+
+      async function uploadPendingAttachment() {
+        if (!pendingAttachment) return null;
+        await ensureConversation();
+        const formData = new FormData();
+        formData.append("conversationId", currentConversationId);
+        formData.append("file", pendingAttachment.file);
+        const data = await apiForm("/api/uploads", formData);
+        clearPendingAttachment();
+        showToast("Arquivo anexado com sucesso.");
+        return data.upload;
+      }
+
       async function sendMessage(event) {
         event.preventDefault();
         const message = els.messageInput.value.trim();
-        if (!message) return;
+        if (!message && !pendingAttachment) return;
         els.messageInput.value = "";
-        renderMessages(currentMessages.concat([{ role: "user", content: message }, { role: "assistant", content: "YARA está pensando..." }]));
+        renderMessages(currentMessages.concat([
+          { role: "user", content: message || "Anexo enviado.", uploads: [] },
+          { role: "assistant", content: "YARA está pensando..." }
+        ]));
         try {
+          const upload = await uploadPendingAttachment();
           const data = await api("/api/chat", {
             method: "POST",
-            body: JSON.stringify({ conversationId: currentConversationId || undefined, message: message })
+            body: JSON.stringify({
+              conversationId: currentConversationId || undefined,
+              message: message,
+              uploadIds: upload ? [upload.id] : []
+            })
           });
           currentConversationId = data.conversationId;
           const conversation = await api("/api/conversations/" + currentConversationId);
@@ -1387,7 +1598,8 @@ ${logoYaraStyles()}
           renderMessages(conversation.messages || []);
           await loadConversations();
         } catch (error) {
-          showToast(error.message);
+          const text = error.message || "Não foi possível enviar este arquivo.";
+          showToast(text);
           if (currentConversationId) {
             const conversation = await api("/api/conversations/" + currentConversationId).catch(function() { return { messages: [] }; });
             renderMessages(conversation.messages || []);
@@ -1456,8 +1668,8 @@ ${logoYaraStyles()}
         const data = await api("/api/conversations/" + currentConversationId + "/files");
         const files = data.files || [];
         openModal("Arquivos enviados", "Anexos preparados para esta conversa.", files.length ? files.map(function(file) {
-          return '<article class="list-item"><strong>' + escapeHtml(file.file_name) + '</strong><p class="muted">' + escapeHtml(file.file_type) + " · " + Math.ceil(file.file_size / 1024) + ' KB</p></article>';
-        }).join("") : '<p class="muted">Nenhum arquivo preparado nesta conversa.</p>');
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.original_name || file.file_name) + '</strong><button class="button" data-download-upload="' + file.id + '" data-file-name="' + escapeHtml(file.original_name || file.file_name) + '" type="button">Abrir</button></div><p class="muted">' + attachmentMeta(file) + '</p></article>';
+        }).join("") : '<p class="muted">Nenhum arquivo enviado nesta conversa.</p>');
       }
 
       async function showProjectPicker() {
@@ -1477,21 +1689,12 @@ ${logoYaraStyles()}
         document.getElementById("chatSearchInput").focus();
       }
 
-      async function prepareUpload(kind) {
-        await ensureConversation();
-        const samples = {
-          gallery: { fileName: "foto-da-galeria.jpg", fileType: "image/jpeg", fileSize: 480000 },
-          image: { fileName: "imagem-yara.png", fileType: "image/png", fileSize: 520000 },
-          document: { fileName: "documento.pdf", fileType: "application/pdf", fileSize: 840000 },
-          camera: { fileName: "camera-yara.jpg", fileType: "image/jpeg", fileSize: 460000 }
-        };
-        const file = samples[kind];
-        await api("/api/uploads", {
-          method: "POST",
-          body: JSON.stringify(Object.assign({ conversationId: currentConversationId }, file))
-        });
+      function openAttachmentPicker(action) {
         els.attachMenu.classList.remove("open");
-        showToast("Anexo preparado com validação segura. Storage real será conectado na próxima etapa.");
+        if (action === "attachGallery" || action === "attachImage") els.fileInputImages.click();
+        if (action === "attachDocument") els.fileInputDocument.click();
+        if (action === "attachPdf") els.fileInputPdf.click();
+        if (action === "attachCamera") els.fileInputCamera.click();
       }
 
       async function loadProjects(render = true) {
@@ -1541,13 +1744,13 @@ ${logoYaraStyles()}
         const uploads = data.uploads || [];
         const target = document.getElementById("uploadsList");
         const total = uploads.reduce(function(sum, item) { return sum + Number(item.file_size || 0); }, 0);
-        document.getElementById("storageText").textContent = Math.round(total / 1024 / 1024 * 10) / 10 + " MB em arquivos preparados.";
+        document.getElementById("storageText").textContent = Math.round(total / 1024 / 1024 * 10) / 10 + " MB em arquivos enviados.";
         if (!uploads.length) {
-          target.innerHTML = '<p class="muted">Nenhum arquivo preparado ainda.</p>';
+          target.innerHTML = '<p class="muted">Nenhum arquivo enviado ainda.</p>';
           return;
         }
         target.innerHTML = uploads.map(function(file) {
-          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.file_name) + '</strong><button class="icon-button danger" data-delete-upload="' + file.id + '" type="button" aria-label="Remover arquivo">${icon("trash")}</button></div><p class="muted">' + escapeHtml(file.file_type) + " · " + Math.ceil(file.file_size / 1024) + ' KB</p></article>';
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.original_name || file.file_name) + '</strong><div class="row"><button class="button" data-download-upload="' + file.id + '" data-file-name="' + escapeHtml(file.original_name || file.file_name) + '" type="button">Abrir</button><button class="icon-button danger" data-delete-upload="' + file.id + '" type="button" aria-label="Remover arquivo">${icon("trash")}</button></div></div><p class="muted">' + attachmentMeta(file) + '</p></article>';
         }).join("");
       }
 
@@ -1634,6 +1837,17 @@ ${logoYaraStyles()}
       document.getElementById("attachButton").addEventListener("click", function() { els.attachMenu.classList.toggle("open"); });
       document.getElementById("modalClose").addEventListener("click", closeModal);
       els.modalOverlay.addEventListener("click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
+      els.attachmentPreview.addEventListener("click", function(event) {
+        const button = event.target.closest("#removeAttachmentButton");
+        if (!button) return;
+        clearPendingAttachment();
+        showToast("Anexo removido.");
+      });
+      els.messages.addEventListener("click", async function(event) {
+        const button = event.target.closest("[data-download-upload]");
+        if (!button) return;
+        await downloadUpload(button.dataset.downloadUpload, button.dataset.fileName || "arquivo");
+      });
 
       document.getElementById("chatActionMenu").addEventListener("click", async function(event) {
         const item = event.target.closest("[data-action]");
@@ -1654,13 +1868,23 @@ ${logoYaraStyles()}
       document.getElementById("attachMenu").addEventListener("click", async function(event) {
         const item = event.target.closest("[data-action]");
         if (!item) return;
-        if (item.dataset.action === "attachGallery") await prepareUpload("gallery");
-        if (item.dataset.action === "attachImage") await prepareUpload("image");
-        if (item.dataset.action === "attachDocument") await prepareUpload("document");
-        if (item.dataset.action === "attachCamera") await prepareUpload("camera");
+        openAttachmentPicker(item.dataset.action);
+      });
+
+      [els.fileInputImages, els.fileInputDocument, els.fileInputPdf, els.fileInputCamera].forEach(function(input) {
+        input.addEventListener("change", function(event) {
+          const file = event.target.files && event.target.files[0];
+          setPendingAttachment(file);
+          event.target.value = "";
+        });
       });
 
       document.getElementById("modalBody").addEventListener("click", async function(event) {
+        const downloadButton = event.target.closest("[data-download-upload]");
+        if (downloadButton) {
+          await downloadUpload(downloadButton.dataset.downloadUpload, downloadButton.dataset.fileName || "arquivo");
+          return;
+        }
         const projectButton = event.target.closest("[data-link-project]");
         if (!projectButton) return;
         await api("/api/conversations/" + currentConversationId + "/projects", {
@@ -1885,6 +2109,11 @@ ${logoYaraStyles()}
       });
 
       document.getElementById("uploadsList").addEventListener("click", async function(event) {
+        const downloadButton = event.target.closest("[data-download-upload]");
+        if (downloadButton) {
+          await downloadUpload(downloadButton.dataset.downloadUpload, downloadButton.dataset.fileName || "arquivo");
+          return;
+        }
         const button = event.target.closest("[data-delete-upload]");
         if (!button) return;
         await api("/api/uploads/" + button.dataset.deleteUpload, { method: "DELETE" });

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const ignoredDirs = new Set([".git", "node_modules", "dist", ".expo", ".eas", "data", "backend/data"]);
+const ignoredDirs = new Set([".git", "node_modules", "dist", ".expo", ".eas", "data", "backend/data", "backend/uploads"]);
 const ignoredFiles = new Set(["package-lock.json"]);
 const secretPatterns = [
   /sk-[A-Za-z0-9_-]{20,}/,

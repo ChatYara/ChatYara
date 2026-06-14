@@ -126,8 +126,10 @@ chatRoutes.post("/chat", async (req, res) => {
   const parsed = z
     .object({
       conversationId: z.string().optional(),
-      message: z.string().min(1)
+      message: z.string().optional().default(""),
+      uploadIds: z.array(z.string().min(1)).max(5).optional().default([])
     })
+    .refine((data) => data.message.trim().length > 0 || data.uploadIds.length > 0)
     .safeParse(req.body);
 
   if (!parsed.success) {

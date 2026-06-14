@@ -90,13 +90,16 @@ export function runMigrations() {
       id text primary key,
       user_id text not null,
       conversation_id text,
+      message_id text,
       file_name text not null,
+      original_name text,
       file_type text not null,
       file_size integer not null,
       storage_path text not null,
       created_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade,
-      foreign key (conversation_id) references conversations(id) on delete cascade
+      foreign key (conversation_id) references conversations(id) on delete cascade,
+      foreign key (message_id) references messages(id) on delete set null
     );
 
     create table if not exists conversation_projects (
@@ -126,6 +129,8 @@ export function runMigrations() {
   ensureColumn("user_settings", "avatar_url", "text");
   ensureColumn("user_settings", "language", "text not null default 'pt-BR'");
   ensureColumn("user_settings", "response_length", "text not null default 'medium'");
+  ensureColumn("uploads", "message_id", "text");
+  ensureColumn("uploads", "original_name", "text");
   db.exec(`
     update users set updated_at = current_timestamp where updated_at is null;
     update projects set updated_at = current_timestamp where updated_at is null;
@@ -142,6 +147,9 @@ export function runMigrations() {
 
     create index if not exists uploads_user_conversation
       on uploads(user_id, conversation_id, created_at);
+
+    create index if not exists uploads_message
+      on uploads(message_id);
   `);
 }
 

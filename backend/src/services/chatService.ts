@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
+import { toPublicUpload } from "./uploadService";
 
 type ConversationRow = {
   id: string;
@@ -21,9 +22,54 @@ type MessageRow = {
   created_at: string;
 };
 
+type UploadRow = {
+  id: string;
+  user_id: string;
+  conversation_id: string | null;
+  message_id: string | null;
+  file_name: string;
+  original_name: string | null;
+  file_type: string;
+  file_size: number;
+  storage_path: string;
+  created_at: string;
+};
+
 function conversationTitle(message: string) {
   const clean = message.replace(/\s+/g, " ").trim();
   return clean.length > 42 ? `${clean.slice(0, 42)}...` : clean || "Nova conversa";
+}
+
+function publicUploadSelect() {
+  return "id, user_id, conversation_id, message_id, file_name, original_name, file_type, file_size, storage_path, created_at";
+}
+
+function attachUploadsToMessages(userId: string, messages: MessageRow[]) {
+  if (messages.length === 0) return [];
+
+  const ids = messages.map((message) => message.id);
+  const placeholders = ids.map(() => "?").join(", ");
+  const uploads = getDatabase()
+    .prepare(
+      `select ${publicUploadSelect()}
+       from uploads
+       where user_id = ? and message_id in (${placeholders})
+       order by created_at asc`
+    )
+    .all(userId, ...ids) as UploadRow[];
+
+  const byMessage = new Map<string, ReturnType<typeof toPublicUpload>[]>();
+  uploads.forEach((upload) => {
+    if (!upload.message_id) return;
+    const current = byMessage.get(upload.message_id) || [];
+    current.push(toPublicUpload(upload));
+    byMessage.set(upload.message_id, current);
+  });
+
+  return messages.map((message) => ({
+    ...message,
+    uploads: byMessage.get(message.id) || []
+  }));
 }
 
 export function listConversations(userId: string) {
@@ -159,12 +205,13 @@ export function listConversationFiles(userId: string, conversationId: string) {
 
   return getDatabase()
     .prepare(
-      `select id, file_name, file_type, file_size, storage_path, created_at
+      `select ${publicUploadSelect()}
        from uploads
        where user_id = ? and conversation_id = ?
        order by created_at desc`
     )
-    .all(userId, conversationId);
+    .all(userId, conversationId)
+    .map((upload) => toPublicUpload(upload as UploadRow));
 }
 
 export function addConversationToProject(userId: string, conversationId: string, projectId: string) {
@@ -198,11 +245,13 @@ export function getMessages(userId: string, conversationId: string) {
     throw new Error("Conversa nao encontrada.");
   }
 
-  return getDatabase()
+  const messages = getDatabase()
     .prepare(
       "select id, conversation_id, role, content, created_at from messages where conversation_id = ? order by created_at asc"
     )
     .all(conversationId) as MessageRow[];
+
+  return attachUploadsToMessages(userId, messages);
 }
 
 export function readMemory(userId: string) {
@@ -226,12 +275,20 @@ function readRecentContext(conversationId: string) {
     .join("\n");
 }
 
-export async function sendMessage(userId: string, input: { conversationId?: string; message: string }) {
+export async function sendMessage(
+  userId: string,
+  input: { conversationId?: string; message?: string; uploadIds?: string[] }
+) {
   const db = getDatabase();
-  const message = input.message.trim();
+  const message = (input.message || "").trim();
+  const uploadIds = Array.from(new Set(input.uploadIds || [])).filter(Boolean);
 
-  if (!message) {
+  if (!message && uploadIds.length === 0) {
     throw new Error("Digite uma mensagem para a YARA.");
+  }
+
+  if (uploadIds.length > 5) {
+    throw new Error("Envie no máximo 5 anexos por mensagem.");
   }
 
   let conversationId = input.conversationId;
@@ -245,16 +302,54 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
       throw new Error("Conversa nao encontrada.");
     }
   } else {
-    const conversation = createConversation(userId, conversationTitle(message));
+    const conversation = createConversation(userId, conversationTitle(message || "Anexo enviado"));
     conversationId = conversation.id;
   }
 
+  let uploads: UploadRow[] = [];
+  if (uploadIds.length > 0) {
+    const placeholders = uploadIds.map(() => "?").join(", ");
+    uploads = db
+      .prepare(
+        `select ${publicUploadSelect()}
+         from uploads
+         where user_id = ? and id in (${placeholders})`
+      )
+      .all(userId, ...uploadIds) as UploadRow[];
+
+    if (uploads.length !== uploadIds.length) {
+      throw new Error("Não foi possível localizar todos os anexos.");
+    }
+
+    const blocked = uploads.some(
+      (upload) => upload.conversation_id && upload.conversation_id !== conversationId
+    );
+    if (blocked) {
+      throw new Error("Anexo não pertence a esta conversa.");
+    }
+  }
+
   const userMessageId = uuid();
+  const storedMessage = message || "Anexo enviado.";
   db.prepare("insert into messages (id, conversation_id, role, content) values (?, ?, 'user', ?)")
-    .run(userMessageId, conversationId, message);
+    .run(userMessageId, conversationId, storedMessage);
+
+  if (uploads.length > 0) {
+    const placeholders = uploadIds.map(() => "?").join(", ");
+    db.prepare(
+      `update uploads
+       set conversation_id = ?, message_id = ?
+       where user_id = ? and id in (${placeholders})`
+    ).run(conversationId, userMessageId, userId, ...uploadIds);
+  }
+
+  const attachmentContext = uploads
+    .map((upload) => `Anexo: ${upload.original_name || upload.file_name} (${upload.file_type}, ${upload.file_size} bytes)`)
+    .join("\n");
+  const prompt = attachmentContext ? `${storedMessage}\n\n${attachmentContext}` : storedMessage;
 
   const ai = await askYara({
-    prompt: message,
+    prompt,
     memory: readMemory(userId),
     context: readRecentContext(conversationId)
   });
@@ -273,7 +368,10 @@ export async function sendMessage(userId: string, input: { conversationId?: stri
       {
         id: userMessageId,
         role: "user",
-        content: message
+        content: storedMessage,
+        uploads: uploads.map((upload) =>
+          toPublicUpload({ ...upload, conversation_id: conversationId, message_id: userMessageId })
+        )
       },
       {
         id: assistantMessageId,

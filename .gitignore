@@ -4,6 +4,7 @@ dist/
 .eas/
 coverage/
 backend/data/
+backend/uploads/
 data/
 mobile/.expo/
 .env
