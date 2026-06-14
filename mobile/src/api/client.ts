@@ -11,9 +11,24 @@ export type HealthResponse = {
 
 type RequestOptions = {
   token?: string | null;
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
 };
+
+export type UploadMetadata = {
+  conversationId?: string | null;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+};
+
+export function prepareUpload(token: string, metadata: UploadMetadata) {
+  return apiRequest<{ upload: unknown }>("/api/uploads", {
+    token,
+    method: "POST",
+    body: metadata
+  });
+}
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {

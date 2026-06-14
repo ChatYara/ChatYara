@@ -21,6 +21,10 @@ export function runMigrations() {
       id text primary key,
       user_id text not null,
       title text not null,
+      is_pinned integer not null default 0,
+      is_archived integer not null default 0,
+      pinned_at text,
+      sort_order integer not null default 0,
       created_at text not null default current_timestamp,
       updated_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
@@ -72,9 +76,37 @@ export function runMigrations() {
     create table if not exists user_settings (
       user_id text primary key,
       display_name text not null,
+      full_name text,
+      avatar_url text,
       theme text not null default 'dark',
       ai_style text not null default 'balanced',
+      language text not null default 'pt-BR',
+      response_length text not null default 'medium',
       updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists uploads (
+      id text primary key,
+      user_id text not null,
+      conversation_id text,
+      file_name text not null,
+      file_type text not null,
+      file_size integer not null,
+      storage_path text not null,
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (conversation_id) references conversations(id) on delete cascade
+    );
+
+    create table if not exists conversation_projects (
+      conversation_id text not null,
+      project_id text not null,
+      user_id text not null,
+      created_at text not null default current_timestamp,
+      primary key (conversation_id, project_id),
+      foreign key (conversation_id) references conversations(id) on delete cascade,
+      foreign key (project_id) references projects(id) on delete cascade,
       foreign key (user_id) references users(id) on delete cascade
     );
   `);
@@ -83,17 +115,33 @@ export function runMigrations() {
   ensureColumn("users", "updated_at", "text");
   ensureColumn("users", "reset_password_token_hash", "text");
   ensureColumn("users", "reset_password_expires_at", "text");
+  ensureColumn("conversations", "is_pinned", "integer not null default 0");
+  ensureColumn("conversations", "is_archived", "integer not null default 0");
+  ensureColumn("conversations", "pinned_at", "text");
+  ensureColumn("conversations", "sort_order", "integer not null default 0");
   ensureColumn("projects", "description", "text");
   ensureColumn("projects", "content", "text");
   ensureColumn("projects", "updated_at", "text");
+  ensureColumn("user_settings", "full_name", "text");
+  ensureColumn("user_settings", "avatar_url", "text");
+  ensureColumn("user_settings", "language", "text not null default 'pt-BR'");
+  ensureColumn("user_settings", "response_length", "text not null default 'medium'");
   db.exec(`
     update users set updated_at = current_timestamp where updated_at is null;
     update projects set updated_at = current_timestamp where updated_at is null;
     update projects set content = output where content is null;
+    update user_settings set language = 'pt-BR' where language is null;
+    update user_settings set response_length = 'medium' where response_length is null;
 
     create unique index if not exists users_phone_unique
       on users(phone)
       where phone is not null and phone <> '';
+
+    create index if not exists conversations_user_archive_sort
+      on conversations(user_id, is_archived, is_pinned, sort_order, updated_at);
+
+    create index if not exists uploads_user_conversation
+      on uploads(user_id, conversation_id, created_at);
   `);
 }
 

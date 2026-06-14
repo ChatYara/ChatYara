@@ -2,6 +2,7 @@ import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
 import { getUserById } from "./authService";
+import { readMemory } from "./chatService";
 
 export function listMemories(userId: string) {
   return getDatabase()
@@ -97,8 +98,9 @@ export async function generateSystem(userId: string, input: { type?: string; pro
     prompt: [
       `Tipo de sistema: ${type}`,
       `Briefing: ${input.prompt}`,
-      "Entregue um plano profissional em português com visão geral, módulos, telas, API, banco de dados, segurança e próximos passos."
-    ].join("\n")
+      "Entregue um plano profissional em português com seções: Nome, Descrição, Tecnologias, Telas, APIs, Banco de dados e Próximos passos."
+    ].join("\n"),
+    memory: readMemory(userId)
   });
 
   const id = uuid();
@@ -128,7 +130,11 @@ export async function generateSystem(userId: string, input: { type?: string; pro
 export function getSettings(userId: string) {
   const db = getDatabase();
   const existing = db
-    .prepare("select user_id, display_name, theme, ai_style, updated_at from user_settings where user_id = ?")
+    .prepare(
+      `select user_id, display_name, full_name, avatar_url, theme, ai_style, language, response_length, updated_at
+       from user_settings
+       where user_id = ?`
+    )
     .get(userId);
 
   if (existing) {
@@ -142,32 +148,60 @@ export function getSettings(userId: string) {
   return {
     user_id: userId,
     display_name: displayName,
+    full_name: user?.name || "",
+    avatar_url: null,
     theme: "dark",
     ai_style: "balanced",
+    language: "pt-BR",
+    response_length: "medium",
     updated_at: new Date().toISOString()
   };
 }
 
 export function updateSettings(
   userId: string,
-  input: { displayName?: string; theme?: string; aiStyle?: string }
+  input: {
+    displayName?: string;
+    fullName?: string;
+    avatarUrl?: string;
+    theme?: string;
+    aiStyle?: string;
+    language?: string;
+    responseLength?: string;
+  }
 ) {
-  const current = getSettings(userId) as { display_name: string; theme: string; ai_style: string };
+  const current = getSettings(userId) as {
+    display_name: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    theme: string;
+    ai_style: string;
+    language: string;
+    response_length: string;
+  };
   const displayName = input.displayName?.trim() || current.display_name;
+  const fullName = input.fullName?.trim() ?? current.full_name ?? "";
+  const avatarUrl = input.avatarUrl?.trim() ?? current.avatar_url ?? "";
   const theme = input.theme?.trim() || current.theme;
   const aiStyle = input.aiStyle?.trim() || current.ai_style;
+  const language = input.language?.trim() || current.language || "pt-BR";
+  const responseLength = input.responseLength?.trim() || current.response_length || "medium";
 
   getDatabase()
     .prepare(
-      `insert into user_settings (user_id, display_name, theme, ai_style, updated_at)
-       values (?, ?, ?, ?, current_timestamp)
+      `insert into user_settings (user_id, display_name, full_name, avatar_url, theme, ai_style, language, response_length, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, current_timestamp)
        on conflict(user_id) do update set
          display_name = excluded.display_name,
+         full_name = excluded.full_name,
+         avatar_url = excluded.avatar_url,
          theme = excluded.theme,
          ai_style = excluded.ai_style,
+         language = excluded.language,
+         response_length = excluded.response_length,
          updated_at = current_timestamp`
     )
-    .run(userId, displayName, theme, aiStyle);
+    .run(userId, displayName, fullName, avatarUrl || null, theme, aiStyle, language, responseLength);
 
   return getSettings(userId);
 }

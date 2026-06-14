@@ -5,6 +5,10 @@ import { askYara } from "./ai/aiService";
 type ConversationRow = {
   id: string;
   title: string;
+  is_pinned: number;
+  is_archived: number;
+  pinned_at: string | null;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
@@ -25,7 +29,10 @@ function conversationTitle(message: string) {
 export function listConversations(userId: string) {
   return getDatabase()
     .prepare(
-      "select id, title, created_at, updated_at from conversations where user_id = ? order by updated_at desc"
+      `select id, title, is_pinned, is_archived, pinned_at, sort_order, created_at, updated_at
+       from conversations
+       where user_id = ? and is_archived = 0
+       order by is_pinned desc, sort_order desc, updated_at desc`
     )
     .all(userId) as ConversationRow[];
 }
@@ -33,15 +40,17 @@ export function listConversations(userId: string) {
 export function createConversation(userId: string, title = "Nova conversa") {
   const id = uuid();
   getDatabase()
-    .prepare("insert into conversations (id, user_id, title) values (?, ?, ?)")
-    .run(id, userId, title);
-  return { id, title };
+    .prepare("insert into conversations (id, user_id, title, sort_order) values (?, ?, ?, ?)")
+    .run(id, userId, title, Date.now());
+  return { id, title, is_pinned: 0, is_archived: 0, sort_order: Date.now() };
 }
 
 export function getConversation(userId: string, conversationId: string) {
   const conversation = getDatabase()
     .prepare(
-      "select id, title, created_at, updated_at from conversations where id = ? and user_id = ?"
+      `select id, title, is_pinned, is_archived, pinned_at, sort_order, created_at, updated_at
+       from conversations
+       where id = ? and user_id = ?`
     )
     .get(conversationId, userId) as ConversationRow | undefined;
 
@@ -86,6 +95,100 @@ export function deleteConversation(userId: string, conversationId: string) {
   return { id: conversationId };
 }
 
+export function pinConversation(userId: string, conversationId: string, pinned: boolean) {
+  const result = getDatabase()
+    .prepare(
+      `update conversations
+       set is_pinned = ?,
+           pinned_at = case when ? = 1 then current_timestamp else null end,
+           sort_order = case when ? = 1 then ? else sort_order end,
+           updated_at = current_timestamp
+       where id = ? and user_id = ?`
+    )
+    .run(pinned ? 1 : 0, pinned ? 1 : 0, pinned ? 1 : 0, Date.now(), conversationId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  return { id: conversationId, is_pinned: pinned ? 1 : 0 };
+}
+
+export function archiveConversation(userId: string, conversationId: string, archived: boolean) {
+  const result = getDatabase()
+    .prepare(
+      `update conversations
+       set is_archived = ?,
+           updated_at = current_timestamp
+       where id = ? and user_id = ?`
+    )
+    .run(archived ? 1 : 0, conversationId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  return { id: conversationId, is_archived: archived ? 1 : 0 };
+}
+
+export function moveConversationToTop(userId: string, conversationId: string) {
+  const result = getDatabase()
+    .prepare(
+      `update conversations
+       set sort_order = ?,
+           updated_at = current_timestamp
+       where id = ? and user_id = ?`
+    )
+    .run(Date.now(), conversationId, userId);
+
+  if (result.changes === 0) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  return { id: conversationId };
+}
+
+export function listConversationFiles(userId: string, conversationId: string) {
+  const conversation = getDatabase()
+    .prepare("select id from conversations where id = ? and user_id = ?")
+    .get(conversationId, userId);
+
+  if (!conversation) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  return getDatabase()
+    .prepare(
+      `select id, file_name, file_type, file_size, storage_path, created_at
+       from uploads
+       where user_id = ? and conversation_id = ?
+       order by created_at desc`
+    )
+    .all(userId, conversationId);
+}
+
+export function addConversationToProject(userId: string, conversationId: string, projectId: string) {
+  const db = getDatabase();
+  const conversation = db
+    .prepare("select id from conversations where id = ? and user_id = ?")
+    .get(conversationId, userId);
+  const project = db.prepare("select id from projects where id = ? and user_id = ?").get(projectId, userId);
+
+  if (!conversation) {
+    throw new Error("Conversa nao encontrada.");
+  }
+
+  if (!project) {
+    throw new Error("Projeto não encontrado.");
+  }
+
+  db.prepare(
+    "insert or ignore into conversation_projects (conversation_id, project_id, user_id) values (?, ?, ?)"
+  ).run(conversationId, projectId, userId);
+
+  return { conversationId, projectId };
+}
+
 export function getMessages(userId: string, conversationId: string) {
   const conversation = getDatabase()
     .prepare("select id from conversations where id = ? and user_id = ?")
@@ -102,7 +205,7 @@ export function getMessages(userId: string, conversationId: string) {
     .all(conversationId) as MessageRow[];
 }
 
-function readMemory(userId: string) {
+export function readMemory(userId: string) {
   const rows = getDatabase()
     .prepare("select title, content from memories where user_id = ? order by updated_at desc limit 8")
     .all(userId) as Array<{ title: string; content: string }>;

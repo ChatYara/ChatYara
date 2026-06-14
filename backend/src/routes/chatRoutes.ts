@@ -2,11 +2,16 @@ import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
 import {
+  addConversationToProject,
+  archiveConversation,
   createConversation,
   deleteConversation,
   getConversation,
   getMessages,
+  listConversationFiles,
   listConversations,
+  moveConversationToTop,
+  pinConversation,
   renameConversation,
   sendMessage
 } from "../services/chatService";
@@ -51,6 +56,61 @@ chatRoutes.delete("/conversations/:id", (req, res) => {
     return res.json({ conversation: deleteConversation(req.user!.id, req.params.id) });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
+});
+
+chatRoutes.patch("/conversations/:id/pin", (req, res) => {
+  const parsed = z.object({ pinned: z.boolean().optional() }).safeParse(req.body);
+
+  try {
+    return res.json({
+      conversation: pinConversation(req.user!.id, req.params.id, parsed.success ? parsed.data.pinned !== false : true)
+    });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
+});
+
+chatRoutes.patch("/conversations/:id/archive", (req, res) => {
+  const parsed = z.object({ archived: z.boolean().optional() }).safeParse(req.body);
+
+  try {
+    return res.json({
+      conversation: archiveConversation(req.user!.id, req.params.id, parsed.success ? parsed.data.archived !== false : true)
+    });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
+});
+
+chatRoutes.patch("/conversations/:id/move-top", (req, res) => {
+  try {
+    return res.json({ conversation: moveConversationToTop(req.user!.id, req.params.id) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
+});
+
+chatRoutes.get("/conversations/:id/files", (req, res) => {
+  try {
+    return res.json({ files: listConversationFiles(req.user!.id, req.params.id) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conversa nao encontrada.");
+  }
+});
+
+chatRoutes.post("/conversations/:id/projects", (req, res) => {
+  const parsed = z.object({ projectId: z.string().min(1) }).safeParse(req.body);
+  if (!parsed.success) {
+    return sendError(res, 400, "Informe um projeto para vincular.");
+  }
+
+  try {
+    return res.status(201).json({
+      link: addConversationToProject(req.user!.id, req.params.id, parsed.data.projectId)
+    });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Não foi possível vincular ao projeto.");
   }
 });
 

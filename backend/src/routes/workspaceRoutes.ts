@@ -137,8 +137,12 @@ workspaceRoutes.patch("/settings", (req, res) => {
   const parsed = z
     .object({
       displayName: z.string().min(1).optional(),
+      fullName: z.string().optional(),
+      avatarUrl: z.string().optional(),
       theme: z.string().min(1).optional(),
-      aiStyle: z.string().min(1).optional()
+      aiStyle: z.string().min(1).optional(),
+      language: z.string().min(2).optional(),
+      responseLength: z.string().min(1).optional()
     })
     .safeParse(req.body);
 

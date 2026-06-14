@@ -7,6 +7,8 @@ import { env } from "./config/env";
 import { authRoutes } from "./routes/authRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
+import { uploadRoutes } from "./routes/uploadRoutes";
+import { userRoutes } from "./routes/userRoutes";
 import { workspaceRoutes } from "./routes/workspaceRoutes";
 import { renderLandingPage } from "./views/landingPage";
 import { renderPlatformPage } from "./views/platformPage";
@@ -59,6 +61,8 @@ export function createApp() {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/system", systemRoutes);
+  app.use("/api", userRoutes);
+  app.use("/api", uploadRoutes);
   app.use("/api", chatRoutes);
   app.use("/api", workspaceRoutes);
 

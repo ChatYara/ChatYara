@@ -97,7 +97,19 @@ Endpoints principais:
 - `POST /api/system/test-openai` compatibilidade: testa o provedor definido em `AI_PROVIDER`
 - `POST /api/chat`
 - `GET /api/conversations`
+- `PATCH /api/conversations/:id/pin`
+- `PATCH /api/conversations/:id/archive`
+- `PATCH /api/conversations/:id/move-top`
+- `GET /api/conversations/:id/files`
+- `POST /api/conversations/:id/projects`
+- `PATCH /api/users/profile`
+- `PATCH /api/users/password`
+- `POST /api/uploads`
 - `GET /api/memories`
+- `POST /api/memories`
+- `DELETE /api/memories/:id`
+- `GET /api/projects`
+- `POST /api/generator`
 - `POST /api/generate-system`
 
 O primeiro usuario cadastrado recebe papel `admin` e pode testar o provedor de IA pela tela de Configuracoes.

@@ -124,6 +124,78 @@ export function getUserById(userId: string) {
   return user ? toPublicUser(user) : null;
 }
 
+export function updateUserProfile(
+  userId: string,
+  input: { name?: string; email?: string; phone?: string | null }
+) {
+  const db = getDatabase();
+  const current = db.prepare("select * from users where id = ?").get(userId) as UserRow | undefined;
+
+  if (!current) {
+    throw new Error("Usuário não encontrado.");
+  }
+
+  const name = input.name?.trim() || current.name;
+  const email = input.email ? normalizeEmail(input.email) : current.email;
+  const phone = input.phone === null ? "" : normalizePhone(input.phone ?? current.phone);
+
+  const existingEmail = db
+    .prepare("select id from users where email = ? and id <> ?")
+    .get(email, userId);
+  if (existingEmail) {
+    throw new Error("E-mail já cadastrado em outra conta.");
+  }
+
+  if (phone) {
+    const existingPhone = db
+      .prepare("select id from users where phone = ? and id <> ?")
+      .get(phone, userId);
+    if (existingPhone) {
+      throw new Error("Telefone já cadastrado em outra conta.");
+    }
+  }
+
+  db.prepare(
+    `update users
+     set name = ?,
+         email = ?,
+         phone = ?,
+         updated_at = current_timestamp
+     where id = ?`
+  ).run(name, email, phone || null, userId);
+
+  const updated = db.prepare("select * from users where id = ?").get(userId) as UserRow;
+  return toPublicUser(updated);
+}
+
+export async function changeUserPassword(
+  userId: string,
+  input: { currentPassword: string; newPassword: string }
+) {
+  const db = getDatabase();
+  const user = db.prepare("select * from users where id = ?").get(userId) as UserRow | undefined;
+
+  if (!user) {
+    throw new Error("Usuário não encontrado.");
+  }
+
+  if (!(await bcrypt.compare(input.currentPassword, user.password_hash))) {
+    throw new Error("Senha atual inválida.");
+  }
+
+  const passwordHash = await bcrypt.hash(input.newPassword, 12);
+  db.prepare(
+    `update users
+     set password_hash = ?,
+         updated_at = current_timestamp
+     where id = ?`
+  ).run(passwordHash, userId);
+
+  return {
+    message: "Senha atualizada com segurança."
+  };
+}
+
 export async function requestPasswordReset(input: { identifier: string }) {
   const db = getDatabase();
   const identifier = input.identifier.trim().toLowerCase();
