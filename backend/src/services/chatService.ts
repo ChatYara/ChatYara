@@ -1,6 +1,8 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
+import { learnFromUserMessage, readLearningContext } from "./learningService";
+import { runSearch, shouldUseOnlineSearch } from "./searchService";
 import { toPublicUpload } from "./uploadService";
 
 type ConversationRow = {
@@ -262,6 +264,42 @@ export function readMemory(userId: string) {
   return rows.map((row) => `${row.title}: ${row.content}`).join("\n");
 }
 
+function readSettingsContext(userId: string) {
+  const settings = getDatabase()
+    .prepare(
+      `select display_name, ai_style, language, response_length
+       from user_settings
+       where user_id = ?`
+    )
+    .get(userId) as
+    | {
+        display_name: string;
+        ai_style: string;
+        language: string;
+        response_length: string;
+      }
+    | undefined;
+
+  if (!settings) return "";
+
+  return [
+    `Nome preferido: ${settings.display_name}`,
+    `Estilo preferido: ${settings.ai_style}`,
+    `Idioma principal: ${settings.language}`,
+    `Tamanho de resposta preferido: ${settings.response_length}`
+  ].join("\n");
+}
+
+function readUserContext(userId: string) {
+  return [
+    readSettingsContext(userId),
+    readMemory(userId) ? `Memórias manuais:\n${readMemory(userId)}` : "",
+    readLearningContext(userId) ? `Aprendizados automáticos seguros:\n${readLearningContext(userId)}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function readRecentContext(conversationId: string) {
   const rows = getDatabase()
     .prepare(
@@ -273,6 +311,17 @@ function readRecentContext(conversationId: string) {
     .reverse()
     .map((row) => `${row.role === "user" ? "Usuario" : "YARA"}: ${row.content}`)
     .join("\n");
+}
+
+function directAnswer(message: string) {
+  if (/\b(que horas s[aã]o|hor[aá]rio atual|hora agora)\b/i.test(message)) {
+    const now = new Date();
+    const time = new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(now);
+    const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(now);
+    return `Agora são ${time} de ${date}.`;
+  }
+
+  return null;
 }
 
 export async function sendMessage(
@@ -348,11 +397,27 @@ export async function sendMessage(
     .join("\n");
   const prompt = attachmentContext ? `${storedMessage}\n\n${attachmentContext}` : storedMessage;
 
-  const ai = await askYara({
-    prompt,
-    memory: readMemory(userId),
-    context: readRecentContext(conversationId)
-  });
+  learnFromUserMessage(userId, storedMessage);
+
+  const searchNeeded = shouldUseOnlineSearch(storedMessage);
+  const direct = directAnswer(storedMessage);
+  const ai = direct
+    ? {
+        provider: "gemini" as const,
+        model: "direct",
+        response: direct
+      }
+    : searchNeeded
+      ? {
+          provider: "gemini" as const,
+          model: "search-prepared",
+          response: runSearch(userId, storedMessage).response
+        }
+      : await askYara({
+          prompt,
+          memory: readUserContext(userId),
+          context: readRecentContext(conversationId)
+        });
 
   const assistantMessageId = uuid();
   db.prepare("insert into messages (id, conversation_id, role, content) values (?, ?, 'assistant', ?)")

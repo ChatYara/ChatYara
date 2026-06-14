@@ -12,11 +12,27 @@ const allowedTypes = new Set([
   "image/gif",
   "application/pdf",
   "text/plain",
+  "text/csv",
   "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 ]);
 
-const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf", ".txt", ".doc", ".docx"]);
+const allowedExtensions = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".pdf",
+  ".txt",
+  ".csv",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx"
+]);
 const blockedExtensions = new Set([".exe", ".bat", ".cmd", ".sh", ".js", ".ts", ".html", ".htm", ".php", ".ps1", ".vbs"]);
 const maxFileSize = 10 * 1024 * 1024;
 const maxMultipartSize = maxFileSize + 1024 * 1024;

@@ -3,11 +3,38 @@ import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
 import { getUserById } from "./authService";
 import { readMemory } from "./chatService";
+import { deleteLearning, listUserLearning } from "./learningService";
+
+type MemoryListItem = {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  readonly: boolean;
+  confidence?: number;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export function listMemories(userId: string) {
-  return getDatabase()
+  const manual = getDatabase()
     .prepare("select id, title, content, created_at, updated_at from memories where user_id = ? order by updated_at desc")
-    .all(userId);
+    .all(userId)
+    .map((memory) => ({ ...(memory as Omit<MemoryListItem, "source" | "readonly">), source: "manual", readonly: false }));
+  const learned = listUserLearning(userId).map((item) => ({
+    id: `learning:${item.id}`,
+    title: "Aprendizado automático",
+    content: `${item.key}: ${item.value}`,
+    source: item.source,
+    confidence: item.confidence,
+    readonly: true,
+    created_at: item.created_at,
+    updated_at: item.updated_at
+  })) satisfies MemoryListItem[];
+
+  return [...manual, ...learned].sort((a, b) =>
+    String(b.updated_at || "").localeCompare(String(a.updated_at || ""))
+  );
 }
 
 export function saveMemory(userId: string, input: { title?: string; content: string }) {
@@ -21,6 +48,10 @@ export function saveMemory(userId: string, input: { title?: string; content: str
 }
 
 export function updateMemory(userId: string, memoryId: string, input: { title?: string; content?: string }) {
+  if (memoryId.startsWith("learning:")) {
+    throw new Error("Aprendizados automáticos podem ser removidos, mas não editados aqui.");
+  }
+
   const db = getDatabase();
   const current = db
     .prepare("select id, title, content from memories where id = ? and user_id = ?")
@@ -45,6 +76,10 @@ export function updateMemory(userId: string, memoryId: string, input: { title?: 
 }
 
 export function deleteMemory(userId: string, memoryId: string) {
+  if (memoryId.startsWith("learning:")) {
+    return deleteLearning(userId, memoryId.replace("learning:", ""));
+  }
+
   const result = getDatabase()
     .prepare("delete from memories where id = ? and user_id = ?")
     .run(memoryId, userId);
@@ -57,8 +92,10 @@ export function deleteMemory(userId: string, memoryId: string) {
 }
 
 export function deleteAllMemories(userId: string) {
-  const result = getDatabase().prepare("delete from memories where user_id = ?").run(userId);
-  return { deleted: result.changes };
+  const db = getDatabase();
+  const manual = db.prepare("delete from memories where user_id = ?").run(userId);
+  const learned = db.prepare("delete from user_learning where user_id = ?").run(userId);
+  return { deleted: Number(manual.changes) + Number(learned.changes) };
 }
 
 export function listProjects(userId: string) {

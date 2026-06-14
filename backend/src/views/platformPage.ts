@@ -389,6 +389,24 @@ ${logoYaraStyles()}
         line-height: 1.7;
       }
 
+      .quick-prompts {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 9px;
+        margin-top: 18px;
+      }
+
+      .quick-prompt {
+        min-height: 38px;
+        border: 1px solid rgba(56, 189, 248, 0.26);
+        border-radius: 999px;
+        padding: 8px 12px;
+        color: #dbeafe;
+        background: rgba(15, 23, 42, 0.58);
+        font-weight: 700;
+      }
+
       .message {
         max-width: min(780px, 88%);
         border: 1px solid rgba(148, 163, 184, 0.15);
@@ -483,7 +501,11 @@ ${logoYaraStyles()}
       }
 
       .composer-wrap {
-        position: relative;
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        padding-top: 8px;
+        background: linear-gradient(180deg, rgba(8, 17, 32, 0), rgba(8, 17, 32, 0.94) 34%);
       }
 
       .composer {
@@ -865,7 +887,18 @@ ${logoYaraStyles()}
         margin: 0 0 6px;
       }
 
-      @media (max-width: 1060px) {
+      @media (min-width: 1440px) {
+        .app-shell { grid-template-columns: 320px minmax(0, 1fr); }
+        .chat-view { width: min(100%, 1180px); margin: 0 auto; }
+        .message { max-width: min(820px, 82%); }
+      }
+
+      @media (min-width: 1025px) {
+        .view { width: 100%; }
+        .chat-view { width: min(100%, 1080px); margin: 0 auto; }
+      }
+
+      @media (max-width: 1024px) {
         .layout-grid,
         .settings-grid { grid-template-columns: 1fr; }
         .settings-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -887,9 +920,10 @@ ${logoYaraStyles()}
         .main { min-height: calc(100vh - 84px); }
         .topbar { align-items: flex-start; flex-direction: column; }
         .topbar-title { align-items: flex-start; }
+        .messages { min-height: calc(100dvh - 360px); }
       }
 
-      @media (max-width: 620px) {
+      @media (max-width: 640px) {
         .sidebar,
         .view,
         .topbar { padding: 14px; }
@@ -902,6 +936,12 @@ ${logoYaraStyles()}
         .settings-hero { align-items: flex-start; flex-direction: column; }
         .settings-card-grid,
         .option-grid { grid-template-columns: 1fr; }
+        .quick-prompts { justify-content: stretch; }
+        .quick-prompt { flex: 1 1 calc(50% - 9px); }
+        .attachment-card,
+        .attachment-preview { grid-template-columns: auto minmax(0, 1fr); }
+        .attachment-card .button,
+        .attachment-preview .icon-button { grid-column: 1 / -1; width: 100%; }
       }
     </style>
   </head>
@@ -981,8 +1021,17 @@ ${logoYaraStyles()}
           <div class="messages" id="messages">
             <div class="empty-chat">
               <div class="empty-brand">${renderLogoYara({ variant: "icon", className: "logo-yara--auth" })}</div>
-              <h2>Como posso ajudar hoje?</h2>
-              <p>Converse com a YARA, gere sistemas, conecte ideias a projetos e mantenha seu histórico organizado.</p>
+              <h2>Olá! Eu sou a YARA.</h2>
+              <p>Posso conversar com você, responder perguntas, ajudar nos estudos, criar textos, analisar ideias, organizar projetos, pesquisar quando necessário e também criar sistemas quando você quiser.</p>
+              <div class="quick-prompts" data-quick-prompts>
+                <button class="quick-prompt" data-prompt="Pergunte qualquer coisa" type="button">Pergunte qualquer coisa</button>
+                <button class="quick-prompt" data-prompt="Crie um texto curto sobre uma ideia importante" type="button">Criar um texto</button>
+                <button class="quick-prompt" data-prompt="Me ajude a estudar um assunto" type="button">Me ajude a estudar</button>
+                <button class="quick-prompt" data-prompt="Organize esta ideia comigo" type="button">Organizar uma ideia</button>
+                <button class="quick-prompt" data-prompt="Analise o arquivo que vou anexar" type="button">Analisar um arquivo</button>
+                <button class="quick-prompt" data-prompt="Pesquise na internet sobre este assunto" type="button">Pesquisar na internet</button>
+                <button class="quick-prompt" data-prompt="Vamos continuar um assunto anterior" type="button">Continuar um assunto</button>
+              </div>
             </div>
           </div>
           <div class="composer-wrap">
@@ -994,7 +1043,7 @@ ${logoYaraStyles()}
               ${menuButton("attachCamera", "Tirar foto", "camera")}
             </div>
             <input id="fileInputImages" type="file" accept="image/*" hidden />
-            <input id="fileInputDocument" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" hidden />
+            <input id="fileInputDocument" type="file" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
             <input id="fileInputPdf" type="file" accept="application/pdf,.pdf" hidden />
             <input id="fileInputCamera" type="file" accept="image/*" capture="environment" hidden />
             <div class="attachment-preview" id="attachmentPreview" hidden></div>
@@ -1365,6 +1414,22 @@ ${logoYaraStyles()}
         return escapeHtml(file.file_type || file.type || "arquivo") + " · " + formatFileSize(file.file_size || file.size || 0);
       }
 
+      function emptyChatHtml() {
+        const prompts = [
+          ["Pergunte qualquer coisa", "Pergunte qualquer coisa"],
+          ["Criar um texto", "Faça um texto de aniversário"],
+          ["Me ajude a estudar", "Explique a Revolução Baiana"],
+          ["Organizar uma ideia", "Organize uma escala de trabalho"],
+          ["Analisar um arquivo", "Analise o arquivo que vou anexar"],
+          ["Pesquisar na internet", "Pesquise na internet sobre este assunto"],
+          ["Continuar um assunto", "Vamos continuar um assunto anterior"]
+        ];
+
+        return '<div class="empty-chat"><h2>Olá! Eu sou a YARA.</h2><p>Posso conversar com você, responder perguntas, ajudar nos estudos, criar textos, analisar ideias, organizar projetos, pesquisar quando necessário e também criar sistemas quando você quiser.</p><div class="quick-prompts">' + prompts.map(function(item) {
+          return '<button class="quick-prompt" data-prompt="' + escapeHtml(item[1]) + '" type="button">' + escapeHtml(item[0]) + '</button>';
+        }).join("") + '</div></div>';
+      }
+
       function initials(name) {
         return String(name || "YA").trim().slice(0, 2).toUpperCase();
       }
@@ -1402,7 +1467,7 @@ ${logoYaraStyles()}
           item.classList.toggle("active", item.dataset.view === view);
         });
         const labels = {
-          chat: ["YARA AI", "Chat inteligente com histórico, anexos e ações avançadas."],
+          chat: ["YARA AI", "Converse com a YARA, pergunte qualquer coisa e organize ideias, estudos, trabalho e projetos."],
           generator: ["Gerador de Sistemas", "Crie sistemas completos e salve automaticamente como projeto."],
           projects: ["Meus Projetos", "Organize, busque e continue projetos com a YARA."],
           settings: ["Configurações", "Perfil, segurança, preferências e memória da YARA."]
@@ -1492,7 +1557,7 @@ ${logoYaraStyles()}
       function renderMessages(messages) {
         currentMessages = messages || [];
         if (!currentMessages.length) {
-          els.messages.innerHTML = '<div class="empty-chat"><h2>Como posso ajudar hoje?</h2><p>Envie uma mensagem para começar uma nova conversa com a YARA.</p></div>';
+          els.messages.innerHTML = emptyChatHtml();
           return;
         }
         els.messages.innerHTML = currentMessages.map(function(message) {
@@ -1735,7 +1800,9 @@ ${logoYaraStyles()}
           return;
         }
         target.innerHTML = memories.map(function(memory) {
-          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(memory.title || "Memória") + '</strong><div class="row"><button class="icon-button" data-edit-memory="' + memory.id + '" data-title="' + escapeHtml(memory.title || "Memória") + '" data-content="' + escapeHtml(memory.content) + '" type="button" aria-label="Editar memória">${icon("save")}</button><button class="icon-button danger" data-delete-memory="' + memory.id + '" type="button" aria-label="Excluir memória">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(memory.content) + '</p></article>';
+          const badge = memory.readonly ? '<span class="status"><span class="dot"></span>Aprendido</span>' : "";
+          const edit = memory.readonly ? "" : '<button class="icon-button" data-edit-memory="' + memory.id + '" data-title="' + escapeHtml(memory.title || "Memória") + '" data-content="' + escapeHtml(memory.content) + '" type="button" aria-label="Editar memória">${icon("save")}</button>';
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(memory.title || "Memória") + '</strong><div class="row">' + badge + edit + '<button class="icon-button danger" data-delete-memory="' + memory.id + '" type="button" aria-label="Excluir memória">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(memory.content) + '</p></article>';
         }).join("");
       }
 
@@ -1844,6 +1911,13 @@ ${logoYaraStyles()}
         showToast("Anexo removido.");
       });
       els.messages.addEventListener("click", async function(event) {
+        const promptButton = event.target.closest("[data-prompt]");
+        if (promptButton) {
+          els.messageInput.value = promptButton.dataset.prompt || "";
+          els.messageInput.focus();
+          return;
+        }
+
         const button = event.target.closest("[data-download-upload]");
         if (!button) return;
         await downloadUpload(button.dataset.downloadUpload, button.dataset.fileName || "arquivo");

@@ -7,6 +7,7 @@ import { env } from "./config/env";
 import { authRoutes } from "./routes/authRoutes";
 import { aiRoutes } from "./routes/aiRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
+import { searchRoutes } from "./routes/searchRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { uploadRoutes } from "./routes/uploadRoutes";
 import { userRoutes } from "./routes/userRoutes";
@@ -24,7 +25,9 @@ export function createApp() {
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
           "script-src": ["'self'", "'unsafe-inline'"],
-          "style-src": ["'self'", "'unsafe-inline'"]
+          "style-src": ["'self'", "'unsafe-inline'"],
+          "img-src": ["'self'", "data:", "blob:"],
+          "connect-src": ["'self'"]
         }
       }
     })
@@ -66,6 +69,7 @@ export function createApp() {
   app.use("/api", userRoutes);
   app.use("/api", uploadRoutes);
   app.use("/api", chatRoutes);
+  app.use("/api", searchRoutes);
   app.use("/api", workspaceRoutes);
 
   app.use((_req, res) => {

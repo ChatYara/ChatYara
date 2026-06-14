@@ -84,6 +84,19 @@ create table if not exists user_settings (
   foreign key (user_id) references users(id) on delete cascade
 );
 
+create table if not exists user_learning (
+  id text primary key,
+  user_id text not null,
+  key text not null,
+  value text not null,
+  confidence real not null default 0.6,
+  source text not null,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, key, value),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
 create table if not exists uploads (
   id text primary key,
   user_id text not null,
@@ -108,5 +121,15 @@ create table if not exists conversation_projects (
   primary key (conversation_id, project_id),
   foreign key (conversation_id) references conversations(id) on delete cascade,
   foreign key (project_id) references projects(id) on delete cascade,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists search_history (
+  id text primary key,
+  user_id text not null,
+  query text not null,
+  status text not null,
+  response text not null,
+  created_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
