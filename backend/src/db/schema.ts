@@ -226,6 +226,50 @@ export function runMigrations() {
       foreign key (result_document_id) references documents(id) on delete set null
     );
 
+    create table if not exists images (
+      id text primary key,
+      user_id text not null,
+      project_id text,
+      conversation_id text,
+      original_name text not null,
+      file_name text not null,
+      file_type text not null,
+      file_size integer not null,
+      width integer,
+      height integer,
+      storage_path text not null,
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references projects(id) on delete set null,
+      foreign key (conversation_id) references conversations(id) on delete set null
+    );
+
+    create table if not exists image_analyses (
+      id text primary key,
+      user_id text not null,
+      image_id text not null,
+      type text not null,
+      result_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (image_id) references images(id) on delete cascade
+    );
+
+    create table if not exists image_edits (
+      id text primary key,
+      user_id text not null,
+      original_image_id text not null,
+      result_image_id text,
+      edit_type text not null,
+      prompt text,
+      status text not null,
+      provider text not null default 'sharp',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (original_image_id) references images(id) on delete cascade,
+      foreign key (result_image_id) references images(id) on delete set null
+    );
+
     create table if not exists search_history (
       id text primary key,
       user_id text not null,
@@ -271,6 +315,12 @@ export function runMigrations() {
   ensureColumn("documents", "status", "text not null default 'ready'");
   ensureColumn("documents", "original_file_id", "text");
   ensureColumn("documents", "updated_at", "text");
+  ensureColumn("images", "project_id", "text");
+  ensureColumn("images", "conversation_id", "text");
+  ensureColumn("images", "width", "integer");
+  ensureColumn("images", "height", "integer");
+  ensureColumn("image_edits", "prompt", "text");
+  ensureColumn("image_edits", "provider", "text not null default 'sharp'");
   ensureColumn("search_history", "results_json", "text not null default '[]'");
   ensureColumn("search_history", "provider", "text not null default 'none'");
   ensureColumn("search_history", "sources_json", "text not null default '[]'");
@@ -325,6 +375,15 @@ export function runMigrations() {
 
     create index if not exists document_conversions_user_created
       on document_conversions(user_id, created_at);
+
+    create index if not exists images_user_created
+      on images(user_id, created_at);
+
+    create index if not exists image_analyses_user_created
+      on image_analyses(user_id, created_at);
+
+    create index if not exists image_edits_user_created
+      on image_edits(user_id, created_at);
   `);
 }
 

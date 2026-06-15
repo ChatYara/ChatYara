@@ -8,6 +8,7 @@ import { authRoutes } from "./routes/authRoutes";
 import { aiRoutes } from "./routes/aiRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { documentRoutes } from "./routes/documentRoutes";
+import { imageRoutes } from "./routes/imageRoutes";
 import { searchRoutes } from "./routes/searchRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { uploadRoutes } from "./routes/uploadRoutes";
@@ -70,6 +71,7 @@ export function createApp() {
   app.use("/api", userRoutes);
   app.use("/api", uploadRoutes);
   app.use("/api", documentRoutes);
+  app.use("/api", imageRoutes);
   app.use("/api", chatRoutes);
   app.use("/api", searchRoutes);
   app.use("/api", workspaceRoutes);

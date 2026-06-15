@@ -756,6 +756,31 @@ ${logoYaraStyles()}
         background: rgba(15, 23, 42, 0.82);
       }
 
+      .image-preview {
+        min-height: 160px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid rgba(56, 189, 248, 0.24);
+        border-radius: 16px;
+        background: rgba(2, 6, 23, 0.44);
+      }
+
+      .image-preview img {
+        width: 100%;
+        max-height: 280px;
+        object-fit: contain;
+      }
+
+      .image-card-preview {
+        width: 92px;
+        height: 72px;
+        object-fit: cover;
+        border: 1px solid rgba(56, 189, 248, 0.24);
+        border-radius: 12px;
+        background: rgba(2, 6, 23, 0.5);
+      }
+
       .attachment-icon {
         width: 44px;
         height: 44px;
@@ -1492,6 +1517,7 @@ ${logoYaraStyles()}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("documents", "Documentos", "file")}
+            ${navButton("images", "Imagens", "image")}
             ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
           </nav>
@@ -1807,6 +1833,84 @@ ${logoYaraStyles()}
           </div>
         </section>
 
+        <section class="view" id="view-images" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Imagens</h2>
+                <p class="muted">Envie, analise, faça OCR básico e edite imagens com processamento seguro no backend.</p>
+              </div>
+              <button class="button" id="refreshImagesButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Enviar imagem</h2>
+                <p class="muted">Suporte a JPG, JPEG, PNG e WEBP com limite seguro de 10MB.</p>
+                <input id="imageUploadInput" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden />
+                <input id="imageCameraInput" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="environment" hidden />
+                <div class="row">
+                  <button class="primary-action" id="imageUploadButton" type="button">${icon("image")}Escolher imagem</button>
+                  <button class="button" id="imageCameraButton" type="button">${icon("camera")}Tirar foto</button>
+                </div>
+                <div class="image-preview" id="imagePreview">
+                  <p class="muted">O preview aparecerá aqui antes do envio.</p>
+                </div>
+                <div class="row">
+                  <button class="primary-action" id="sendImageButton" type="button">${icon("arrowUp")}Enviar imagem</button>
+                  <button class="button danger" id="removeImagePreviewButton" type="button">${icon("trash")}Remover preview</button>
+                </div>
+              </article>
+              <article class="card">
+                <h2>Editar imagem</h2>
+                <p class="muted">Redimensione, converta formato e ajuste brilho, contraste e saturação com processamento real.</p>
+                <label>Imagem</label>
+                <select class="select" id="imageEditSource"></select>
+                <div class="inline-form">
+                  <input class="field" id="imageEditWidth" type="number" min="32" max="5000" placeholder="Largura" />
+                  <input class="field" id="imageEditHeight" type="number" min="32" max="5000" placeholder="Altura" />
+                  <select class="select" id="imageEditFormat">
+                    <option value="">Manter formato</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WEBP</option>
+                  </select>
+                </div>
+                <div class="inline-form">
+                  <input class="field" id="imageEditBrightness" type="number" min="0.5" max="1.8" step="0.1" value="1" aria-label="Brilho" />
+                  <input class="field" id="imageEditContrast" type="number" min="0.5" max="1.8" step="0.1" value="1" aria-label="Contraste" />
+                  <input class="field" id="imageEditSaturation" type="number" min="0.2" max="2" step="0.1" value="1" aria-label="Saturação" />
+                </div>
+                <label class="row"><input id="imageEditOptimize" type="checkbox" checked /> Criar versão otimizada</label>
+                <button class="primary-action" id="imageEditButton" type="button">${icon("sparkles")}Editar imagem</button>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>OCR</h2>
+                <p class="muted">Extração de texto quando houver motor OCR configurado. Sem OCR ativo, a YARA retorna fallback honesto.</p>
+                <select class="select" id="imageOcrSource"></select>
+                <button class="primary-action" id="imageOcrButton" type="button">${icon("search")}Executar OCR</button>
+                <div class="result-box" id="imageOcrResult">Nenhum OCR executado ainda.</div>
+              </article>
+              <article class="card">
+                <h2>Histórico</h2>
+                <p class="muted">Análises e edições feitas na sua conta.</p>
+                <div class="list" id="imageHistoryList"></div>
+              </article>
+            </div>
+            <article class="card">
+              <div class="item-top">
+                <div>
+                  <h2>Minhas imagens</h2>
+                  <p class="muted">Galeria protegida com ações reais de análise, OCR, edição, download e exclusão.</p>
+                </div>
+                <input class="field" id="imageSearch" placeholder="Buscar imagem..." />
+              </div>
+              <div class="list" id="imagesList"></div>
+            </article>
+          </div>
+        </section>
+
         <section class="view" id="view-settings" hidden>
           <div class="panel">
             <div class="settings-hero">
@@ -2104,6 +2208,9 @@ ${logoYaraStyles()}
       let audioChunks = [];
       let documentTemplates = [];
       let currentDocuments = [];
+      let currentImages = [];
+      let pendingImageFile = null;
+      let pendingImagePreviewUrl = "";
       let responseState = "done";
       let isResponding = false;
       let useWebSearchNext = false;
@@ -2349,6 +2456,7 @@ ${logoYaraStyles()}
           generator: ["Gerador de Sistemas", "Crie sistemas completos em um módulo separado."],
           projects: ["Projetos", "Organize projetos, tarefas, notas e arquivos."],
           documents: ["Documentos", "Gere e baixe documentos protegidos."],
+          images: ["Imagens", "OCR, análise e edição inicial de imagens."],
           settings: ["Configurações", "Preferências, conta e memória da YARA."]
         };
         els.pageTitle.textContent = labels[view][0];
@@ -2360,6 +2468,7 @@ ${logoYaraStyles()}
         if (view === "dashboard") loadDashboard();
         if (view === "projects") loadProjects();
         if (view === "documents") loadDocuments();
+        if (view === "images") loadImages();
         if (view === "settings") loadSettings();
       }
 
@@ -3496,6 +3605,209 @@ ${logoYaraStyles()}
         showToast("Documento convertido com sucesso.");
       }
 
+      function imageMeta(image) {
+        const dimensions = image.width && image.height ? image.width + "x" + image.height + " px" : "Dimensões não informadas";
+        return escapeHtml(image.file_type || "imagem") + " · " + dimensions + " · " + formatFileSize(image.file_size || 0);
+      }
+
+      function clearPendingImage() {
+        if (pendingImagePreviewUrl) URL.revokeObjectURL(pendingImagePreviewUrl);
+        pendingImageFile = null;
+        pendingImagePreviewUrl = "";
+        const preview = document.getElementById("imagePreview");
+        if (preview) preview.innerHTML = '<p class="muted">O preview aparecerá aqui antes do envio.</p>';
+      }
+
+      function setPendingImage(file) {
+        clearPendingImage();
+        if (!file) return;
+        const allowed = ["image/jpeg", "image/png", "image/webp"];
+        if (!allowed.includes(file.type)) return showToast("Tipo de imagem não permitido.");
+        if (file.size > 10 * 1024 * 1024) return showToast("Imagem muito grande.");
+        pendingImageFile = file;
+        pendingImagePreviewUrl = URL.createObjectURL(file);
+        document.getElementById("imagePreview").innerHTML = '<img src="' + pendingImagePreviewUrl + '" alt="' + escapeHtml(file.name) + '" /><p class="muted">' + escapeHtml(file.name) + " · " + escapeHtml(file.type) + " · " + formatFileSize(file.size) + '</p>';
+      }
+
+      async function uploadPendingImage() {
+        if (!pendingImageFile) return showToast("Escolha uma imagem antes de enviar.");
+        const form = new FormData();
+        form.append("file", pendingImageFile);
+        const data = await apiForm("/api/images/upload", form);
+        clearPendingImage();
+        await loadImages();
+        await loadDashboard();
+        showToast("Imagem enviada com sucesso.");
+        return data.image;
+      }
+
+      async function downloadImage(imageId, fileName) {
+        return downloadProtectedPath("/api/images/" + imageId + "/download", fileName || "imagem");
+      }
+
+      async function loadImageThumbnails() {
+        document.querySelectorAll("[data-image-thumb]").forEach(function(imageNode) {
+          const imageId = imageNode.getAttribute("data-image-thumb");
+          if (!imageId || imageNode.dataset.loaded === "true") return;
+          imageNode.dataset.loaded = "true";
+          fetchProtectedFile("/api/images/" + imageId + "/download")
+            .then(function(blob) { imageNode.src = URL.createObjectURL(blob); })
+            .catch(function() { imageNode.alt = "Imagem indisponível"; });
+        });
+      }
+
+      function filteredImages() {
+        const search = (document.getElementById("imageSearch")?.value || "").trim().toLowerCase();
+        return currentImages.filter(function(image) {
+          return !search || [image.original_name, image.file_name, image.file_type].join(" ").toLowerCase().includes(search);
+        });
+      }
+
+      function renderImageSelects() {
+        ["imageEditSource", "imageOcrSource"].forEach(function(selectId) {
+          const select = document.getElementById(selectId);
+          if (!select) return;
+          select.innerHTML = currentImages.length
+            ? currentImages.map(function(image) {
+                return '<option value="' + image.id + '">' + escapeHtml(image.original_name || image.file_name) + ' · ' + escapeHtml(String(image.file_type || "").replace("image/", "").toUpperCase()) + '</option>';
+              }).join("")
+            : '<option value="">Nenhuma imagem disponível</option>';
+        });
+      }
+
+      function renderImages() {
+        const target = document.getElementById("imagesList");
+        if (!target) return;
+        const images = filteredImages();
+        if (!images.length) {
+          target.innerHTML = '<p class="muted">Nenhuma imagem enviada ainda.</p>';
+          return;
+        }
+        target.innerHTML = images.map(function(image) {
+          const name = escapeHtml(image.original_name || image.file_name || "Imagem");
+          const id = escapeHtml(image.id);
+          return '<article class="list-item"><div class="item-top"><div class="account-row"><img class="image-card-preview" data-image-thumb="' + id + '" alt="' + name + '" /><div><strong>' + name + '</strong><p class="muted">' + imageMeta(image) + '</p></div></div><div class="row"><button class="button" data-analyze-image="' + id + '" type="button">Analisar</button><button class="button" data-ocr-image="' + id + '" type="button">OCR</button><button class="button" data-edit-image="' + id + '" type="button">Editar</button><button class="button" data-send-image-chat="' + id + '" type="button">Enviar ao chat</button><button class="button" data-save-image-project="' + id + '" type="button">Salvar em projeto</button><button class="button" data-download-image="' + id + '" data-file-name="' + name + '" type="button">Baixar</button><button class="icon-button danger" data-delete-image="' + id + '" type="button" aria-label="Excluir imagem">${icon("trash")}</button></div></div></article>';
+        }).join("");
+        loadImageThumbnails();
+      }
+
+      function renderImageHistory(history) {
+        const target = document.getElementById("imageHistoryList");
+        if (!target) return;
+        const analyses = history.analyses || [];
+        const edits = history.edits || [];
+        const items = analyses.slice(0, 8).map(function(item) {
+          return '<article class="list-item"><strong>' + escapeHtml(item.type || "análise") + '</strong><p class="muted">Imagem ' + escapeHtml(item.image_id || "") + ' · ' + escapeHtml(item.created_at || "") + '</p></article>';
+        }).concat(edits.slice(0, 8).map(function(item) {
+          return '<article class="list-item"><strong>' + escapeHtml(item.edit_type || "edição") + '</strong><p class="muted">' + escapeHtml(item.status || "") + ' · ' + escapeHtml(item.provider || "sharp") + '</p></article>';
+        }));
+        const advanced = (history.advanced || []).slice(0, 6).map(function(item) {
+          return '<article class="list-item"><strong>' + escapeHtml(item.name) + '</strong><p class="muted">' + escapeHtml(item.message || "Recurso avançado em preparação.") + '</p></article>';
+        });
+        target.innerHTML = items.concat(advanced).join("") || '<p class="muted">Nenhum histórico de imagem ainda.</p>';
+      }
+
+      async function loadImages() {
+        const data = await api("/api/images");
+        const historyData = await api("/api/images/history");
+        currentImages = data.images || [];
+        renderImageSelects();
+        renderImages();
+        renderImageHistory(historyData.history || {});
+      }
+
+      async function analyzeSelectedImage(imageId) {
+        const data = await api("/api/images/analyze", {
+          method: "POST",
+          body: JSON.stringify({ imageId: imageId })
+        });
+        await loadImages();
+        openModal("Análise da imagem", data.image ? data.image.original_name : "Imagem", '<pre class="code-block">' + escapeHtml(JSON.stringify(data.analysis.result || {}, null, 2)) + '</pre>');
+      }
+
+      async function runImageOcr(imageId) {
+        const data = await api("/api/images/ocr", {
+          method: "POST",
+          body: JSON.stringify({ imageId: imageId })
+        });
+        await loadImages();
+        const result = data.ocr && data.ocr.result ? data.ocr.result : {};
+        document.getElementById("imageOcrResult").textContent = result.text || result.message || "OCR ainda não configurado neste ambiente.";
+        openModal("OCR da imagem", data.image ? data.image.original_name : "Imagem", '<pre class="code-block">' + escapeHtml(JSON.stringify(result, null, 2)) + '</pre>');
+      }
+
+      async function editImageFromControls(imageId) {
+        const id = imageId || document.getElementById("imageEditSource").value;
+        if (!id) return showToast("Selecione uma imagem para editar.");
+        const payload = {
+          imageId: id,
+          optimize: document.getElementById("imageEditOptimize").checked,
+          brightness: Number(document.getElementById("imageEditBrightness").value || 1),
+          contrast: Number(document.getElementById("imageEditContrast").value || 1),
+          saturation: Number(document.getElementById("imageEditSaturation").value || 1)
+        };
+        const width = Number(document.getElementById("imageEditWidth").value || 0);
+        const height = Number(document.getElementById("imageEditHeight").value || 0);
+        const format = document.getElementById("imageEditFormat").value;
+        if (width) payload.width = width;
+        if (height) payload.height = height;
+        if (format) payload.format = format;
+        const data = await api("/api/images/edit", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        await loadImages();
+        showToast("Imagem editada com sucesso.");
+        return data.image;
+      }
+
+      async function sendImageToChat(imageId) {
+        const image = currentImages.find(function(item) { return item.id === imageId; });
+        if (!image) return showToast("Imagem não encontrada.");
+        const blob = await fetchProtectedFile("/api/images/" + imageId + "/download");
+        const file = new File([blob], image.original_name || image.file_name || "imagem", { type: blob.type || image.file_type });
+        setView("chat");
+        setPendingAttachment(file);
+        els.messageInput.value = "O que tem nessa imagem?";
+        autoGrowMessageInput();
+        document.getElementById("chatForm").requestSubmit();
+      }
+
+      async function showImageProjectPicker(imageId) {
+        if (!projects.length) await loadProjects();
+        if (!projects.length) return showToast("Crie um projeto antes de salvar a imagem.");
+        openModal("Salvar imagem em projeto", "Escolha onde a imagem será organizada.", projects.map(function(project) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(project.name) + '</strong><button class="button" data-link-image-project="' + escapeHtml(imageId) + '" data-project-id="' + escapeHtml(project.id) + '" type="button">Salvar aqui</button></div><p class="muted">' + escapeHtml(project.description || project.type || "Projeto YARA AI") + '</p></article>';
+        }).join(""));
+      }
+
+      async function handleImageListClick(event) {
+        const analyzeButton = event.target.closest("[data-analyze-image]");
+        if (analyzeButton) return analyzeSelectedImage(analyzeButton.dataset.analyzeImage);
+        const ocrButton = event.target.closest("[data-ocr-image]");
+        if (ocrButton) return runImageOcr(ocrButton.dataset.ocrImage);
+        const editButton = event.target.closest("[data-edit-image]");
+        if (editButton) {
+          document.getElementById("imageEditSource").value = editButton.dataset.editImage;
+          return editImageFromControls(editButton.dataset.editImage);
+        }
+        const sendButton = event.target.closest("[data-send-image-chat]");
+        if (sendButton) {
+          return sendImageToChat(sendButton.dataset.sendImageChat);
+        }
+        const saveButton = event.target.closest("[data-save-image-project]");
+        if (saveButton) {
+          return showImageProjectPicker(saveButton.dataset.saveImageProject);
+        }
+        const downloadButton = event.target.closest("[data-download-image]");
+        if (downloadButton) return downloadImage(downloadButton.dataset.downloadImage, downloadButton.dataset.fileName || "imagem");
+        const deleteButton = event.target.closest("[data-delete-image]");
+        if (!deleteButton) return;
+        await api("/api/images/" + deleteButton.dataset.deleteImage, { method: "DELETE" });
+        await loadImages();
+        showToast("Imagem excluída.");
+      }
+
       async function loadAiStatus() {
         const data = await api("/api/ai/status");
         document.getElementById("aiProvider").textContent = data.provider || "YARA";
@@ -3762,6 +4074,17 @@ ${logoYaraStyles()}
         const downloadButton = event.target.closest("[data-download-upload]");
         if (downloadButton) {
           await downloadUpload(downloadButton.dataset.downloadUpload, downloadButton.dataset.fileName || "arquivo");
+          return;
+        }
+        const imageProjectButton = event.target.closest("[data-link-image-project]");
+        if (imageProjectButton) {
+          await api("/api/images/" + imageProjectButton.dataset.linkImageProject + "/project", {
+            method: "POST",
+            body: JSON.stringify({ projectId: imageProjectButton.dataset.projectId })
+          });
+          closeModal();
+          await loadImages();
+          showToast("Imagem salva no projeto.");
           return;
         }
         const projectButton = event.target.closest("[data-link-project]");
@@ -4201,6 +4524,59 @@ ${logoYaraStyles()}
           await convertSelectedDocument();
         } catch (error) {
           showToast(error.message || "Não foi possível converter.");
+        }
+      });
+
+      document.getElementById("refreshImagesButton").addEventListener("click", async function() {
+        await loadImages();
+        showToast("Imagens atualizadas.");
+      });
+      document.getElementById("imageUploadButton").addEventListener("click", function() {
+        document.getElementById("imageUploadInput").click();
+      });
+      document.getElementById("imageCameraButton").addEventListener("click", function() {
+        document.getElementById("imageCameraInput").click();
+      });
+      ["imageUploadInput", "imageCameraInput"].forEach(function(inputId) {
+        document.getElementById(inputId).addEventListener("change", function(event) {
+          const file = event.target.files && event.target.files[0];
+          event.target.value = "";
+          setPendingImage(file);
+        });
+      });
+      document.getElementById("removeImagePreviewButton").addEventListener("click", function() {
+        clearPendingImage();
+        showToast("Preview removido.");
+      });
+      document.getElementById("sendImageButton").addEventListener("click", async function() {
+        try {
+          await uploadPendingImage();
+        } catch (error) {
+          showToast(error.message || "Não foi possível enviar a imagem.");
+        }
+      });
+      document.getElementById("imageOcrButton").addEventListener("click", async function() {
+        try {
+          const imageId = document.getElementById("imageOcrSource").value;
+          if (!imageId) return showToast("Selecione uma imagem para OCR.");
+          await runImageOcr(imageId);
+        } catch (error) {
+          showToast(error.message || "Não foi possível executar OCR.");
+        }
+      });
+      document.getElementById("imageEditButton").addEventListener("click", async function() {
+        try {
+          await editImageFromControls();
+        } catch (error) {
+          showToast(error.message || "Não foi possível editar a imagem.");
+        }
+      });
+      document.getElementById("imageSearch").addEventListener("input", renderImages);
+      document.getElementById("imagesList").addEventListener("click", async function(event) {
+        try {
+          await handleImageListClick(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível concluir a ação.");
         }
       });
 

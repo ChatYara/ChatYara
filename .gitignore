@@ -5,6 +5,7 @@ dist/
 coverage/
 backend/data/
 backend/documents/
+backend/images/
 backend/uploads/
 data/
 mobile/.expo/

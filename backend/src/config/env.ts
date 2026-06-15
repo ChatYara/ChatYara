@@ -74,5 +74,6 @@ export const env = {
   braveSearchApiKey: process.env.BRAVE_SEARCH_API_KEY ?? "",
   firecrawlApiKey: process.env.FIRECRAWL_API_KEY ?? "",
   uploadDir: process.env.UPLOAD_DIR?.trim() || "",
+  imageDir: process.env.IMAGE_DIR?.trim() || "",
   clientOrigin: process.env.CLIENT_ORIGIN?.trim() || "*"
 };

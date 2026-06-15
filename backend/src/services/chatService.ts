@@ -337,6 +337,21 @@ function directAnswer(message: string) {
   return null;
 }
 
+function buildImageContextFromUploads(uploads: UploadRow[]) {
+  const images = uploads.filter((upload) => upload.file_type.startsWith("image/"));
+  if (images.length === 0) return "";
+
+  return [
+    "Imagens anexadas nesta mensagem:",
+    ...images.map(
+      (upload) =>
+        `- ${upload.original_name || upload.file_name} (${upload.file_type}, ${upload.file_size} bytes). ` +
+        "A YARA recebeu a imagem, mas a leitura visual avançada no chat ainda usa o módulo Imagens para análise, OCR e edição."
+    ),
+    "Se o usuário pedir leitura de texto, análise visual ou melhoria da imagem, responda com honestidade e oriente usar Imagens > Analisar/OCR/Editar."
+  ].join("\n");
+}
+
 function getOwnedMessage(userId: string, messageId: string) {
   const message = getDatabase()
     .prepare(
@@ -509,7 +524,8 @@ export async function sendMessage(
     .map((upload) => `Anexo: ${upload.original_name || upload.file_name} (${upload.file_type}, ${upload.file_size} bytes)`)
     .join("\n");
   const documentContext = buildDocumentContextFromUploads(uploads);
-  const prompt = [storedMessage, attachmentContext, documentContext].filter(Boolean).join("\n\n");
+  const imageContext = buildImageContextFromUploads(uploads);
+  const prompt = [storedMessage, attachmentContext, documentContext, imageContext].filter(Boolean).join("\n\n");
 
   learnFromUserMessage(userId, storedMessage);
 
