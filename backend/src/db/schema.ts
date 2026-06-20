@@ -282,6 +282,55 @@ export function runMigrations() {
       created_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
     );
+
+    create table if not exists events (
+      id text primary key,
+      user_id text not null,
+      title text not null,
+      description text,
+      start_date text not null,
+      end_date text not null,
+      location text,
+      status text not null default 'scheduled' check (status in ('scheduled', 'completed', 'cancelled')),
+      is_all_day integer not null default 0,
+      google_calendar_id text,
+      google_event_id text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists reminders (
+      id text primary key,
+      user_id text not null,
+      event_id text,
+      title text not null,
+      description text,
+      reminder_time text not null,
+      reminder_type text not null default 'notification' check (reminder_type in ('notification', 'email', 'sms')),
+      is_sent integer not null default 0,
+      status text not null default 'active' check (status in ('active', 'snoozed', 'dismissed', 'completed')),
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (event_id) references events(id) on delete cascade
+    );
+
+    create table if not exists notifications (
+      id text primary key,
+      user_id text not null,
+      reminder_id text,
+      event_id text,
+      title text not null,
+      message text not null,
+      type text not null default 'reminder' check (type in ('reminder', 'event', 'system')),
+      is_read integer not null default 0,
+      read_at text,
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (reminder_id) references reminders(id) on delete cascade,
+      foreign key (event_id) references events(id) on delete cascade
+    );
   `);
 
   ensureColumn("users", "phone", "text");
@@ -324,6 +373,7 @@ export function runMigrations() {
   ensureColumn("search_history", "results_json", "text not null default '[]'");
   ensureColumn("search_history", "provider", "text not null default 'none'");
   ensureColumn("search_history", "sources_json", "text not null default '[]'");
+
   db.exec(`
     update users set updated_at = current_timestamp where updated_at is null;
     update projects set updated_at = current_timestamp where updated_at is null;
@@ -384,6 +434,15 @@ export function runMigrations() {
 
     create index if not exists image_edits_user_created
       on image_edits(user_id, created_at);
+
+    create index if not exists events_user_start_date
+      on events(user_id, start_date, status);
+
+    create index if not exists reminders_user_reminder_time
+      on reminders(user_id, reminder_time, status);
+
+    create index if not exists notifications_user_created
+      on notifications(user_id, created_at, is_read);
   `);
 }
 
