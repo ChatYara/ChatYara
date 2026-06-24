@@ -20,6 +20,9 @@
     "backend",
     "mobile"
   ],
+  "overrides": {
+    "undici": "6.27.0"
+  },
   "engines": {
     "node": ">=24"
   }

@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
+import { tryCreateCalendarItemFromChat } from "./calendarService";
 import { buildDocumentContextFromUploads } from "./documentService";
 import { learnFromUserMessage, readLearningContext } from "./learningService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
@@ -528,6 +529,7 @@ export async function sendMessage(
   const prompt = [storedMessage, attachmentContext, documentContext, imageContext].filter(Boolean).join("\n\n");
 
   learnFromUserMessage(userId, storedMessage);
+  const calendarAction = tryCreateCalendarItemFromChat(userId, storedMessage);
 
   const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
@@ -539,6 +541,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "direct",
       response: direct
+    };
+  } else if (calendarAction && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "calendar-action",
+      response: "Pronto. Também deixei esse compromisso organizado na sua Agenda."
     };
   } else if (search && ["not_configured", "youtube_transcript_not_configured", "failed"].includes(search.status)) {
     ai = {
@@ -570,7 +578,8 @@ export async function sendMessage(
     }
   }
 
-  const finalResponse = search && search.sources.length > 0 ? formatAnswerWithSources(ai.response, search.sources) : ai.response;
+  const responseWithCalendar = calendarAction ? `${calendarAction.text}\n\n${ai.response}` : ai.response;
+  const finalResponse = search && search.sources.length > 0 ? formatAnswerWithSources(responseWithCalendar, search.sources) : responseWithCalendar;
 
   const assistantMessageId = uuid();
   db.prepare("insert into messages (id, conversation_id, role, content) values (?, ?, 'assistant', ?)")

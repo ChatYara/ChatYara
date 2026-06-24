@@ -73,6 +73,9 @@ export const env = {
   serpapiApiKey: process.env.SERPAPI_API_KEY ?? "",
   braveSearchApiKey: process.env.BRAVE_SEARCH_API_KEY ?? "",
   firecrawlApiKey: process.env.FIRECRAWL_API_KEY ?? "",
+  googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET?.trim() || "",
+  googleRedirectUri: process.env.GOOGLE_REDIRECT_URI?.trim() || "",
   uploadDir: process.env.UPLOAD_DIR?.trim() || "",
   imageDir: process.env.IMAGE_DIR?.trim() || "",
   clientOrigin: process.env.CLIENT_ORIGIN?.trim() || "*"

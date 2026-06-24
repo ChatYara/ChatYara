@@ -6,6 +6,7 @@ import path from "node:path";
 import { env } from "./config/env";
 import { authRoutes } from "./routes/authRoutes";
 import { aiRoutes } from "./routes/aiRoutes";
+import { calendarRoutes } from "./routes/calendarRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { documentRoutes } from "./routes/documentRoutes";
 import { imageRoutes } from "./routes/imageRoutes";
@@ -72,6 +73,7 @@ export function createApp() {
   app.use("/api", uploadRoutes);
   app.use("/api", documentRoutes);
   app.use("/api", imageRoutes);
+  app.use("/api", calendarRoutes);
   app.use("/api", chatRoutes);
   app.use("/api", searchRoutes);
   app.use("/api", workspaceRoutes);

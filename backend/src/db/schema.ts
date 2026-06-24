@@ -270,6 +270,59 @@ export function runMigrations() {
       foreign key (result_image_id) references images(id) on delete set null
     );
 
+    create table if not exists calendar_events (
+      id text primary key,
+      user_id text not null,
+      title text not null,
+      description text,
+      event_date text not null,
+      event_time text,
+      location text,
+      participants text,
+      reminder_minutes integer,
+      status text not null default 'scheduled',
+      created_by text not null,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists reminders (
+      id text primary key,
+      user_id text not null,
+      title text not null,
+      message text,
+      scheduled_at text not null,
+      recurrence text not null default 'none',
+      status text not null default 'pending',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists notifications (
+      id text primary key,
+      user_id text not null,
+      type text not null,
+      title text not null,
+      message text not null,
+      status text not null default 'scheduled',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists google_calendar_connections (
+      user_id text primary key,
+      email text,
+      access_token_encrypted text,
+      refresh_token_encrypted text,
+      expires_at text,
+      scopes text,
+      connected_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists search_history (
       id text primary key,
       user_id text not null,
@@ -283,54 +336,6 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
-    create table if not exists events (
-      id text primary key,
-      user_id text not null,
-      title text not null,
-      description text,
-      start_date text not null,
-      end_date text not null,
-      location text,
-      status text not null default 'scheduled' check (status in ('scheduled', 'completed', 'cancelled')),
-      is_all_day integer not null default 0,
-      google_calendar_id text,
-      google_event_id text,
-      created_at text not null default current_timestamp,
-      updated_at text not null default current_timestamp,
-      foreign key (user_id) references users(id) on delete cascade
-    );
-
-    create table if not exists reminders (
-      id text primary key,
-      user_id text not null,
-      event_id text,
-      title text not null,
-      description text,
-      reminder_time text not null,
-      reminder_type text not null default 'notification' check (reminder_type in ('notification', 'email', 'sms')),
-      is_sent integer not null default 0,
-      status text not null default 'active' check (status in ('active', 'snoozed', 'dismissed', 'completed')),
-      created_at text not null default current_timestamp,
-      updated_at text not null default current_timestamp,
-      foreign key (user_id) references users(id) on delete cascade,
-      foreign key (event_id) references events(id) on delete cascade
-    );
-
-    create table if not exists notifications (
-      id text primary key,
-      user_id text not null,
-      reminder_id text,
-      event_id text,
-      title text not null,
-      message text not null,
-      type text not null default 'reminder' check (type in ('reminder', 'event', 'system')),
-      is_read integer not null default 0,
-      read_at text,
-      created_at text not null default current_timestamp,
-      foreign key (user_id) references users(id) on delete cascade,
-      foreign key (reminder_id) references reminders(id) on delete cascade,
-      foreign key (event_id) references events(id) on delete cascade
-    );
   `);
 
   ensureColumn("users", "phone", "text");
@@ -370,6 +375,22 @@ export function runMigrations() {
   ensureColumn("images", "height", "integer");
   ensureColumn("image_edits", "prompt", "text");
   ensureColumn("image_edits", "provider", "text not null default 'sharp'");
+  ensureColumn("calendar_events", "description", "text");
+  ensureColumn("calendar_events", "event_time", "text");
+  ensureColumn("calendar_events", "location", "text");
+  ensureColumn("calendar_events", "participants", "text");
+  ensureColumn("calendar_events", "reminder_minutes", "integer");
+  ensureColumn("calendar_events", "status", "text not null default 'scheduled'");
+  ensureColumn("calendar_events", "created_by", "text not null default 'user'");
+  ensureColumn("calendar_events", "updated_at", "text");
+  ensureColumn("reminders", "message", "text");
+  ensureColumn("reminders", "recurrence", "text not null default 'none'");
+  ensureColumn("reminders", "status", "text not null default 'pending'");
+  ensureColumn("reminders", "updated_at", "text");
+  ensureColumn("notifications", "status", "text not null default 'scheduled'");
+  ensureColumn("google_calendar_connections", "email", "text");
+  ensureColumn("google_calendar_connections", "scopes", "text");
+  ensureColumn("google_calendar_connections", "updated_at", "text");
   ensureColumn("search_history", "results_json", "text not null default '[]'");
   ensureColumn("search_history", "provider", "text not null default 'none'");
   ensureColumn("search_history", "sources_json", "text not null default '[]'");
@@ -435,14 +456,14 @@ export function runMigrations() {
     create index if not exists image_edits_user_created
       on image_edits(user_id, created_at);
 
-    create index if not exists events_user_start_date
-      on events(user_id, start_date, status);
+    create index if not exists calendar_events_user_date
+      on calendar_events(user_id, event_date, event_time);
 
-    create index if not exists reminders_user_reminder_time
-      on reminders(user_id, reminder_time, status);
+    create index if not exists reminders_user_scheduled
+      on reminders(user_id, scheduled_at, status);
 
     create index if not exists notifications_user_created
-      on notifications(user_id, created_at, is_read);
+      on notifications(user_id, created_at);
   `);
 }
 

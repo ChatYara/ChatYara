@@ -1518,6 +1518,7 @@ ${logoYaraStyles()}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("documents", "Documentos", "file")}
             ${navButton("images", "Imagens", "image")}
+            ${navButton("calendar", "Agenda", "history")}
             ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
           </nav>
@@ -1911,6 +1912,91 @@ ${logoYaraStyles()}
           </div>
         </section>
 
+        <section class="view" id="view-calendar" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Agenda</h2>
+                <p class="muted">Organize eventos, lembretes e notificações com segurança na YARA AI.</p>
+              </div>
+              <button class="button" id="refreshCalendarButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="dashboard-grid" id="calendarStats"></div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Novo evento</h2>
+                <form class="form" id="calendarEventForm">
+                  <label>Título</label>
+                  <input class="field" id="eventTitle" placeholder="Ex.: Reunião com cliente" required />
+                  <label>Descrição</label>
+                  <textarea class="field" id="eventDescription" rows="3" placeholder="Contexto, pauta ou observações"></textarea>
+                  <div class="inline-form">
+                    <input class="field" id="eventDate" type="date" required />
+                    <input class="field" id="eventTime" type="time" />
+                    <input class="field" id="eventReminder" type="number" min="0" max="43200" placeholder="Lembrete em min" />
+                  </div>
+                  <input class="field" id="eventLocation" placeholder="Local" />
+                  <input class="field" id="eventParticipants" placeholder="Participantes separados por vírgula" />
+                  <button class="primary-action" type="submit">${icon("save")}Criar evento</button>
+                </form>
+              </article>
+              <article class="card">
+                <h2>Novo lembrete</h2>
+                <form class="form" id="reminderForm">
+                  <label>Título</label>
+                  <input class="field" id="reminderTitle" placeholder="Ex.: Pagar conta" required />
+                  <label>Mensagem</label>
+                  <textarea class="field" id="reminderMessage" rows="3" placeholder="Detalhes do lembrete"></textarea>
+                  <label>Data e hora</label>
+                  <input class="field" id="reminderScheduledAt" type="datetime-local" required />
+                  <label>Repetição</label>
+                  <select class="select" id="reminderRecurrence">
+                    <option value="none">Não repetir</option>
+                    <option value="daily">Diário</option>
+                    <option value="weekly">Semanal</option>
+                    <option value="monthly">Mensal</option>
+                  </select>
+                  <button class="primary-action" type="submit">${icon("save")}Criar lembrete</button>
+                </form>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <div class="item-top">
+                  <h2>Próximos eventos</h2>
+                  <span class="status"><span class="dot"></span>Interno</span>
+                </div>
+                <div class="tabs" id="calendarRangeTabs">
+                  <button class="tab active" data-calendar-range="today" type="button">Hoje</button>
+                  <button class="tab" data-calendar-range="week" type="button">Semana</button>
+                  <button class="tab" data-calendar-range="month" type="button">Mês</button>
+                </div>
+                <div class="list" id="calendarEventsList"></div>
+              </article>
+              <article class="card">
+                <h2>Lembretes</h2>
+                <div class="list" id="remindersList"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Google Calendar</h2>
+                <p class="muted">OAuth fica no backend. Sem credenciais, a YARA informa que a integração ainda não foi configurada.</p>
+                <div class="row">
+                  <button class="button" id="googleCalendarConnectButton" type="button">${icon("share")}Conectar</button>
+                  <button class="button" id="googleCalendarCalendarsButton" type="button">${icon("history")}Calendários conectados</button>
+                  <button class="button" id="googleCalendarSyncButton" type="button">${icon("sparkles")}Sincronizar</button>
+                </div>
+                <div class="result-box" id="googleCalendarStatus">Google Calendar aguardando configuração segura.</div>
+              </article>
+              <article class="card">
+                <h2>Notificações agendadas</h2>
+                <div class="list" id="notificationsList"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <section class="view" id="view-settings" hidden>
           <div class="panel">
             <div class="settings-hero">
@@ -2209,6 +2295,9 @@ ${logoYaraStyles()}
       let documentTemplates = [];
       let currentDocuments = [];
       let currentImages = [];
+      let currentCalendarEvents = [];
+      let currentReminders = [];
+      let currentCalendarRange = "today";
       let pendingImageFile = null;
       let pendingImagePreviewUrl = "";
       let responseState = "done";
@@ -2457,6 +2546,7 @@ ${logoYaraStyles()}
           projects: ["Projetos", "Organize projetos, tarefas, notas e arquivos."],
           documents: ["Documentos", "Gere e baixe documentos protegidos."],
           images: ["Imagens", "OCR, análise e edição inicial de imagens."],
+          calendar: ["Agenda", "Eventos, lembretes e notificações."],
           settings: ["Configurações", "Preferências, conta e memória da YARA."]
         };
         els.pageTitle.textContent = labels[view][0];
@@ -2469,6 +2559,7 @@ ${logoYaraStyles()}
         if (view === "projects") loadProjects();
         if (view === "documents") loadDocuments();
         if (view === "images") loadImages();
+        if (view === "calendar") loadCalendar();
         if (view === "settings") loadSettings();
       }
 
@@ -3318,6 +3409,8 @@ ${logoYaraStyles()}
           ["Memórias", stats.memories || 0, '${icon("brain")}'],
           ["Arquivos", stats.uploads || 0, '${icon("file")}'],
           ["Documentos", stats.documents || 0, '${icon("file")}'],
+          ["Eventos", stats.events || 0, '${icon("history")}'],
+          ["Lembretes", stats.reminders || 0, '${icon("pin")}'],
           ["Tarefas pendentes", stats.pendingTasks || 0, '${icon("save")}']
         ];
         document.getElementById("dashboardStats").innerHTML = statItems.map(function(item) {
@@ -3343,8 +3436,12 @@ ${logoYaraStyles()}
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(conversation.title || "Conversa") + '</strong><button class="button" data-dashboard-conversation="' + conversation.id + '" type="button">Abrir</button></div><p class="muted">Atualizada em ' + escapeHtml(conversation.updated_at || "") + '</p></article>';
         }).join("") : '<p class="muted">Nenhuma conversa recente.</p>';
 
+        const calendarHints = []
+          .concat((dashboard.todayEvents || []).map(function(eventItem) { return "Hoje: " + eventItem.title + (eventItem.time ? " às " + eventItem.time : ""); }))
+          .concat((dashboard.upcomingReminders || []).map(function(reminder) { return "Lembrete: " + reminder.title + " · " + new Date(reminder.scheduled_at).toLocaleString("pt-BR"); }))
+          .slice(0, 4);
         const suggestionTarget = document.getElementById("dashboardSuggestions");
-        suggestionTarget.innerHTML = (dashboard.suggestions || []).map(function(text) {
+        suggestionTarget.innerHTML = calendarHints.concat(dashboard.suggestions || []).map(function(text) {
           return '<article class="list-item"><p class="muted">' + escapeHtml(text) + '</p></article>';
         }).join("");
       }
@@ -3806,6 +3903,193 @@ ${logoYaraStyles()}
         await api("/api/images/" + deleteButton.dataset.deleteImage, { method: "DELETE" });
         await loadImages();
         showToast("Imagem excluída.");
+      }
+
+      function eventDateTimeLabel(eventItem) {
+        return escapeHtml(eventItem.date || "") + (eventItem.time ? " às " + escapeHtml(eventItem.time) : "");
+      }
+
+      function setDefaultAgendaDates() {
+        const today = new Date();
+        const yyyyMmDd = today.toISOString().slice(0, 10);
+        const eventDate = document.getElementById("eventDate");
+        if (eventDate && !eventDate.value) eventDate.value = yyyyMmDd;
+        const reminderDate = document.getElementById("reminderScheduledAt");
+        if (reminderDate && !reminderDate.value) {
+          const nextHour = new Date(today.getTime() + 60 * 60 * 1000);
+          reminderDate.value = nextHour.toISOString().slice(0, 16);
+        }
+      }
+
+      function calendarRangeDates() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const end = new Date(start);
+        if (currentCalendarRange === "week") end.setDate(end.getDate() + 7);
+        else if (currentCalendarRange === "month") end.setMonth(end.getMonth() + 1);
+        return { from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) };
+      }
+
+      function renderCalendarStats(summary) {
+        const target = document.getElementById("calendarStats");
+        if (!target) return;
+        const items = [
+          ["Eventos hoje", (summary.today || []).length, '${icon("history")}'],
+          ["Compromissos da semana", (summary.week || []).length, '${icon("save")}'],
+          ["Próximos lembretes", (summary.reminders || []).length, '${icon("pin")}'],
+          ["Notificações", (summary.notifications || []).length, '${icon("sparkles")}']
+        ];
+        target.innerHTML = items.map(function(item) {
+          return '<article class="card stat-card"><span class="avatar">' + item[2] + '</span><strong>' + item[1] + '</strong><p class="muted">' + escapeHtml(item[0]) + '</p></article>';
+        }).join("");
+      }
+
+      function renderCalendarEvents() {
+        const target = document.getElementById("calendarEventsList");
+        if (!target) return;
+        if (!currentCalendarEvents.length) {
+          target.innerHTML = '<p class="muted">Nenhum evento neste período.</p>';
+          return;
+        }
+        target.innerHTML = currentCalendarEvents.map(function(eventItem) {
+          return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(eventItem.title) + '</strong><p class="muted">' + eventDateTimeLabel(eventItem) + (eventItem.location ? " · " + escapeHtml(eventItem.location) : "") + '</p></div><div class="row"><button class="button" data-edit-event="' + eventItem.id + '" type="button">Editar</button><button class="icon-button danger" data-delete-event="' + eventItem.id + '" type="button" aria-label="Excluir evento">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(eventItem.description || "Sem descrição.") + '</p></article>';
+        }).join("");
+      }
+
+      function renderReminders() {
+        const target = document.getElementById("remindersList");
+        if (!target) return;
+        if (!currentReminders.length) {
+          target.innerHTML = '<p class="muted">Nenhum lembrete criado ainda.</p>';
+          return;
+        }
+        target.innerHTML = currentReminders.map(function(reminder) {
+          const date = reminder.scheduled_at ? new Date(reminder.scheduled_at).toLocaleString("pt-BR") : "";
+          return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(reminder.title) + '</strong><p class="muted">' + escapeHtml(date) + ' · ' + escapeHtml(reminder.recurrence || "none") + ' · ' + escapeHtml(reminder.status || "pending") + '</p></div><div class="row"><button class="button" data-edit-reminder="' + reminder.id + '" type="button">Editar</button><button class="icon-button danger" data-delete-reminder="' + reminder.id + '" type="button" aria-label="Excluir lembrete">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(reminder.message || "Sem mensagem.") + '</p></article>';
+        }).join("");
+      }
+
+      function renderNotifications(items) {
+        const target = document.getElementById("notificationsList");
+        if (!target) return;
+        if (!items.length) {
+          target.innerHTML = '<p class="muted">Nenhuma notificação agendada.</p>';
+          return;
+        }
+        target.innerHTML = items.map(function(item) {
+          return '<article class="list-item"><strong>' + escapeHtml(item.title) + '</strong><p class="muted">' + escapeHtml(item.type) + ' · ' + escapeHtml(item.status) + '</p><p class="muted">' + escapeHtml(item.message) + '</p></article>';
+        }).join("");
+      }
+
+      async function loadCalendar() {
+        setDefaultAgendaDates();
+        const range = calendarRangeDates();
+        const summary = await api("/api/calendar/summary");
+        const events = await api("/api/calendar/events?from=" + range.from + "&to=" + range.to);
+        const reminders = await api("/api/reminders");
+        const notifications = await api("/api/notifications");
+        currentCalendarEvents = events.events || [];
+        currentReminders = reminders.reminders || [];
+        renderCalendarStats(summary.summary || {});
+        renderCalendarEvents();
+        renderReminders();
+        renderNotifications(notifications.notifications || []);
+      }
+
+      async function createEventFromForm(event) {
+        event.preventDefault();
+        const title = document.getElementById("eventTitle").value.trim();
+        if (title.length < 2) return showToast("Informe um título para o evento.");
+        await api("/api/calendar/events", {
+          method: "POST",
+          body: JSON.stringify({
+            title: title,
+            description: document.getElementById("eventDescription").value.trim() || null,
+            date: document.getElementById("eventDate").value,
+            time: document.getElementById("eventTime").value || null,
+            location: document.getElementById("eventLocation").value.trim() || null,
+            participants: document.getElementById("eventParticipants").value.trim() || null,
+            reminderMinutes: document.getElementById("eventReminder").value ? Number(document.getElementById("eventReminder").value) : null
+          })
+        });
+        event.currentTarget.reset();
+        setDefaultAgendaDates();
+        await loadCalendar();
+        await loadDashboard();
+        showToast("Evento criado.");
+      }
+
+      async function createReminderFromForm(event) {
+        event.preventDefault();
+        const title = document.getElementById("reminderTitle").value.trim();
+        const scheduledAt = document.getElementById("reminderScheduledAt").value;
+        if (title.length < 2 || !scheduledAt) return showToast("Informe título, data e hora para o lembrete.");
+        await api("/api/reminders", {
+          method: "POST",
+          body: JSON.stringify({
+            title: title,
+            message: document.getElementById("reminderMessage").value.trim() || null,
+            scheduledAt: new Date(scheduledAt).toISOString(),
+            recurrence: document.getElementById("reminderRecurrence").value
+          })
+        });
+        event.currentTarget.reset();
+        setDefaultAgendaDates();
+        await loadCalendar();
+        await loadDashboard();
+        showToast("Lembrete criado.");
+      }
+
+      async function handleCalendarEventClick(event) {
+        const editButton = event.target.closest("[data-edit-event]");
+        if (editButton) {
+          const current = currentCalendarEvents.find(function(item) { return item.id === editButton.dataset.editEvent; });
+          if (!current) return;
+          const title = window.prompt("Editar título do evento", current.title);
+          if (title === null) return;
+          await api("/api/calendar/events/" + current.id, { method: "PATCH", body: JSON.stringify({ title: title }) });
+          await loadCalendar();
+          showToast("Evento atualizado.");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-event]");
+        if (!deleteButton) return;
+        await api("/api/calendar/events/" + deleteButton.dataset.deleteEvent, { method: "DELETE" });
+        await loadCalendar();
+        await loadDashboard();
+        showToast("Evento excluído.");
+      }
+
+      async function handleReminderClick(event) {
+        const editButton = event.target.closest("[data-edit-reminder]");
+        if (editButton) {
+          const current = currentReminders.find(function(item) { return item.id === editButton.dataset.editReminder; });
+          if (!current) return;
+          const title = window.prompt("Editar título do lembrete", current.title);
+          if (title === null) return;
+          await api("/api/reminders/" + current.id, { method: "PATCH", body: JSON.stringify({ title: title }) });
+          await loadCalendar();
+          showToast("Lembrete atualizado.");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-reminder]");
+        if (!deleteButton) return;
+        await api("/api/reminders/" + deleteButton.dataset.deleteReminder, { method: "DELETE" });
+        await loadCalendar();
+        await loadDashboard();
+        showToast("Lembrete excluído.");
+      }
+
+      async function callGoogleCalendar(path, method = "GET") {
+        const status = document.getElementById("googleCalendarStatus");
+        try {
+          const data = await api(path, { method: method });
+          status.textContent = data.message || data.url || "Google Calendar pronto.";
+          if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+        } catch (error) {
+          status.textContent = error.message || "Google Calendar ainda não configurado pelo administrador.";
+          showToast(status.textContent);
+        }
       }
 
       async function loadAiStatus() {
@@ -4578,6 +4862,45 @@ ${logoYaraStyles()}
         } catch (error) {
           showToast(error.message || "Não foi possível concluir a ação.");
         }
+      });
+
+      document.getElementById("refreshCalendarButton").addEventListener("click", async function() {
+        await loadCalendar();
+        showToast("Agenda atualizada.");
+      });
+      document.getElementById("calendarEventForm").addEventListener("submit", createEventFromForm);
+      document.getElementById("reminderForm").addEventListener("submit", createReminderFromForm);
+      document.getElementById("calendarRangeTabs").addEventListener("click", async function(event) {
+        const button = event.target.closest("[data-calendar-range]");
+        if (!button) return;
+        currentCalendarRange = button.dataset.calendarRange;
+        document.querySelectorAll("[data-calendar-range]").forEach(function(tab) {
+          tab.classList.toggle("active", tab === button);
+        });
+        await loadCalendar();
+      });
+      document.getElementById("calendarEventsList").addEventListener("click", async function(event) {
+        try {
+          await handleCalendarEventClick(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível atualizar o evento.");
+        }
+      });
+      document.getElementById("remindersList").addEventListener("click", async function(event) {
+        try {
+          await handleReminderClick(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível atualizar o lembrete.");
+        }
+      });
+      document.getElementById("googleCalendarConnectButton").addEventListener("click", function() {
+        callGoogleCalendar("/api/calendar/google/connect");
+      });
+      document.getElementById("googleCalendarCalendarsButton").addEventListener("click", function() {
+        callGoogleCalendar("/api/calendar/google/calendars");
+      });
+      document.getElementById("googleCalendarSyncButton").addEventListener("click", function() {
+        callGoogleCalendar("/api/calendar/google/sync", "POST");
       });
 
       document.getElementById("testAiButton").addEventListener("click", async function() {

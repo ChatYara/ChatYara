@@ -419,6 +419,35 @@ export function getDashboard(userId: string) {
        limit 5`
     )
     .all(userId);
+  const today = new Date().toISOString().slice(0, 10);
+  const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const todayEvents = db
+    .prepare(
+      `select id, title, event_date as date, event_time as time, status
+       from calendar_events
+       where user_id = ? and event_date = ?
+       order by coalesce(event_time, '23:59') asc
+       limit 5`
+    )
+    .all(userId, today);
+  const weekEvents = db
+    .prepare(
+      `select id, title, event_date as date, event_time as time, status
+       from calendar_events
+       where user_id = ? and event_date between ? and ?
+       order by event_date asc, coalesce(event_time, '23:59') asc
+       limit 8`
+    )
+    .all(userId, today, weekEnd);
+  const upcomingReminders = db
+    .prepare(
+      `select id, title, scheduled_at, status
+       from reminders
+       where user_id = ? and status <> 'done'
+       order by scheduled_at asc
+       limit 5`
+    )
+    .all(userId);
 
   const suggestions = [
     pendingTasks > 0 ? `Você tem ${pendingTasks} tarefa${pendingTasks === 1 ? "" : "s"} pendente${pendingTasks === 1 ? "" : "s"} para revisar.` : "Crie tarefas nos projetos para acompanhar execução com a YARA.",
@@ -435,11 +464,16 @@ export function getDashboard(userId: string) {
       memories: count("select count(*) as total from memories where user_id = ?"),
       uploads: count("select count(*) as total from uploads where user_id = ?"),
       documents: count("select count(*) as total from documents where user_id = ?"),
+      events: count("select count(*) as total from calendar_events where user_id = ?"),
+      reminders: count("select count(*) as total from reminders where user_id = ?"),
       pendingTasks
     },
     recentProjects,
     recentConversations,
     recentTasks,
+    todayEvents,
+    weekEvents,
+    upcomingReminders,
     suggestions
   };
 }

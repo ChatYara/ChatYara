@@ -283,6 +283,68 @@ create table if not exists image_edits (
 create index if not exists image_edits_user_created
   on image_edits(user_id, created_at);
 
+create table if not exists calendar_events (
+  id text primary key,
+  user_id text not null,
+  title text not null,
+  description text,
+  event_date text not null,
+  event_time text,
+  location text,
+  participants text,
+  reminder_minutes integer,
+  status text not null default 'scheduled',
+  created_by text not null,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists calendar_events_user_date
+  on calendar_events(user_id, event_date, event_time);
+
+create table if not exists reminders (
+  id text primary key,
+  user_id text not null,
+  title text not null,
+  message text,
+  scheduled_at text not null,
+  recurrence text not null default 'none',
+  status text not null default 'pending',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists reminders_user_scheduled
+  on reminders(user_id, scheduled_at, status);
+
+create table if not exists notifications (
+  id text primary key,
+  user_id text not null,
+  type text not null,
+  title text not null,
+  message text not null,
+  status text not null default 'scheduled',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists notifications_user_created
+  on notifications(user_id, created_at);
+
+create table if not exists google_calendar_connections (
+  user_id text primary key,
+  email text,
+  access_token_encrypted text,
+  refresh_token_encrypted text,
+  expires_at text,
+  scopes text,
+  connected_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
 create table if not exists search_history (
   id text primary key,
   user_id text not null,
