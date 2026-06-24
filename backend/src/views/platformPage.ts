@@ -2421,9 +2421,9 @@ ${logoYaraStyles()}
 
       function highlightCode(code) {
         return escapeHtml(code)
-          .replace(/(\/\/.*)$/gm, '<span class="code-comment">$1</span>')
+          .replace(/(\\/\\/.*)$/gm, '<span class="code-comment">$1</span>')
           .replace(/(&quot;[^&]*?&quot;|'[^']*?')/g, '<span class="code-string">$1</span>')
-          .replace(/\b(const|let|var|function|return|async|await|import|export|from|class|type|interface|if|else|for|while|try|catch|new)\b/g, '<span class="code-keyword">$1</span>');
+          .replace(/\\b(const|let|var|function|return|async|await|import|export|from|class|type|interface|if|else|for|while|try|catch|new)\\b/g, '<span class="code-keyword">$1</span>');
       }
 
       function renderMarkdown(value) {

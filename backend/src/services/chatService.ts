@@ -338,6 +338,20 @@ function directAnswer(message: string) {
   return null;
 }
 
+function providerFallback(error: unknown) {
+  const rawMessage = error instanceof Error ? error.message : String(error || "");
+  const highDemand = /high demand|overloaded|temporar|try again later|quota|rate/i.test(rawMessage);
+  const response = highDemand
+    ? "Estou online e recebi sua mensagem, mas o provedor de IA está temporariamente instável ou em alta demanda. Tente enviar novamente em alguns instantes. Enquanto isso, suas conversas, arquivos, projetos e agenda continuam salvos normalmente."
+    : "Estou online e recebi sua mensagem, mas não consegui concluir a resposta pelo provedor de IA agora. Tente novamente em alguns instantes.";
+
+  return {
+    provider: "gemini" as const,
+    model: "provider-unavailable",
+    response
+  };
+}
+
 function buildImageContextFromUploads(uploads: UploadRow[]) {
   const images = uploads.filter((upload) => upload.file_type.startsWith("image/"));
   if (images.length === 0) return "";
@@ -430,17 +444,24 @@ export async function regenerateAssistantMessage(userId: string, messageId: stri
   }
 
   const direct = directAnswer(previousUser.content);
-  const ai = direct
-    ? {
-        provider: "gemini" as const,
-        model: "direct",
-        response: direct
-      }
-    : await askYara({
+  let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini"; model: string; response: string };
+  if (direct) {
+    ai = {
+      provider: "gemini" as const,
+      model: "direct",
+      response: direct
+    };
+  } else {
+    try {
+      ai = await askYara({
         prompt: previousUser.content,
         memory: readUserContext(userId),
         context: readRecentContext(assistant.conversation_id)
       });
+    } catch (error) {
+      ai = providerFallback(error);
+    }
+  }
 
   getDatabase()
     .prepare("update messages set content = ?, edited_at = current_timestamp where id = ?")
@@ -569,11 +590,10 @@ export async function sendMessage(
         context: readRecentContext(conversationId)
       });
     } catch (error) {
-      if (!search) throw error;
       ai = {
         provider: "gemini",
-        model: "search-fallback",
-        response: search.response
+        model: search ? "search-fallback" : providerFallback(error).model,
+        response: search ? search.response : providerFallback(error).response
       };
     }
   }
