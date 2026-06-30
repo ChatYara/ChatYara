@@ -10,6 +10,7 @@ import { calendarRoutes } from "./routes/calendarRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { documentRoutes } from "./routes/documentRoutes";
 import { imageRoutes } from "./routes/imageRoutes";
+import { integrationRoutes } from "./routes/integrationRoutes";
 import { searchRoutes } from "./routes/searchRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { uploadRoutes } from "./routes/uploadRoutes";
@@ -73,6 +74,7 @@ export function createApp() {
   app.use("/api", uploadRoutes);
   app.use("/api", documentRoutes);
   app.use("/api", imageRoutes);
+  app.use("/api", integrationRoutes);
   app.use("/api", calendarRoutes);
   app.use("/api", chatRoutes);
   app.use("/api", searchRoutes);

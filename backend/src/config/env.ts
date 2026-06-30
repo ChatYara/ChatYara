@@ -76,6 +76,13 @@ export const env = {
   googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET?.trim() || "",
   googleRedirectUri: process.env.GOOGLE_REDIRECT_URI?.trim() || "",
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN?.trim() || "",
+  telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET?.trim() || "",
+  whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN?.trim() || "",
+  whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() || "",
+  whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN?.trim() || "",
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY?.trim() || "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY?.trim() || "",
   uploadDir: process.env.UPLOAD_DIR?.trim() || "",
   imageDir: process.env.IMAGE_DIR?.trim() || "",
   clientOrigin: process.env.CLIENT_ORIGIN?.trim() || "*"

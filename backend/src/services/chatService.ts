@@ -3,6 +3,7 @@ import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
 import { tryCreateCalendarItemFromChat } from "./calendarService";
 import { buildDocumentContextFromUploads } from "./documentService";
+import { tryHandleIntegrationChatIntent } from "./integrationService";
 import { learnFromUserMessage, readLearningContext } from "./learningService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
 import { toPublicUpload } from "./uploadService";
@@ -551,13 +552,20 @@ export async function sendMessage(
 
   learnFromUserMessage(userId, storedMessage);
   const calendarAction = tryCreateCalendarItemFromChat(userId, storedMessage);
+  const integrationAction = calendarAction ? null : await tryHandleIntegrationChatIntent(userId, storedMessage);
 
   const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
   const search = searchNeeded ? await runSearch(userId, storedMessage) : null;
   let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini"; model: string; response: string };
 
-  if (direct && !searchNeeded) {
+  if (integrationAction && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "integration-action",
+      response: integrationAction.text || "Integração processada pela YARA AI."
+    };
+  } else if (direct && !searchNeeded) {
     ai = {
       provider: "gemini",
       model: "direct",

@@ -7,16 +7,17 @@ import {
   createReminder,
   deleteCalendarEvent,
   deleteReminder,
-  googleConnectUrl,
-  handleGoogleCallback,
   listCalendarEvents,
-  listGoogleCalendars,
   listNotifications,
   listReminders,
-  syncGoogleCalendar,
   updateCalendarEvent,
   updateReminder
 } from "../services/calendarService";
+import {
+  listGoogleCalendars,
+  startGoogleOAuth,
+  syncGoogleCalendar
+} from "../services/integrationService";
 import { sendError } from "../utils/http";
 
 export const calendarRoutes = Router();
@@ -86,29 +87,23 @@ calendarRoutes.delete("/calendar/events/:id", (req, res) => {
 });
 
 calendarRoutes.get("/calendar/google/connect", (req, res) => {
-  const result = googleConnectUrl(req.user!.id);
+  const result = startGoogleOAuth(req.user!.id, "calendar");
   if ("url" in result) return res.json(result);
   return res.status(503).json(result);
 });
 
-calendarRoutes.get("/calendar/google/callback", async (req, res) => {
-  try {
-    const result = await handleGoogleCallback(req.user!.id, typeof req.query.code === "string" ? req.query.code : undefined);
-    if ("configured" in result && result.configured === false) return res.status(503).json(result);
-    return res.json(result);
-  } catch (error) {
-    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível conectar ao Google Calendar.");
-  }
+calendarRoutes.get("/calendar/google/callback", (_req, res) => {
+  return res.redirect("/app?view=integrations");
 });
 
-calendarRoutes.get("/calendar/google/calendars", (req, res) => {
-  const result = listGoogleCalendars(req.user!.id);
+calendarRoutes.get("/calendar/google/calendars", async (req, res) => {
+  const result = await listGoogleCalendars(req.user!.id);
   if ("configured" in result && result.configured === false) return res.status(503).json(result);
   return res.json(result);
 });
 
-calendarRoutes.post("/calendar/google/sync", (req, res) => {
-  const result = syncGoogleCalendar(req.user!.id);
+calendarRoutes.post("/calendar/google/sync", async (req, res) => {
+  const result = await syncGoogleCalendar(req.user!.id);
   if ("configured" in result && result.configured === false) return res.status(503).json(result);
   return res.json(result);
 });

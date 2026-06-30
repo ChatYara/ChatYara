@@ -76,9 +76,30 @@ GEMINI_API_KEY=
 OPENAI_API_KEY=
 DATABASE_URL=
 JWT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_VERIFY_TOKEN=
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
 ```
 
 Preencha esses valores somente no servidor. Para SQLite local, `DATABASE_URL` pode apontar para `sqlite:./data/yara.sqlite`.
+
+## Integracoes externas
+
+A Fase 7 adiciona um painel protegido em `/app` para Google Calendar, Gmail, Telegram, WhatsApp e notificacoes.
+
+- Google Calendar e Gmail usam OAuth no backend. Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URI`.
+- Telegram usa `TELEGRAM_BOT_TOKEN` e, opcionalmente, `TELEGRAM_WEBHOOK_SECRET`.
+- WhatsApp Business usa `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` e `WHATSAPP_VERIFY_TOKEN`.
+- Push notifications usam `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`; sem service worker/VAPID, a plataforma cria notificacoes internas de teste.
+- Tokens OAuth sao criptografados no banco usando segredo derivado de `JWT_SECRET`.
+- Quando uma credencial externa nao existe, a API retorna uma mensagem clara e nao simula sincronizacao.
 
 ## Backend
 
@@ -111,6 +132,17 @@ Endpoints principais:
 - `GET /api/projects`
 - `POST /api/generator`
 - `POST /api/generate-system`
+- `GET /api/integrations/status`
+- `GET /api/integrations/google/calendar/connect`
+- `POST /api/integrations/google/calendar/sync`
+- `GET /api/integrations/google/calendar/events`
+- `GET /api/integrations/google/gmail/connect`
+- `GET /api/integrations/gmail/messages`
+- `POST /api/integrations/gmail/summarize`
+- `POST /api/integrations/gmail/send`
+- `POST /api/integrations/telegram/send`
+- `POST /api/integrations/whatsapp/send`
+- `POST /api/push/test`
 
 O primeiro usuario cadastrado recebe papel `admin` e pode testar o provedor de IA pela tela de Configuracoes.
 

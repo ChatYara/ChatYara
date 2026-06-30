@@ -1519,6 +1519,7 @@ ${logoYaraStyles()}
             ${navButton("documents", "Documentos", "file")}
             ${navButton("images", "Imagens", "image")}
             ${navButton("calendar", "Agenda", "history")}
+            ${navButton("integrations", "Integrações", "share")}
             ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
           </nav>
@@ -1992,6 +1993,94 @@ ${logoYaraStyles()}
               <article class="card">
                 <h2>Notificações agendadas</h2>
                 <div class="list" id="notificationsList"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-integrations" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Integrações</h2>
+                <p class="muted">Conecte serviços externos reais à YARA AI sem expor tokens no aplicativo.</p>
+              </div>
+              <button class="button" id="refreshIntegrationsButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="dashboard-grid" id="integrationsStatusGrid"></div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Google Calendar</h2>
+                <p class="muted">Sincronize, importe, crie, edite e exclua eventos usando OAuth seguro no backend.</p>
+                <div class="row">
+                  <button class="button" id="integrationCalendarConnect" type="button">${icon("share")}Conectar Google</button>
+                  <button class="button" id="integrationCalendarSync" type="button">${icon("sparkles")}Sincronizar</button>
+                  <button class="button" id="integrationCalendarList" type="button">${icon("history")}Listar eventos Google</button>
+                </div>
+                <form class="form" id="integrationCalendarForm">
+                  <input class="field" id="integrationCalendarTitle" placeholder="Título do evento" />
+                  <div class="split">
+                    <input class="field" id="integrationCalendarDate" type="date" />
+                    <input class="field" id="integrationCalendarTime" type="time" />
+                  </div>
+                  <input class="field" id="integrationCalendarLocation" placeholder="Local" />
+                  <button class="primary-action" type="submit">${icon("plus")}Criar no Google Calendar</button>
+                </form>
+                <div class="result-box" id="integrationCalendarResult">Aguardando conexão.</div>
+              </article>
+              <article class="card">
+                <h2>Gmail</h2>
+                <p class="muted">Leia, busque, resuma e envie e-mails por rotas protegidas no backend.</p>
+                <div class="row">
+                  <button class="button" id="integrationGmailConnect" type="button">${icon("share")}Conectar Gmail</button>
+                  <button class="button" id="integrationGmailRecent" type="button">${icon("history")}Últimos e-mails</button>
+                  <button class="button" id="integrationGmailUnread" type="button">${icon("sparkles")}Resumir não lidos</button>
+                </div>
+                <form class="form" id="integrationGmailForm">
+                  <input class="field" id="integrationGmailTo" placeholder="Destinatário" />
+                  <input class="field" id="integrationGmailSubject" placeholder="Assunto" />
+                  <textarea class="field" id="integrationGmailBody" rows="4" placeholder="Mensagem"></textarea>
+                  <button class="primary-action" type="submit">${icon("send")}Enviar e-mail</button>
+                </form>
+                <div class="result-box" id="integrationGmailResult">Gmail aguardando conexão.</div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Telegram</h2>
+                <p class="muted">Use o bot da YARA para responder mensagens e enviar notificações.</p>
+                <form class="form" id="integrationTelegramForm">
+                  <input class="field" id="integrationTelegramChatId" placeholder="Chat ID" />
+                  <textarea class="field" id="integrationTelegramText" rows="3" placeholder="Mensagem Telegram"></textarea>
+                  <button class="primary-action" type="submit">${icon("send")}Enviar Telegram</button>
+                </form>
+                <div class="result-box" id="integrationTelegramResult">Telegram aguardando configuração do bot.</div>
+              </article>
+              <article class="card">
+                <h2>WhatsApp Business</h2>
+                <p class="muted">Estrutura pronta para envio, recebimento e notificações automáticas pela API oficial.</p>
+                <form class="form" id="integrationWhatsappForm">
+                  <input class="field" id="integrationWhatsappTo" placeholder="Número com DDI" />
+                  <textarea class="field" id="integrationWhatsappText" rows="3" placeholder="Mensagem WhatsApp"></textarea>
+                  <button class="primary-action" type="submit">${icon("send")}Enviar WhatsApp</button>
+                </form>
+                <div class="result-box" id="integrationWhatsappResult">WhatsApp aguardando credenciais.</div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Notificações</h2>
+                <p class="muted">Eventos, lembretes e tarefas podem gerar notificações internas e estrutura push.</p>
+                <div class="row">
+                  <button class="button" id="integrationPushSubscribe" type="button">${icon("sparkles")}Ativar push</button>
+                  <button class="button" id="integrationPushTest" type="button">${icon("sparkles")}Criar teste</button>
+                </div>
+                <div class="list" id="integrationPushList"></div>
+              </article>
+              <article class="card">
+                <h2>Auditoria</h2>
+                <p class="muted">Ações de integração são registradas sem segredos.</p>
+                <div class="list" id="integrationAuditList"></div>
               </article>
             </div>
           </div>
@@ -2547,6 +2636,7 @@ ${logoYaraStyles()}
           documents: ["Documentos", "Gere e baixe documentos protegidos."],
           images: ["Imagens", "OCR, análise e edição inicial de imagens."],
           calendar: ["Agenda", "Eventos, lembretes e notificações."],
+          integrations: ["Integrações", "Google, Gmail, Telegram, WhatsApp e notificações."],
           settings: ["Configurações", "Preferências, conta e memória da YARA."]
         };
         els.pageTitle.textContent = labels[view][0];
@@ -2560,6 +2650,7 @@ ${logoYaraStyles()}
         if (view === "documents") loadDocuments();
         if (view === "images") loadImages();
         if (view === "calendar") loadCalendar();
+        if (view === "integrations") loadIntegrations();
         if (view === "settings") loadSettings();
       }
 
@@ -4092,6 +4183,96 @@ ${logoYaraStyles()}
         }
       }
 
+      function integrationStatusCard(title, item) {
+        const connected = Boolean(item && item.connected);
+        const configured = Boolean(item && item.configured);
+        const status = connected ? "Conectado" : (configured ? "Pronto para conectar" : "Aguardando configuração");
+        const lastSync = item && item.lastSyncAt ? item.lastSyncAt : "Sem sincronização";
+        const error = item && item.lastError ? '<p class="muted danger-text">' + escapeHtml(item.lastError) + '</p>' : "";
+        return '<article class="metric-card"><span class="metric-label">' + escapeHtml(title) + '</span><strong>' + status + '</strong><p class="muted">Última sincronização: ' + escapeHtml(lastSync) + '</p>' + error + '</article>';
+      }
+
+      function renderIntegrationResult(targetId, data) {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        if (!data) {
+          target.textContent = "Nenhuma resposta recebida.";
+          return;
+        }
+        if (data.message) {
+          target.textContent = data.message;
+          return;
+        }
+        if (Array.isArray(data.events)) {
+          target.innerHTML = data.events.length
+            ? data.events.map(function(event) { return '<article class="list-item"><strong>' + escapeHtml(event.summary || event.title || "Evento") + '</strong><p class="muted">' + escapeHtml(event.start || event.event_date || "") + '</p></article>'; }).join("")
+            : '<p class="muted">Nenhum evento retornado.</p>';
+          return;
+        }
+        if (Array.isArray(data.messages)) {
+          target.innerHTML = data.messages.length
+            ? data.messages.map(function(message) { return '<article class="list-item"><strong>' + escapeHtml(message.subject || "E-mail") + '</strong><p class="muted">' + escapeHtml(message.from || "") + '</p><p>' + escapeHtml(message.snippet || "") + '</p></article>'; }).join("")
+            : '<p class="muted">Nenhum e-mail retornado.</p>';
+          return;
+        }
+        if (data.summary) {
+          target.innerHTML = '<p>' + escapeHtml(data.summary) + '</p>';
+          return;
+        }
+        if (data.notification) {
+          target.textContent = "Notificação interna criada: " + (data.notification.title || "YARA AI");
+          return;
+        }
+        target.textContent = JSON.stringify(data, null, 2);
+      }
+
+      async function callIntegration(path, targetId, options) {
+        const target = document.getElementById(targetId);
+        try {
+          const data = await api(path, options || {});
+          if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+          renderIntegrationResult(targetId, data);
+          await loadIntegrations();
+          return data;
+        } catch (error) {
+          if (target) target.textContent = error.message || "Não foi possível executar esta integração.";
+          showToast(error.message || "Integração indisponível.");
+          return null;
+        }
+      }
+
+      async function loadIntegrations() {
+        const statusTarget = document.getElementById("integrationsStatusGrid");
+        const pushTarget = document.getElementById("integrationPushList");
+        const auditTarget = document.getElementById("integrationAuditList");
+        if (!statusTarget) return;
+        try {
+          const status = await api("/api/integrations/status");
+          const integrations = status.integrations || {};
+          statusTarget.innerHTML = [
+            integrationStatusCard("Google Calendar", integrations.googleCalendar || {}),
+            integrationStatusCard("Gmail", integrations.gmail || {}),
+            integrationStatusCard("Telegram", integrations.telegram || {}),
+            integrationStatusCard("WhatsApp", integrations.whatsapp || {}),
+            integrationStatusCard("Push", integrations.push || {})
+          ].join("");
+          const subscriptions = await api("/api/push/subscriptions").catch(function() { return { subscriptions: [] }; });
+          if (pushTarget) {
+            pushTarget.innerHTML = (subscriptions.subscriptions || []).length
+              ? subscriptions.subscriptions.map(function(item) { return '<article class="list-item"><strong>Push ativo</strong><p class="muted">' + escapeHtml(item.endpoint || item.id) + '</p></article>'; }).join("")
+              : '<p class="muted">Nenhuma inscrição push ativa.</p>';
+          }
+          const audit = await api("/api/integrations/audit").catch(function() { return { logs: [] }; });
+          if (auditTarget) {
+            auditTarget.innerHTML = (audit.logs || []).slice(0, 8).map(function(log) {
+              return '<article class="list-item"><strong>' + escapeHtml(log.service + " · " + log.action) + '</strong><p class="muted">' + escapeHtml(log.status + " · " + log.created_at) + '</p>' + (log.message ? '<p>' + escapeHtml(log.message) + '</p>' : "") + '</article>';
+            }).join("") || '<p class="muted">Nenhum log de integração ainda.</p>';
+          }
+        } catch (error) {
+          statusTarget.innerHTML = '<article class="list-item"><strong>Integrações indisponíveis</strong><p class="muted">' + escapeHtml(error.message || "Não foi possível carregar integrações.") + '</p></article>';
+        }
+      }
+
       async function loadAiStatus() {
         const data = await api("/api/ai/status");
         document.getElementById("aiProvider").textContent = data.provider || "YARA";
@@ -4901,6 +5082,96 @@ ${logoYaraStyles()}
       });
       document.getElementById("googleCalendarSyncButton").addEventListener("click", function() {
         callGoogleCalendar("/api/calendar/google/sync", "POST");
+      });
+
+      document.getElementById("refreshIntegrationsButton").addEventListener("click", loadIntegrations);
+      document.getElementById("integrationCalendarConnect").addEventListener("click", function() {
+        callIntegration("/api/integrations/google/calendar/connect", "integrationCalendarResult");
+      });
+      document.getElementById("integrationGmailConnect").addEventListener("click", function() {
+        callIntegration("/api/integrations/google/gmail/connect", "integrationGmailResult");
+      });
+      document.getElementById("integrationCalendarSync").addEventListener("click", function() {
+        callIntegration("/api/integrations/google/calendar/sync", "integrationCalendarResult", { method: "POST" });
+      });
+      document.getElementById("integrationCalendarList").addEventListener("click", function() {
+        callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult");
+      });
+      document.getElementById("integrationCalendarForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        const title = document.getElementById("integrationCalendarTitle").value.trim();
+        const date = document.getElementById("integrationCalendarDate").value;
+        const time = document.getElementById("integrationCalendarTime").value;
+        const location = document.getElementById("integrationCalendarLocation").value.trim();
+        if (!title || !date) {
+          showToast("Informe título e data do evento.");
+          return;
+        }
+        callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult", {
+          method: "POST",
+          body: JSON.stringify({ title: title, date: date, time: time || null, location: location || null })
+        });
+      });
+      document.getElementById("integrationGmailRecent").addEventListener("click", function() {
+        callIntegration("/api/integrations/gmail/messages?maxResults=5", "integrationGmailResult");
+      });
+      document.getElementById("integrationGmailUnread").addEventListener("click", function() {
+        callIntegration("/api/integrations/gmail/summarize", "integrationGmailResult", {
+          method: "POST",
+          body: JSON.stringify({ query: "is:unread", maxResults: 5 })
+        });
+      });
+      document.getElementById("integrationGmailForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        callIntegration("/api/integrations/gmail/send", "integrationGmailResult", {
+          method: "POST",
+          body: JSON.stringify({
+            to: document.getElementById("integrationGmailTo").value.trim(),
+            subject: document.getElementById("integrationGmailSubject").value.trim(),
+            body: document.getElementById("integrationGmailBody").value.trim()
+          })
+        });
+      });
+      document.getElementById("integrationTelegramForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        callIntegration("/api/integrations/telegram/send", "integrationTelegramResult", {
+          method: "POST",
+          body: JSON.stringify({
+            chatId: document.getElementById("integrationTelegramChatId").value.trim(),
+            text: document.getElementById("integrationTelegramText").value.trim()
+          })
+        });
+      });
+      document.getElementById("integrationWhatsappForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        callIntegration("/api/integrations/whatsapp/send", "integrationWhatsappResult", {
+          method: "POST",
+          body: JSON.stringify({
+            to: document.getElementById("integrationWhatsappTo").value.trim(),
+            text: document.getElementById("integrationWhatsappText").value.trim()
+          })
+        });
+      });
+      document.getElementById("integrationPushSubscribe").addEventListener("click", async function() {
+        if (!("Notification" in window)) {
+          showToast("Este navegador não oferece notificações web.");
+          return;
+        }
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          showToast("Permissão de notificação não concedida.");
+          return;
+        }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+          showToast("Permissão local concedida. Push remoto exige service worker/VAPID no ambiente.");
+          await callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Push YARA AI", message: "Permissão local validada." }) });
+          return;
+        }
+        showToast("Notificações autorizadas. Inscrição push remota preparada para service worker.");
+        await callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Push YARA AI", message: "Canal de notificação validado." }) });
+      });
+      document.getElementById("integrationPushTest").addEventListener("click", function() {
+        callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Teste YARA AI", message: "Notificação interna criada com sucesso." }) });
       });
 
       document.getElementById("testAiButton").addEventListener("click", async function() {

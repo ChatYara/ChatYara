@@ -295,6 +295,9 @@ create table if not exists calendar_events (
   reminder_minutes integer,
   status text not null default 'scheduled',
   created_by text not null,
+  external_provider text,
+  external_event_id text,
+  external_calendar_id text,
   created_at text not null default current_timestamp,
   updated_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
@@ -302,6 +305,10 @@ create table if not exists calendar_events (
 
 create index if not exists calendar_events_user_date
   on calendar_events(user_id, event_date, event_time);
+
+create unique index if not exists calendar_events_google_unique
+  on calendar_events(user_id, external_provider, external_event_id)
+  where external_event_id is not null;
 
 create table if not exists reminders (
   id text primary key,
@@ -326,6 +333,9 @@ create table if not exists notifications (
   title text not null,
   message text not null,
   status text not null default 'scheduled',
+  scheduled_for text,
+  delivered_at text,
+  channel text,
   created_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
@@ -344,6 +354,95 @@ create table if not exists google_calendar_connections (
   updated_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
+
+create table if not exists oauth_connections (
+  id text primary key,
+  user_id text not null,
+  provider text not null,
+  service text not null,
+  email text,
+  access_token_encrypted text,
+  refresh_token_encrypted text,
+  expires_at text,
+  scopes text,
+  status text not null default 'connected',
+  last_sync_at text,
+  last_error text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, provider, service),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists oauth_connections_user_service
+  on oauth_connections(user_id, provider, service, status);
+
+create table if not exists oauth_states (
+  state text primary key,
+  user_id text not null,
+  provider text not null,
+  service text not null,
+  scopes text not null,
+  redirect_path text,
+  expires_at text not null,
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists oauth_states_expires
+  on oauth_states(expires_at);
+
+create table if not exists integration_audit_logs (
+  id text primary key,
+  user_id text,
+  provider text not null,
+  service text not null,
+  action text not null,
+  status text not null,
+  message text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete set null
+);
+
+create index if not exists integration_audit_user_created
+  on integration_audit_logs(user_id, created_at);
+
+create table if not exists gmail_messages_cache (
+  id text primary key,
+  user_id text not null,
+  gmail_id text not null,
+  thread_id text,
+  subject text,
+  from_email text,
+  snippet text,
+  labels_json text not null default '[]',
+  received_at text,
+  payload_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, gmail_id),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists gmail_cache_user_received
+  on gmail_messages_cache(user_id, received_at);
+
+create table if not exists push_subscriptions (
+  id text primary key,
+  user_id text not null,
+  endpoint text not null,
+  subscription_json text not null,
+  status text not null default 'active',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, endpoint),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists push_subscriptions_user_status
+  on push_subscriptions(user_id, status);
 
 create table if not exists search_history (
   id text primary key,

@@ -31,6 +31,16 @@ GEMINI_API_KEY=
 OPENAI_API_KEY=
 DATABASE_URL=sqlite:./data/yara.sqlite
 JWT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_VERIFY_TOKEN=
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
 ```
 
 O backend bloqueia a inicializacao se `JWT_SECRET` ou a chave do provedor ativo estiverem ausentes.
@@ -48,6 +58,14 @@ Para OpenAI, use:
 AI_PROVIDER=openai
 OPENAI_API_KEY=
 ```
+
+Integracoes externas:
+
+- Google Calendar e Gmail: configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URI`. A URI deve apontar para `https://yarachat.onrender.com/api/integrations/google/callback`.
+- Telegram: configure `TELEGRAM_BOT_TOKEN` e, se usar webhook secreto, `TELEGRAM_WEBHOOK_SECRET`.
+- WhatsApp Business: configure `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` e `WHATSAPP_VERIFY_TOKEN`.
+- Push: configure `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` quando o service worker de push remoto estiver ativo.
+- Sem credenciais, a API continua online e retorna avisos claros para o usuario administrador.
 
 Comandos:
 
