@@ -75,6 +75,10 @@ AI_PROVIDER=gemini
 GEMINI_API_KEY=
 OPENAI_API_KEY=
 DATABASE_URL=
+POSTGRES_URL=
+REDIS_URL=
+MEMORY_EMBEDDING_PROVIDER=local
+MEMORY_EMBEDDING_DIMENSIONS=96
 JWT_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -100,6 +104,17 @@ A Fase 7 adiciona um painel protegido em `/app` para Google Calendar, Gmail, Tel
 - Push notifications usam `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`; sem service worker/VAPID, a plataforma cria notificacoes internas de teste.
 - Tokens OAuth sao criptografados no banco usando segredo derivado de `JWT_SECRET`.
 - Quando uma credencial externa nao existe, a API retorna uma mensagem clara e nao simula sincronizacao.
+
+## Memoria inteligente
+
+A Fase 8.1 adiciona memória persistente e contextual sem remover a compatibilidade com SQLite.
+
+- SQLite continua sendo o banco ativo padrão em `DATABASE_URL`.
+- `POSTGRES_URL` prepara a migração para PostgreSQL/pgvector sem quebrar o ambiente atual.
+- `REDIS_URL` prepara cache distribuído; sem Redis, a YARA usa cache local em memória.
+- `MEMORY_EMBEDDING_PROVIDER=local` gera embeddings determinísticos no backend, sem expor chaves e sem chamar APIs externas.
+- A API nova fica em `/api/memory` e a API antiga `/api/memories` permanece compatível.
+- A busca semântica permite recuperar contexto por similaridade, mesmo quando a pergunta usa outras palavras.
 
 ## Backend
 
@@ -143,6 +158,12 @@ Endpoints principais:
 - `POST /api/integrations/telegram/send`
 - `POST /api/integrations/whatsapp/send`
 - `POST /api/push/test`
+- `GET /api/memory`
+- `GET /api/memory/search`
+- `GET /api/memory/status`
+- `POST /api/memory`
+- `PUT /api/memory/:id`
+- `DELETE /api/memory/:id`
 
 O primeiro usuario cadastrado recebe papel `admin` e pode testar o provedor de IA pela tela de Configuracoes.
 

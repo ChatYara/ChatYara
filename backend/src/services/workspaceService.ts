@@ -4,6 +4,7 @@ import { askYara } from "./ai/aiService";
 import { getUserById } from "./authService";
 import { readMemory } from "./chatService";
 import { deleteLearning, listUserLearning } from "./learningService";
+import { createMemory, deleteIntelligentMemory, updateIntelligentMemory } from "./memoryService";
 import { toPublicUpload } from "./uploadService";
 
 type MemoryListItem = {
@@ -66,13 +67,14 @@ export function listMemories(userId: string) {
 }
 
 export function saveMemory(userId: string, input: { title?: string; content: string }) {
-  const id = uuid();
-  const content = input.content.trim();
-  const title = input.title?.trim() || "Memória";
-  getDatabase()
-    .prepare("insert into memories (id, user_id, title, content) values (?, ?, ?, ?)")
-    .run(id, userId, title, content);
-  return { id, title, content };
+  const memory = createMemory(userId, {
+    title: input.title,
+    content: input.content,
+    category: "manual",
+    importance: 3,
+    source: "manual"
+  });
+  return { id: memory.id, title: memory.title, content: memory.content };
 }
 
 export function updateMemory(userId: string, memoryId: string, input: { title?: string; content?: string }) {
@@ -80,27 +82,8 @@ export function updateMemory(userId: string, memoryId: string, input: { title?: 
     throw new Error("Aprendizados automáticos podem ser removidos, mas não editados aqui.");
   }
 
-  const db = getDatabase();
-  const current = db
-    .prepare("select id, title, content from memories where id = ? and user_id = ?")
-    .get(memoryId, userId) as { id: string; title: string; content: string } | undefined;
-
-  if (!current) {
-    throw new Error("Memória não encontrada.");
-  }
-
-  const title = input.title?.trim() || current.title;
-  const content = input.content?.trim() || current.content;
-
-  db.prepare(
-    `update memories
-     set title = ?,
-         content = ?,
-         updated_at = current_timestamp
-     where id = ? and user_id = ?`
-  ).run(title, content, memoryId, userId);
-
-  return { id: memoryId, title, content };
+  const memory = updateIntelligentMemory(userId, memoryId, input);
+  return { id: memory.id, title: memory.title, content: memory.content };
 }
 
 export function deleteMemory(userId: string, memoryId: string) {
@@ -108,15 +91,7 @@ export function deleteMemory(userId: string, memoryId: string) {
     return deleteLearning(userId, memoryId.replace("learning:", ""));
   }
 
-  const result = getDatabase()
-    .prepare("delete from memories where id = ? and user_id = ?")
-    .run(memoryId, userId);
-
-  if (result.changes === 0) {
-    throw new Error("Memória não encontrada.");
-  }
-
-  return { id: memoryId };
+  return deleteIntelligentMemory(userId, memoryId);
 }
 
 export function deleteAllMemories(userId: string) {

@@ -66,10 +66,96 @@ export function runMigrations() {
       id text primary key,
       user_id text not null,
       title text not null,
+      category text not null default 'general',
+      importance integer not null default 3,
       content text not null,
+      embedding_json text,
+      source text not null default 'manual',
+      project_id text,
+      conversation_id text,
+      pinned integer not null default 0,
+      metadata_json text not null default '{}',
+      last_accessed_at text,
       created_at text not null default current_timestamp,
       updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references projects(id) on delete set null,
+      foreign key (conversation_id) references conversations(id) on delete set null
+    );
+
+    create table if not exists memory_embeddings (
+      id text primary key,
+      memory_id text not null,
+      user_id text not null,
+      provider text not null default 'local-hash',
+      model text not null default 'yara-local-embedding-v1',
+      dimension integer not null,
+      embedding_json text not null,
+      content_hash text not null,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (memory_id, provider, model),
+      foreign key (memory_id) references memories(id) on delete cascade,
       foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists memory_relations (
+      id text primary key,
+      user_id text not null,
+      source_memory_id text not null,
+      target_memory_id text,
+      target_type text not null default 'memory',
+      relation_type text not null,
+      weight real not null default 0.5,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (source_memory_id) references memories(id) on delete cascade,
+      foreign key (target_memory_id) references memories(id) on delete cascade
+    );
+
+    create table if not exists memory_sessions (
+      id text primary key,
+      user_id text not null,
+      conversation_id text,
+      status text not null default 'active',
+      recent_context_json text not null default '[]',
+      token_estimate integer not null default 0,
+      last_message_at text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, conversation_id),
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (conversation_id) references conversations(id) on delete cascade
+    );
+
+    create table if not exists memory_summaries (
+      id text primary key,
+      user_id text not null,
+      conversation_id text,
+      project_id text,
+      summary text not null,
+      message_count integer not null default 0,
+      importance integer not null default 3,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (conversation_id) references conversations(id) on delete cascade,
+      foreign key (project_id) references projects(id) on delete set null
+    );
+
+    create table if not exists memory_audit_logs (
+      id text primary key,
+      user_id text not null,
+      memory_id text,
+      action text not null,
+      status text not null default 'success',
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (memory_id) references memories(id) on delete set null
     );
 
     create table if not exists projects (
@@ -424,6 +510,15 @@ export function runMigrations() {
   ensureColumn("projects", "content", "text");
   ensureColumn("projects", "updated_at", "text");
   ensureColumn("messages", "edited_at", "text");
+  ensureColumn("memories", "category", "text not null default 'general'");
+  ensureColumn("memories", "importance", "integer not null default 3");
+  ensureColumn("memories", "embedding_json", "text");
+  ensureColumn("memories", "source", "text not null default 'manual'");
+  ensureColumn("memories", "project_id", "text");
+  ensureColumn("memories", "conversation_id", "text");
+  ensureColumn("memories", "pinned", "integer not null default 0");
+  ensureColumn("memories", "metadata_json", "text not null default '{}'");
+  ensureColumn("memories", "last_accessed_at", "text");
   ensureColumn("user_settings", "full_name", "text");
   ensureColumn("user_settings", "avatar_url", "text");
   ensureColumn("user_settings", "language", "text not null default 'pt-BR'");
@@ -502,6 +597,27 @@ export function runMigrations() {
 
     create index if not exists user_learning_user_key
       on user_learning(user_id, key, updated_at);
+
+    create index if not exists memories_user_category_importance
+      on memories(user_id, category, importance, updated_at);
+
+    create index if not exists memories_user_pinned
+      on memories(user_id, pinned, updated_at);
+
+    create index if not exists memory_embeddings_user_memory
+      on memory_embeddings(user_id, memory_id, updated_at);
+
+    create index if not exists memory_relations_user_source
+      on memory_relations(user_id, source_memory_id, relation_type);
+
+    create index if not exists memory_sessions_user_conversation
+      on memory_sessions(user_id, conversation_id, updated_at);
+
+    create index if not exists memory_summaries_user_conversation
+      on memory_summaries(user_id, conversation_id, updated_at);
+
+    create index if not exists memory_audit_user_created
+      on memory_audit_logs(user_id, created_at);
 
     create index if not exists search_history_user_created
       on search_history(user_id, created_at);

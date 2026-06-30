@@ -2142,10 +2142,39 @@ ${logoYaraStyles()}
             </div>
 
             <div class="settings-pane settings-grid" id="settings-memory" hidden>
+              <article class="card">
+                <h2>Arquitetura de memória</h2>
+                <p class="muted">Memória persistente, contexto recente, embeddings locais e relações GraphRAG.</p>
+                <div class="dashboard-grid" id="memoryDashboardCards"></div>
+                <div class="result-box" id="memorySystemStatus">Carregando status da memória...</div>
+              </article>
+              <article class="card">
+                <h2>Buscar memória</h2>
+                <p class="muted">Encontre contexto mesmo com palavras diferentes.</p>
+                <form class="form" id="memorySearchForm">
+                  <input class="field" id="memorySearchQuery" placeholder="Ex.: configuração do Render, fase congelada, objetivo do projeto" />
+                  <button class="button" type="submit">${icon("search")}Buscar</button>
+                </form>
+                <div class="list" id="memorySearchResults"></div>
+              </article>
               <form class="card" id="memoryForm">
                 <h2>Memória da YARA</h2>
                 <p class="muted">A YARA usa essas informações para personalizar respostas.</p>
                 <input class="field" id="memoryTitle" placeholder="Título opcional" />
+                <select class="select" id="memoryCategory">
+                  <option value="general">Geral</option>
+                  <option value="preference">Preferência</option>
+                  <option value="project">Projeto</option>
+                  <option value="decision">Decisão</option>
+                  <option value="episodic">Episódica</option>
+                </select>
+                <select class="select" id="memoryImportance">
+                  <option value="3">Importância média</option>
+                  <option value="5">Crítica</option>
+                  <option value="4">Alta</option>
+                  <option value="2">Baixa</option>
+                  <option value="1">Arquivável</option>
+                </select>
                 <textarea class="field" id="memoryContent" rows="5" placeholder="O que a YARA deve lembrar?"></textarea>
                 <button class="primary-action" type="submit">${icon("plus")}Adicionar memória</button>
                 <button class="button danger" id="clearMemoriesButton" type="button">${icon("trash")}Limpar todas</button>
@@ -3612,7 +3641,9 @@ ${logoYaraStyles()}
       }
 
       async function loadMemories() {
-        const data = await api("/api/memories");
+        const intelligent = await api("/api/memory").catch(function() { return null; });
+        if (intelligent && intelligent.dashboard) renderMemoryDashboard(intelligent.dashboard);
+        const data = intelligent || await api("/api/memories");
         const memories = data.memories || [];
         const target = document.getElementById("memoryList");
         if (!memories.length) {
@@ -3620,9 +3651,45 @@ ${logoYaraStyles()}
           return;
         }
         target.innerHTML = memories.map(function(memory) {
-          const badge = memory.readonly ? '<span class="status"><span class="dot"></span>Aprendido</span>' : "";
-          const edit = memory.readonly ? "" : '<button class="icon-button" data-edit-memory="' + memory.id + '" data-title="' + escapeHtml(memory.title || "Memória") + '" data-content="' + escapeHtml(memory.content) + '" type="button" aria-label="Editar memória">${icon("save")}</button>';
-          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(memory.title || "Memória") + '</strong><div class="row">' + badge + edit + '<button class="icon-button danger" data-delete-memory="' + memory.id + '" type="button" aria-label="Excluir memória">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(memory.content) + '</p></article>';
+          const badge = memory.readonly ? '<span class="status"><span class="dot"></span>Aprendido</span>' : '<span class="status"><span class="dot"></span>' + escapeHtml(memory.category || "manual") + '</span>';
+          const pin = memory.pinned ? '<span class="status">Fixada</span>' : "";
+          const edit = memory.readonly ? "" : '<button class="icon-button" data-edit-memory="' + memory.id + '" data-title="' + escapeHtml(memory.title || "Memória") + '" data-content="' + escapeHtml(memory.content) + '" type="button" aria-label="Editar memória">${icon("save")}</button><button class="icon-button" data-pin-memory="' + memory.id + '" data-pinned="' + Boolean(memory.pinned) + '" type="button" aria-label="Fixar memória">${icon("pin")}</button>';
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(memory.title || "Memória") + '</strong><div class="row">' + badge + pin + edit + '<button class="icon-button danger" data-delete-memory="' + memory.id + '" type="button" aria-label="Excluir memória">${icon("trash")}</button></div></div><p class="muted">Importância ' + escapeHtml(String(memory.importance || 3)) + ' · ' + escapeHtml(memory.source || "manual") + '</p><p class="muted">' + escapeHtml(memory.content) + '</p></article>';
+        }).join("");
+      }
+
+      function renderMemoryDashboard(dashboard) {
+        const cards = document.getElementById("memoryDashboardCards");
+        const status = document.getElementById("memorySystemStatus");
+        if (!cards || !status) return;
+        const totals = dashboard.totals || {};
+        cards.innerHTML = [
+          ["Memórias", totals.memories || 0],
+          ["Embeddings", totals.embeddings || 0],
+          ["Relações", totals.relations || 0],
+          ["Sessões", totals.sessions || 0],
+          ["Resumos", totals.summaries || 0],
+          ["Armazenamento", Math.round(Number(totals.storageBytes || 0) / 1024 * 10) / 10 + " KB"]
+        ].map(function(item) {
+          return '<article class="metric-card"><span class="metric-label">' + item[0] + '</span><strong>' + item[1] + '</strong></article>';
+        }).join("");
+        const system = dashboard.system || {};
+        const embeddings = system.embeddings || {};
+        const redis = system.redis || {};
+        const postgres = system.postgres || {};
+        status.textContent = "Banco ativo: " + (system.database || "sqlite") + " · Embeddings: " + (embeddings.provider || "local") + "/" + (embeddings.model || "yara") + " · Redis: " + (redis.status || "local-cache") + " · pgvector: " + (postgres.status || "prepared");
+      }
+
+      function renderMemorySearchResults(results) {
+        const target = document.getElementById("memorySearchResults");
+        if (!target) return;
+        if (!results.length) {
+          target.innerHTML = '<p class="muted">Nenhuma memória relacionada encontrada.</p>';
+          return;
+        }
+        target.innerHTML = results.map(function(memory) {
+          const score = memory.score === undefined ? "" : " · similaridade " + Math.round(Number(memory.score) * 100) + "%";
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(memory.title || "Memória") + '</strong><span class="status">' + escapeHtml(memory.category || "geral") + score + '</span></div><p class="muted">' + escapeHtml(memory.content) + '</p></article>';
         }).join("");
       }
 
@@ -4845,15 +4912,25 @@ ${logoYaraStyles()}
       document.getElementById("memoryForm").addEventListener("submit", async function(event) {
         event.preventDefault();
         const title = document.getElementById("memoryTitle").value.trim();
+        const category = document.getElementById("memoryCategory").value;
+        const importance = Number(document.getElementById("memoryImportance").value || 3);
         const content = document.getElementById("memoryContent").value.trim();
         if (content.length < 2) return showToast("Escreva uma memória para salvar.");
-        await api("/api/memories", {
+        await api("/api/memory", {
           method: "POST",
-          body: JSON.stringify({ title: title || undefined, content: content })
+          body: JSON.stringify({ title: title || undefined, category: category, importance: importance, content: content })
         });
         event.currentTarget.reset();
         await loadMemories();
         showToast("Memória salva.");
+      });
+
+      document.getElementById("memorySearchForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        const query = document.getElementById("memorySearchQuery").value.trim();
+        if (query.length < 2) return showToast("Informe uma busca para a memória.");
+        const data = await api("/api/memory/search?query=" + encodeURIComponent(query));
+        renderMemorySearchResults(data.results || []);
       });
 
       document.getElementById("memoryList").addEventListener("click", async function(event) {
@@ -4863,9 +4940,19 @@ ${logoYaraStyles()}
           if (title === null) return;
           const content = window.prompt("Editar conteúdo da memória", editButton.dataset.content || "");
           if (content === null) return;
-          await api("/api/memories/" + editButton.dataset.editMemory, {
-            method: "PATCH",
+          await api("/api/memory/" + editButton.dataset.editMemory, {
+            method: "PUT",
             body: JSON.stringify({ title: title, content: content })
+          });
+          await loadMemories();
+          showToast("Memória atualizada.");
+          return;
+        }
+        const pinButton = event.target.closest("[data-pin-memory]");
+        if (pinButton) {
+          await api("/api/memory/" + pinButton.dataset.pinMemory, {
+            method: "PUT",
+            body: JSON.stringify({ pinned: pinButton.dataset.pinned !== "true" })
           });
           await loadMemories();
           showToast("Memória atualizada.");
@@ -4873,7 +4960,7 @@ ${logoYaraStyles()}
         }
         const button = event.target.closest("[data-delete-memory]");
         if (!button) return;
-        await api("/api/memories/" + button.dataset.deleteMemory, { method: "DELETE" });
+        await api("/api/memory/" + button.dataset.deleteMemory, { method: "DELETE" });
         await loadMemories();
         showToast("Memória removida.");
       });

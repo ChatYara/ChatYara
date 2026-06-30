@@ -30,6 +30,10 @@ AI_PROVIDER=gemini
 GEMINI_API_KEY=
 OPENAI_API_KEY=
 DATABASE_URL=sqlite:./data/yara.sqlite
+POSTGRES_URL=
+REDIS_URL=
+MEMORY_EMBEDDING_PROVIDER=local
+MEMORY_EMBEDDING_DIMENSIONS=96
 JWT_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -66,6 +70,14 @@ Integracoes externas:
 - WhatsApp Business: configure `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` e `WHATSAPP_VERIFY_TOKEN`.
 - Push: configure `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` quando o service worker de push remoto estiver ativo.
 - Sem credenciais, a API continua online e retorna avisos claros para o usuario administrador.
+
+Memoria inteligente:
+
+- Mantenha `DATABASE_URL=sqlite:./data/yara.sqlite` enquanto a instancia Render atual usar SQLite.
+- Configure `POSTGRES_URL` somente quando o banco PostgreSQL estiver provisionado e pronto para migração.
+- Ative pgvector no PostgreSQL antes de migrar embeddings para vetor nativo.
+- Configure `REDIS_URL` quando houver Redis gerenciado; sem Redis, o backend usa cache local em memória.
+- `MEMORY_EMBEDDING_PROVIDER=local` e `MEMORY_EMBEDDING_DIMENSIONS=96` funcionam sem credenciais externas.
 
 Comandos:
 

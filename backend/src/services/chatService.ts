@@ -5,6 +5,11 @@ import { tryCreateCalendarItemFromChat } from "./calendarService";
 import { buildDocumentContextFromUploads } from "./documentService";
 import { tryHandleIntegrationChatIntent } from "./integrationService";
 import { learnFromUserMessage, readLearningContext } from "./learningService";
+import {
+  captureEpisodicMemoryFromMessage,
+  readIntelligentMemoryContext,
+  updateConversationMemorySession
+} from "./memoryService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
 import { toPublicUpload } from "./uploadService";
 
@@ -305,10 +310,12 @@ function readSettingsContext(userId: string) {
   ].join("\n");
 }
 
-function readUserContext(userId: string) {
+function readUserContext(userId: string, query = "", conversationId?: string) {
+  const intelligentMemory = query ? readIntelligentMemoryContext(userId, query, conversationId) : "";
   return [
     readSettingsContext(userId),
     readMemory(userId) ? `Memórias manuais:\n${readMemory(userId)}` : "",
+    intelligentMemory,
     readLearningContext(userId) ? `Aprendizados automáticos seguros:\n${readLearningContext(userId)}` : ""
   ]
     .filter(Boolean)
@@ -456,7 +463,7 @@ export async function regenerateAssistantMessage(userId: string, messageId: stri
     try {
       ai = await askYara({
         prompt: previousUser.content,
-        memory: readUserContext(userId),
+        memory: readUserContext(userId, previousUser.content, assistant.conversation_id),
         context: readRecentContext(assistant.conversation_id)
       });
     } catch (error) {
@@ -551,6 +558,7 @@ export async function sendMessage(
   const prompt = [storedMessage, attachmentContext, documentContext, imageContext].filter(Boolean).join("\n\n");
 
   learnFromUserMessage(userId, storedMessage);
+  captureEpisodicMemoryFromMessage(userId, conversationId, storedMessage);
   const calendarAction = tryCreateCalendarItemFromChat(userId, storedMessage);
   const integrationAction = calendarAction ? null : await tryHandleIntegrationChatIntent(userId, storedMessage);
 
@@ -594,7 +602,7 @@ export async function sendMessage(
               buildSearchContext(search)
             ].join("\n")
           : prompt,
-        memory: readUserContext(userId),
+        memory: readUserContext(userId, prompt, conversationId),
         context: readRecentContext(conversationId)
       });
     } catch (error) {
@@ -614,6 +622,7 @@ export async function sendMessage(
     .run(assistantMessageId, conversationId, finalResponse);
 
   db.prepare("update conversations set updated_at = current_timestamp where id = ?").run(conversationId);
+  updateConversationMemorySession(userId, conversationId, storedMessage, finalResponse);
 
   return {
     conversationId,
