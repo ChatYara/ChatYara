@@ -2139,6 +2139,45 @@ ${logoYaraStyles()}
                 <button class="button" id="logoutAllButton" type="button">${icon("logout")}Encerrar sessões</button>
                 <div class="list" id="sessionList"></div>
               </article>
+              <form class="card" id="cognitiveProfileForm">
+                <h2>Perfil cognitivo</h2>
+                <p class="muted">Contexto persistente para a YARA entender seu momento, objetivos e projetos.</p>
+                <input class="field" id="cognitiveProfession" placeholder="Profissão" />
+                <input class="field" id="cognitiveStudies" placeholder="Estudos" />
+                <textarea class="field" id="cognitiveProjects" rows="3" placeholder="Projetos, um por linha"></textarea>
+                <textarea class="field" id="cognitiveInterests" rows="3" placeholder="Interesses, um por linha"></textarea>
+                <input class="field" id="cognitiveGoalShort" placeholder="Objetivo de curto prazo" />
+                <input class="field" id="cognitiveGoalMedium" placeholder="Objetivo de médio prazo" />
+                <input class="field" id="cognitiveGoalLong" placeholder="Objetivo de longo prazo" />
+                <button class="primary-action" type="submit">${icon("save")}Salvar perfil cognitivo</button>
+              </form>
+              <form class="card" id="cognitivePreferencesForm">
+                <h2>Preferências cognitivas</h2>
+                <input class="field" id="cognitiveCommunication" placeholder="Comunicação preferida. Ex.: direta, acolhedora, executiva" />
+                <select class="select" id="cognitiveLanguage">
+                  <option value="pt-BR">Português</option>
+                  <option value="en">Inglês</option>
+                  <option value="es">Espanhol</option>
+                </select>
+                <select class="select" id="cognitiveResponseStyle">
+                  <option value="balanced">Equilibrada</option>
+                  <option value="direct">Direta</option>
+                  <option value="technical">Técnica</option>
+                  <option value="creative">Criativa</option>
+                  <option value="executive">Executiva</option>
+                </select>
+                <select class="select" id="cognitiveResponseLength">
+                  <option value="short">Curta</option>
+                  <option value="medium">Média</option>
+                  <option value="detailed">Detalhada</option>
+                </select>
+                <button class="button" type="submit">${icon("save")}Salvar preferências</button>
+              </form>
+              <article class="card">
+                <h2>Dashboard do perfil</h2>
+                <div class="dashboard-grid" id="cognitiveProfileCards"></div>
+                <div class="list" id="cognitiveProfileFacts"></div>
+              </article>
             </div>
 
             <div class="settings-pane settings-grid" id="settings-memory" hidden>
@@ -2691,6 +2730,7 @@ ${logoYaraStyles()}
           pane.hidden = pane.id !== "settings-" + tabName;
         });
         if (tabName === "memory") loadMemories();
+        if (tabName === "profile") loadCognitiveProfile();
         if (tabName === "files") loadUploads();
         if (tabName === "documents") loadDocuments();
         if (tabName === "ai") loadAiStatus();
@@ -4377,6 +4417,58 @@ ${logoYaraStyles()}
         document.getElementById("settingsName").textContent = currentUser ? currentUser.name : "Usuário";
         document.getElementById("settingsEmail").textContent = currentUser ? currentUser.email : "Conta YARA";
         els.settingsAvatar.textContent = initials(currentUser ? currentUser.name : "YA");
+        await loadCognitiveProfile().catch(function() {});
+      }
+
+      function linesFromTextarea(id) {
+        return document.getElementById(id).value.split("\\n").map(function(item) { return item.trim(); }).filter(Boolean);
+      }
+
+      function setTextareaLines(id, values) {
+        document.getElementById(id).value = (values || []).join("\\n");
+      }
+
+      function renderCognitiveProfile(data) {
+        const profile = data.profile || {};
+        const preferences = data.preferences || {};
+        const goals = profile.goals || {};
+        document.getElementById("cognitiveProfession").value = profile.profession || "";
+        document.getElementById("cognitiveStudies").value = profile.studies || "";
+        setTextareaLines("cognitiveProjects", profile.projects || []);
+        setTextareaLines("cognitiveInterests", profile.interests || []);
+        document.getElementById("cognitiveGoalShort").value = goals.shortTerm || "";
+        document.getElementById("cognitiveGoalMedium").value = goals.mediumTerm || "";
+        document.getElementById("cognitiveGoalLong").value = goals.longTerm || "";
+        document.getElementById("cognitiveCommunication").value = preferences.communicationStyle || "";
+        document.getElementById("cognitiveLanguage").value = preferences.language || "pt-BR";
+        document.getElementById("cognitiveResponseStyle").value = preferences.responseStyle || "balanced";
+        document.getElementById("cognitiveResponseLength").value = preferences.responseLength || "medium";
+
+        const cards = document.getElementById("cognitiveProfileCards");
+        const facts = document.getElementById("cognitiveProfileFacts");
+        if (cards) {
+          cards.innerHTML = [
+            ["Projetos", (profile.projects || []).length],
+            ["Interesses", (profile.interests || []).length],
+            ["Objetivos", (data.objectives || []).length],
+            ["Fatos sugeridos", (data.facts || []).filter(function(fact) { return fact.status === "suggested"; }).length],
+            ["Confiança", Math.round(Number(profile.confidenceScore || 0) * 100) + "%"]
+          ].map(function(item) {
+            return '<article class="metric-card"><span class="metric-label">' + escapeHtml(item[0]) + '</span><strong>' + escapeHtml(String(item[1])) + '</strong></article>';
+          }).join("");
+        }
+        if (facts) {
+          const rows = (data.facts || []).slice(0, 12);
+          facts.innerHTML = rows.length ? rows.map(function(fact) {
+            return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(fact.label || fact.fact_type) + '</strong><span class="status">' + escapeHtml(fact.status || "sugerido") + " · " + Math.round(Number(fact.confidence_score || 0) * 100) + '%</span></div><p class="muted">' + escapeHtml(fact.content || "") + '</p><p class="muted">Fonte: ' + escapeHtml(fact.source || "manual") + '</p></article>';
+          }).join("") : '<p class="muted">Nenhum fato cognitivo sugerido ainda.</p>';
+        }
+      }
+
+      async function loadCognitiveProfile() {
+        const data = await api("/api/profile");
+        renderCognitiveProfile(data);
+        return data;
       }
 
       async function refreshUser() {
@@ -4857,6 +4949,56 @@ ${logoYaraStyles()}
         await refreshUser();
         await loadSettings();
         showToast("Perfil atualizado.");
+      });
+
+      document.getElementById("cognitiveProfileForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        await api("/api/profile", {
+          method: "PUT",
+          body: JSON.stringify({
+            preferredName: document.getElementById("displayName").value.trim(),
+            profession: document.getElementById("cognitiveProfession").value.trim(),
+            studies: document.getElementById("cognitiveStudies").value.trim(),
+            projects: linesFromTextarea("cognitiveProjects"),
+            interests: linesFromTextarea("cognitiveInterests"),
+            goals: {
+              shortTerm: document.getElementById("cognitiveGoalShort").value.trim(),
+              mediumTerm: document.getElementById("cognitiveGoalMedium").value.trim(),
+              longTerm: document.getElementById("cognitiveGoalLong").value.trim()
+            },
+            source: "manual",
+            confidenceScore: 0.95
+          })
+        });
+        await loadCognitiveProfile();
+        showToast("Perfil cognitivo atualizado.");
+      });
+
+      document.getElementById("cognitivePreferencesForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        const preferences = {
+          communicationStyle: document.getElementById("cognitiveCommunication").value.trim(),
+          language: document.getElementById("cognitiveLanguage").value,
+          responseStyle: document.getElementById("cognitiveResponseStyle").value,
+          responseLength: document.getElementById("cognitiveResponseLength").value,
+          source: "manual",
+          confidenceScore: 0.92
+        };
+        await api("/api/profile/preferences", {
+          method: "PUT",
+          body: JSON.stringify(preferences)
+        });
+        await api("/api/settings", {
+          method: "PATCH",
+          body: JSON.stringify({
+            aiStyle: preferences.responseStyle,
+            language: preferences.language,
+            responseLength: preferences.responseLength,
+            theme: "dark"
+          })
+        });
+        await loadSettings();
+        showToast("Preferências cognitivas salvas.");
       });
 
       document.getElementById("passwordForm").addEventListener("submit", async function(event) {

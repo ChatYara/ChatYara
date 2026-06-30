@@ -210,6 +210,86 @@ create table if not exists user_settings (
   foreign key (user_id) references users(id) on delete cascade
 );
 
+create table if not exists cognitive_profiles (
+  user_id text primary key,
+  preferred_name text,
+  profession text,
+  studies text,
+  projects_json text not null default '[]',
+  interests_json text not null default '[]',
+  goals_json text not null default '{"shortTerm":"","mediumTerm":"","longTerm":""}',
+  history_json text not null default '[]',
+  confidence_score real not null default 0.5,
+  source text not null default 'manual',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists cognitive_profile_facts (
+  id text primary key,
+  user_id text not null,
+  fact_type text not null,
+  label text not null,
+  content text not null,
+  confidence_score real not null default 0.5,
+  source text not null,
+  status text not null default 'suggested',
+  conversation_id text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (conversation_id) references conversations(id) on delete set null
+);
+
+create table if not exists cognitive_preferences (
+  user_id text primary key,
+  communication_style text,
+  language text not null default 'pt-BR',
+  response_style text not null default 'balanced',
+  response_length text not null default 'medium',
+  personal_settings_json text not null default '{}',
+  confidence_score real not null default 0.5,
+  source text not null default 'settings',
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists cognitive_objectives (
+  id text primary key,
+  user_id text not null,
+  horizon text not null check (horizon in ('short', 'medium', 'long')),
+  title text not null,
+  description text,
+  status text not null default 'active',
+  confidence_score real not null default 0.5,
+  source text not null default 'manual',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists cognitive_profile_audit_logs (
+  id text primary key,
+  user_id text not null,
+  action text not null,
+  status text not null default 'success',
+  message text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists cognitive_profile_facts_user_type
+  on cognitive_profile_facts(user_id, fact_type, status, updated_at);
+
+create index if not exists cognitive_objectives_user_horizon
+  on cognitive_objectives(user_id, horizon, status, updated_at);
+
+create index if not exists cognitive_profile_audit_user_created
+  on cognitive_profile_audit_logs(user_id, created_at);
+
 create table if not exists user_sessions (
   id text primary key,
   user_id text not null,

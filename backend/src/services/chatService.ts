@@ -10,6 +10,7 @@ import {
   readIntelligentMemoryContext,
   updateConversationMemorySession
 } from "./memoryService";
+import { extractCognitiveFactsFromMessage, readCognitiveProfileContext } from "./profileService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
 import { toPublicUpload } from "./uploadService";
 
@@ -314,6 +315,7 @@ function readUserContext(userId: string, query = "", conversationId?: string) {
   const intelligentMemory = query ? readIntelligentMemoryContext(userId, query, conversationId) : "";
   return [
     readSettingsContext(userId),
+    readCognitiveProfileContext(userId),
     readMemory(userId) ? `Memórias manuais:\n${readMemory(userId)}` : "",
     intelligentMemory,
     readLearningContext(userId) ? `Aprendizados automáticos seguros:\n${readLearningContext(userId)}` : ""
@@ -559,6 +561,7 @@ export async function sendMessage(
 
   learnFromUserMessage(userId, storedMessage);
   captureEpisodicMemoryFromMessage(userId, conversationId, storedMessage);
+  extractCognitiveFactsFromMessage(userId, conversationId, storedMessage);
   const calendarAction = tryCreateCalendarItemFromChat(userId, storedMessage);
   const integrationAction = calendarAction ? null : await tryHandleIntegrationChatIntent(userId, storedMessage);
 
