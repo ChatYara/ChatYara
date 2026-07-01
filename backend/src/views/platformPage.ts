@@ -2617,6 +2617,45 @@ ${logoYaraStyles()}
         return String(name || "YA").trim().slice(0, 2).toUpperCase();
       }
 
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function on(id, eventName, handler) {
+        const target = typeof id === "string" ? byId(id) : id;
+        if (target) target.addEventListener(eventName, handler);
+      }
+
+      function getValue(id, fallback) {
+        const target = typeof id === "string" ? byId(id) : id;
+        return target && "value" in target ? target.value : (fallback || "");
+      }
+
+      function setValue(id, value) {
+        const target = typeof id === "string" ? byId(id) : id;
+        if (target && "value" in target) target.value = value == null ? "" : value;
+      }
+
+      function getChecked(id) {
+        const target = typeof id === "string" ? byId(id) : id;
+        return Boolean(target && "checked" in target && target.checked);
+      }
+
+      function setText(id, value) {
+        const target = typeof id === "string" ? byId(id) : id;
+        if (target) target.textContent = value == null ? "" : String(value);
+      }
+
+      function setHtml(id, value) {
+        const target = typeof id === "string" ? byId(id) : id;
+        if (target) target.innerHTML = value == null ? "" : String(value);
+      }
+
+      function setHidden(id, value) {
+        const target = typeof id === "string" ? byId(id) : id;
+        if (target) target.hidden = Boolean(value);
+      }
+
       function showToast(message) {
         els.toast.textContent = message;
         els.toast.classList.add("show");
@@ -2670,9 +2709,9 @@ ${logoYaraStyles()}
           '<article class="toggle-row"><div><strong>Arquivos privados</strong><p class="muted">Downloads exigem login e pertencem ao usuário autenticado.</p></div><span class="toggle active"></span></article>',
           '</div>'
         ].join(""));
-        document.getElementById("quickLanguage").value = settings.language || "pt-BR";
-        document.getElementById("quickAiStyle").value = settings.ai_style || "balanced";
-        document.getElementById("quickResponseLength").value = settings.response_length || "medium";
+        setValue("quickLanguage", settings.language || "pt-BR");
+        setValue("quickAiStyle", settings.ai_style || "balanced");
+        setValue("quickResponseLength", settings.response_length || "medium");
       }
 
       function openHelpModal() {
@@ -2748,17 +2787,20 @@ ${logoYaraStyles()}
       }
 
       function closeSidebarDrawer() {
+        if (!els.sidebar) return;
         els.sidebar.classList.remove("open");
         document.body.classList.remove("drawer-open");
       }
 
       function toggleSidebarDrawer() {
+        if (!els.sidebar) return;
         const willOpen = !els.sidebar.classList.contains("open");
         els.sidebar.classList.toggle("open", willOpen);
         document.body.classList.toggle("drawer-open", willOpen);
       }
 
       function renderConversationGroup(target, items, emptyText) {
+        if (!target) return;
         if (!items.length) {
           target.innerHTML = '<p class="muted">' + emptyText + '</p>';
           return;
@@ -2781,6 +2823,7 @@ ${logoYaraStyles()}
       }
 
       function renderConversationHistory(target, items) {
+        if (!target) return;
         if (!items.length) {
           target.innerHTML = '<p class="muted">Nenhuma conversa ainda.</p>';
           return;
@@ -2891,30 +2934,39 @@ ${logoYaraStyles()}
       function setResponseState(state) {
         responseState = state;
         isResponding = state === "sending" || state === "thinking" || state === "typing";
-        els.sendButton.disabled = isResponding;
-        els.sendButton.setAttribute("aria-busy", isResponding ? "true" : "false");
-        els.sendButton.innerHTML = isResponding
-          ? '<span class="send-spinner" aria-hidden="true"></span><span>Enviando</span>'
-          : '${icon("send")}Enviar';
+        if (els.sendButton) {
+          els.sendButton.disabled = isResponding;
+          els.sendButton.setAttribute("aria-busy", isResponding ? "true" : "false");
+          els.sendButton.innerHTML = isResponding
+            ? '<span class="send-spinner" aria-hidden="true"></span><span>Enviando</span>'
+            : '${icon("send")}Enviar';
+        }
       }
 
       function setWebSearchNext(active) {
         useWebSearchNext = Boolean(active);
-        els.webSearchToggle.classList.toggle("active", useWebSearchNext);
-        els.webSearchToggle.setAttribute("aria-pressed", useWebSearchNext ? "true" : "false");
+        if (els.webSearchToggle) {
+          els.webSearchToggle.classList.toggle("active", useWebSearchNext);
+          els.webSearchToggle.setAttribute("aria-pressed", useWebSearchNext ? "true" : "false");
+        }
       }
 
       function setVoiceStatus(message, state) {
         const safeState = state || "idle";
+        if (!els.voiceStatus) return;
         els.voiceStatus.className = "voice-status " + safeState;
         els.voiceStatus.innerHTML = '<span class="voice-waves" aria-hidden="true"><span></span><span></span><span></span></span><strong>' + escapeHtml(message) + '</strong>';
       }
 
       function refreshVoiceControls() {
-        els.dictationButton.classList.toggle("listening", isListening);
-        els.dictationButton.setAttribute("aria-pressed", isListening ? "true" : "false");
-        els.conversationModeButton.classList.toggle("active", conversationMode);
-        els.conversationModeButton.setAttribute("aria-pressed", conversationMode ? "true" : "false");
+        if (els.dictationButton) {
+          els.dictationButton.classList.toggle("listening", isListening);
+          els.dictationButton.setAttribute("aria-pressed", isListening ? "true" : "false");
+        }
+        if (els.conversationModeButton) {
+          els.conversationModeButton.classList.toggle("active", conversationMode);
+          els.conversationModeButton.setAttribute("aria-pressed", conversationMode ? "true" : "false");
+        }
       }
 
       function updateSpeechSupportText() {
@@ -3091,7 +3143,7 @@ ${logoYaraStyles()}
           refreshVoiceControls();
           if (conversationMode && hasText && !isResponding) {
             setVoiceStatus("Enviando fala para a YARA...", "speaking");
-            document.getElementById("chatForm").requestSubmit();
+            byId("chatForm")?.requestSubmit();
             return;
           }
           setVoiceStatus(conversationMode ? "Ouvindo..." : "Voz pronta", conversationMode ? "listening" : "idle");
@@ -3508,8 +3560,8 @@ ${logoYaraStyles()}
       }
 
       function toggleSearch() {
-        document.getElementById("chatSearchRow").classList.add("open");
-        document.getElementById("chatSearchInput").focus();
+        byId("chatSearchRow")?.classList.add("open");
+        byId("chatSearchInput")?.focus();
       }
 
       function openAttachmentPicker(action) {
@@ -3573,26 +3625,26 @@ ${logoYaraStyles()}
           ["Lembretes", stats.reminders || 0, '${icon("pin")}'],
           ["Tarefas pendentes", stats.pendingTasks || 0, '${icon("save")}']
         ];
-        document.getElementById("dashboardStats").innerHTML = statItems.map(function(item) {
+        setHtml("dashboardStats", statItems.map(function(item) {
           return '<article class="card"><div class="item-top"><span class="avatar">' + item[2] + '</span><strong>' + escapeHtml(item[0]) + '</strong></div><h2>' + item[1] + '</h2></article>';
-        }).join("");
+        }).join(""));
 
         const projectTarget = document.getElementById("dashboardProjects");
         const recentProjects = dashboard.recentProjects || [];
-        projectTarget.innerHTML = recentProjects.length ? recentProjects.map(function(project) {
+        if (projectTarget) projectTarget.innerHTML = recentProjects.length ? recentProjects.map(function(project) {
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(project.name) + '</strong><button class="button" data-dashboard-project="' + project.id + '" type="button">Abrir</button></div><p class="muted">' + escapeHtml(project.description || project.type || "Projeto YARA AI") + '</p></article>';
         }).join("") : '<p class="muted">Nenhum projeto criado ainda.</p>';
 
         const taskTarget = document.getElementById("dashboardTasks");
         const recentTasks = dashboard.recentTasks || [];
-        taskTarget.innerHTML = recentTasks.length ? recentTasks.map(function(task) {
+        if (taskTarget) taskTarget.innerHTML = recentTasks.length ? recentTasks.map(function(task) {
           const due = task.due_date ? " · prazo " + escapeHtml(task.due_date) : "";
           return '<article class="list-item"><div class="item-top"><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong><span class="status"><span class="dot"></span>' + (task.status === "done" ? "Concluída" : "Pendente") + '</span></div><p class="muted">' + escapeHtml(task.project_name || "Projeto") + due + '</p></article>';
         }).join("") : '<p class="muted">Nenhuma tarefa registrada.</p>';
 
         const conversationTarget = document.getElementById("dashboardConversations");
         const recentConversations = dashboard.recentConversations || [];
-        conversationTarget.innerHTML = recentConversations.length ? recentConversations.map(function(conversation) {
+        if (conversationTarget) conversationTarget.innerHTML = recentConversations.length ? recentConversations.map(function(conversation) {
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(conversation.title || "Conversa") + '</strong><button class="button" data-dashboard-conversation="' + conversation.id + '" type="button">Abrir</button></div><p class="muted">Atualizada em ' + escapeHtml(conversation.updated_at || "") + '</p></article>';
         }).join("") : '<p class="muted">Nenhuma conversa recente.</p>';
 
@@ -3601,7 +3653,7 @@ ${logoYaraStyles()}
           .concat((dashboard.upcomingReminders || []).map(function(reminder) { return "Lembrete: " + reminder.title + " · " + new Date(reminder.scheduled_at).toLocaleString("pt-BR"); }))
           .slice(0, 4);
         const suggestionTarget = document.getElementById("dashboardSuggestions");
-        suggestionTarget.innerHTML = calendarHints.concat(dashboard.suggestions || []).map(function(text) {
+        if (suggestionTarget) suggestionTarget.innerHTML = calendarHints.concat(dashboard.suggestions || []).map(function(text) {
           return '<article class="list-item"><p class="muted">' + escapeHtml(text) + '</p></article>';
         }).join("");
       }
@@ -3613,16 +3665,16 @@ ${logoYaraStyles()}
       }
 
       function renderProjects() {
-        const query = document.getElementById("projectSearch").value.trim().toLowerCase();
+        const query = getValue("projectSearch").trim().toLowerCase();
         const visible = projects.filter(function(project) {
           return !query || String(project.name + " " + (project.description || project.prompt || "")).toLowerCase().includes(query);
         });
         const target = document.getElementById("projectList");
         if (!visible.length) {
-          target.innerHTML = '<p class="muted">Nenhum projeto encontrado.</p>';
+          if (target) target.innerHTML = '<p class="muted">Nenhum projeto encontrado.</p>';
           return;
         }
-        target.innerHTML = visible.map(function(project) {
+        if (target) target.innerHTML = visible.map(function(project) {
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(project.name) + '</strong><button class="button" data-open-project="' + project.id + '" type="button">Abrir projeto</button></div><p class="muted">' + escapeHtml(project.description || project.prompt || "Projeto YARA AI") + '</p></article>';
         }).join("");
       }
@@ -3631,7 +3683,7 @@ ${logoYaraStyles()}
         const select = document.getElementById("projectUploadSelect");
         const data = await api("/api/uploads");
         const uploads = data.uploads || [];
-        select.innerHTML = uploads.length
+        if (select) select.innerHTML = uploads.length
           ? uploads.map(function(file) {
               return '<option value="' + escapeHtml(file.id) + '">' + escapeHtml(file.original_name || file.file_name || "Arquivo") + " · " + attachmentMeta(file) + '</option>';
             }).join("")
@@ -3646,35 +3698,35 @@ ${logoYaraStyles()}
         const conversations = details.conversations || [];
         const history = details.history || [];
 
-        document.getElementById("projectTaskList").innerHTML = tasks.length ? tasks.map(function(task) {
+        setHtml("projectTaskList", tasks.length ? tasks.map(function(task) {
           return '<article class="list-item"><div class="item-top"><label class="row"><input type="checkbox" data-toggle-task="' + task.id + '" ' + (task.status === "done" ? "checked" : "") + ' /><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong></label><button class="icon-button danger" data-delete-task="' + task.id + '" type="button" aria-label="Excluir tarefa">${icon("trash")}</button></div><p class="muted">' + escapeHtml(task.description || (task.due_date ? "Prazo: " + task.due_date : "Sem prazo definido")) + '</p></article>';
-        }).join("") : '<p class="muted">Nenhuma tarefa criada para este projeto.</p>';
+        }).join("") : '<p class="muted">Nenhuma tarefa criada para este projeto.</p>');
 
-        document.getElementById("projectNoteList").innerHTML = notes.length ? notes.map(function(note) {
+        setHtml("projectNoteList", notes.length ? notes.map(function(note) {
           return '<article class="list-item"><div class="item-top"><strong>Nota do projeto</strong><div class="row"><button class="icon-button" data-edit-note="' + note.id + '" data-content="' + escapeHtml(note.content) + '" type="button" aria-label="Editar nota">${icon("save")}</button><button class="icon-button danger" data-delete-note="' + note.id + '" type="button" aria-label="Excluir nota">${icon("trash")}</button></div></div><p class="muted">' + escapeHtml(note.content) + '</p></article>';
-        }).join("") : '<p class="muted">Nenhuma nota salva.</p>';
+        }).join("") : '<p class="muted">Nenhuma nota salva.</p>');
 
-        document.getElementById("projectFileList").innerHTML = files.length ? files.map(function(file) {
+        setHtml("projectFileList", files.length ? files.map(function(file) {
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.original_name || file.file_name || "Arquivo") + '</strong><button class="button" data-download-upload="' + file.id + '" data-file-name="' + escapeHtml(file.original_name || file.file_name || "arquivo") + '" type="button">Abrir</button></div><p class="muted">' + attachmentMeta(file) + '</p></article>';
-        }).join("") : '<p class="muted">Nenhum arquivo vinculado a este projeto.</p>';
+        }).join("") : '<p class="muted">Nenhum arquivo vinculado a este projeto.</p>');
 
-        document.getElementById("projectConversationList").innerHTML = conversations.length ? conversations.map(function(conversation) {
+        setHtml("projectConversationList", conversations.length ? conversations.map(function(conversation) {
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(conversation.title || "Conversa") + '</strong><button class="button" data-open-conversation="' + conversation.id + '" type="button">Abrir</button></div><p class="muted">Atualizada em ' + escapeHtml(conversation.updated_at || "") + '</p></article>';
-        }).join("") : '<p class="muted">Nenhuma conversa vinculada ainda.</p>';
+        }).join("") : '<p class="muted">Nenhuma conversa vinculada ainda.</p>');
 
-        document.getElementById("projectHistoryList").innerHTML = history.length ? history.map(function(item) {
+        setHtml("projectHistoryList", history.length ? history.map(function(item) {
           const label = item.type === "task" ? "Tarefa" : item.type === "file" ? "Arquivo" : "Nota";
           return '<article class="list-item"><div class="item-top"><strong>' + label + '</strong><span class="muted">' + escapeHtml(item.updated_at || "") + '</span></div><p class="muted">' + escapeHtml(item.label || "") + '</p></article>';
-        }).join("") : '<p class="muted">O histórico aparecerá conforme você criar tarefas, notas e arquivos.</p>';
+        }).join("") : '<p class="muted">O histórico aparecerá conforme você criar tarefas, notas e arquivos.</p>');
       }
 
       async function selectProject(projectId) {
         selectedProject = projects.find(function(project) { return project.id === projectId; }) || null;
         if (!selectedProject) return;
-        document.getElementById("projectDetailTitle").textContent = selectedProject.name;
-        document.getElementById("projectDetailDescription").textContent = selectedProject.description || selectedProject.prompt || "Projeto criado na YARA AI.";
-        document.getElementById("projectDetail").textContent = selectedProject.content || selectedProject.output || selectedProject.prompt || "";
-        document.getElementById("projectWorkspace").hidden = false;
+        setText("projectDetailTitle", selectedProject.name);
+        setText("projectDetailDescription", selectedProject.description || selectedProject.prompt || "Projeto criado na YARA AI.");
+        setText("projectDetail", selectedProject.content || selectedProject.output || selectedProject.prompt || "");
+        setHidden("projectWorkspace", false);
         const data = await api("/api/projects/" + selectedProject.id + "/details");
         renderProjectDetails(data);
         await loadProjectUploadOptions();
@@ -3686,6 +3738,7 @@ ${logoYaraStyles()}
         const data = intelligent || await api("/api/memories");
         const memories = data.memories || [];
         const target = document.getElementById("memoryList");
+        if (!target) return;
         if (!memories.length) {
           target.innerHTML = '<p class="muted">Nenhuma memória salva ainda.</p>';
           return;
@@ -3738,7 +3791,7 @@ ${logoYaraStyles()}
         const uploads = data.uploads || [];
         const target = document.getElementById("uploadsList");
         const total = uploads.reduce(function(sum, item) { return sum + Number(item.file_size || 0); }, 0);
-        document.getElementById("storageText").textContent = Math.round(total / 1024 / 1024 * 10) / 10 + " MB em arquivos enviados.";
+        setText("storageText", Math.round(total / 1024 / 1024 * 10) / 10 + " MB em arquivos enviados.");
         if (!uploads.length) {
           target.innerHTML = '<p class="muted">Nenhum arquivo enviado ainda.</p>';
           return;
@@ -3754,7 +3807,7 @@ ${logoYaraStyles()}
       }
 
       function parseDocumentFields(fieldId) {
-        const raw = document.getElementById(fieldId).value.trim();
+        const raw = getValue(fieldId).trim();
         if (!raw) return {};
         try {
           const parsed = JSON.parse(raw);
@@ -3828,7 +3881,7 @@ ${logoYaraStyles()}
       }
 
       async function createDocumentFromControls(config) {
-        const title = document.getElementById(config.titleId).value.trim();
+        const title = getValue(config.titleId).trim();
         if (title.length < 2) return showToast("Informe um título para o documento.");
         let fields;
         try {
@@ -3840,12 +3893,12 @@ ${logoYaraStyles()}
           method: "POST",
           body: JSON.stringify({
             title: title,
-            template: document.getElementById(config.templateId).value,
-            format: document.getElementById(config.formatId).value,
+            template: getValue(config.templateId),
+            format: getValue(config.formatId),
             fields: fields
           })
         });
-        document.getElementById(config.titleId).value = "";
+        setValue(config.titleId, "");
         await loadDocuments();
         await loadDashboard();
         showToast("Documento gerado com sucesso.");
@@ -3880,13 +3933,13 @@ ${logoYaraStyles()}
         await loadDocuments();
         await loadDashboard();
         const analysis = data.document && data.document.metadata ? data.document.metadata.analysis : null;
-        document.getElementById("documentAnalysisList").innerHTML = '<article class="list-item"><strong>' + escapeHtml(data.document.title) + '</strong><p class="muted">Documento enviado e analisado.</p><pre class="code-block">' + escapeHtml(JSON.stringify(analysis || {}, null, 2)) + '</pre></article>';
+        setHtml("documentAnalysisList", '<article class="list-item"><strong>' + escapeHtml(data.document.title) + '</strong><p class="muted">Documento enviado e analisado.</p><pre class="code-block">' + escapeHtml(JSON.stringify(analysis || {}, null, 2)) + '</pre></article>');
         showToast("Documento enviado e analisado.");
       }
 
       async function convertSelectedDocument() {
-        const documentId = document.getElementById("documentConvertSource").value;
-        const toFormat = document.getElementById("documentConvertFormat").value;
+        const documentId = getValue("documentConvertSource");
+        const toFormat = getValue("documentConvertFormat");
         if (!documentId) return showToast("Selecione um documento para converter.");
         const data = await api("/api/documents/convert", {
           method: "POST",
@@ -3921,7 +3974,7 @@ ${logoYaraStyles()}
         if (file.size > 10 * 1024 * 1024) return showToast("Imagem muito grande.");
         pendingImageFile = file;
         pendingImagePreviewUrl = URL.createObjectURL(file);
-        document.getElementById("imagePreview").innerHTML = '<img src="' + pendingImagePreviewUrl + '" alt="' + escapeHtml(file.name) + '" /><p class="muted">' + escapeHtml(file.name) + " · " + escapeHtml(file.type) + " · " + formatFileSize(file.size) + '</p>';
+        setHtml("imagePreview", '<img src="' + pendingImagePreviewUrl + '" alt="' + escapeHtml(file.name) + '" /><p class="muted">' + escapeHtml(file.name) + " · " + escapeHtml(file.type) + " · " + formatFileSize(file.size) + '</p>');
       }
 
       async function uploadPendingImage() {
@@ -4027,23 +4080,23 @@ ${logoYaraStyles()}
         });
         await loadImages();
         const result = data.ocr && data.ocr.result ? data.ocr.result : {};
-        document.getElementById("imageOcrResult").textContent = result.text || result.message || "OCR ainda não configurado neste ambiente.";
+        setText("imageOcrResult", result.text || result.message || "OCR ainda não configurado neste ambiente.");
         openModal("OCR da imagem", data.image ? data.image.original_name : "Imagem", '<pre class="code-block">' + escapeHtml(JSON.stringify(result, null, 2)) + '</pre>');
       }
 
       async function editImageFromControls(imageId) {
-        const id = imageId || document.getElementById("imageEditSource").value;
+        const id = imageId || getValue("imageEditSource");
         if (!id) return showToast("Selecione uma imagem para editar.");
         const payload = {
           imageId: id,
-          optimize: document.getElementById("imageEditOptimize").checked,
-          brightness: Number(document.getElementById("imageEditBrightness").value || 1),
-          contrast: Number(document.getElementById("imageEditContrast").value || 1),
-          saturation: Number(document.getElementById("imageEditSaturation").value || 1)
+          optimize: getChecked("imageEditOptimize"),
+          brightness: Number(getValue("imageEditBrightness") || 1),
+          contrast: Number(getValue("imageEditContrast") || 1),
+          saturation: Number(getValue("imageEditSaturation") || 1)
         };
-        const width = Number(document.getElementById("imageEditWidth").value || 0);
-        const height = Number(document.getElementById("imageEditHeight").value || 0);
-        const format = document.getElementById("imageEditFormat").value;
+        const width = Number(getValue("imageEditWidth") || 0);
+        const height = Number(getValue("imageEditHeight") || 0);
+        const format = getValue("imageEditFormat");
         if (width) payload.width = width;
         if (height) payload.height = height;
         if (format) payload.format = format;
@@ -4065,7 +4118,7 @@ ${logoYaraStyles()}
         setPendingAttachment(file);
         els.messageInput.value = "O que tem nessa imagem?";
         autoGrowMessageInput();
-        document.getElementById("chatForm").requestSubmit();
+        byId("chatForm")?.requestSubmit();
       }
 
       async function showImageProjectPicker(imageId) {
@@ -4083,7 +4136,7 @@ ${logoYaraStyles()}
         if (ocrButton) return runImageOcr(ocrButton.dataset.ocrImage);
         const editButton = event.target.closest("[data-edit-image]");
         if (editButton) {
-          document.getElementById("imageEditSource").value = editButton.dataset.editImage;
+          setValue("imageEditSource", editButton.dataset.editImage);
           return editImageFromControls(editButton.dataset.editImage);
         }
         const sendButton = event.target.closest("[data-send-image-chat]");
@@ -4196,18 +4249,18 @@ ${logoYaraStyles()}
 
       async function createEventFromForm(event) {
         event.preventDefault();
-        const title = document.getElementById("eventTitle").value.trim();
+        const title = getValue("eventTitle").trim();
         if (title.length < 2) return showToast("Informe um título para o evento.");
         await api("/api/calendar/events", {
           method: "POST",
           body: JSON.stringify({
             title: title,
-            description: document.getElementById("eventDescription").value.trim() || null,
-            date: document.getElementById("eventDate").value,
-            time: document.getElementById("eventTime").value || null,
-            location: document.getElementById("eventLocation").value.trim() || null,
-            participants: document.getElementById("eventParticipants").value.trim() || null,
-            reminderMinutes: document.getElementById("eventReminder").value ? Number(document.getElementById("eventReminder").value) : null
+            description: getValue("eventDescription").trim() || null,
+            date: getValue("eventDate"),
+            time: getValue("eventTime") || null,
+            location: getValue("eventLocation").trim() || null,
+            participants: getValue("eventParticipants").trim() || null,
+            reminderMinutes: getValue("eventReminder") ? Number(getValue("eventReminder")) : null
           })
         });
         event.currentTarget.reset();
@@ -4219,16 +4272,16 @@ ${logoYaraStyles()}
 
       async function createReminderFromForm(event) {
         event.preventDefault();
-        const title = document.getElementById("reminderTitle").value.trim();
-        const scheduledAt = document.getElementById("reminderScheduledAt").value;
+        const title = getValue("reminderTitle").trim();
+        const scheduledAt = getValue("reminderScheduledAt");
         if (title.length < 2 || !scheduledAt) return showToast("Informe título, data e hora para o lembrete.");
         await api("/api/reminders", {
           method: "POST",
           body: JSON.stringify({
             title: title,
-            message: document.getElementById("reminderMessage").value.trim() || null,
+            message: getValue("reminderMessage").trim() || null,
             scheduledAt: new Date(scheduledAt).toISOString(),
-            recurrence: document.getElementById("reminderRecurrence").value
+            recurrence: getValue("reminderRecurrence")
           })
         });
         event.currentTarget.reset();
@@ -4282,11 +4335,12 @@ ${logoYaraStyles()}
         const status = document.getElementById("googleCalendarStatus");
         try {
           const data = await api(path, { method: method });
-          status.textContent = data.message || data.url || "Google Calendar pronto.";
+          if (status) status.textContent = data.message || data.url || "Google Calendar pronto.";
           if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
         } catch (error) {
-          status.textContent = error.message || "Google Calendar ainda não configurado pelo administrador.";
-          showToast(status.textContent);
+          const message = error.message || "Google Calendar ainda não configurado pelo administrador.";
+          if (status) status.textContent = message;
+          showToast(message);
         }
       }
 
@@ -4382,9 +4436,9 @@ ${logoYaraStyles()}
 
       async function loadAiStatus() {
         const data = await api("/api/ai/status");
-        document.getElementById("aiProvider").textContent = data.provider || "YARA";
-        document.getElementById("aiModel").textContent = data.model || "Modelo ativo";
-        document.getElementById("aiOnline").textContent = data.online ? "Online" : "Offline";
+        setText("aiProvider", data.provider || "YARA");
+        setText("aiModel", data.model || "Modelo ativo");
+        setText("aiOnline", data.online ? "Online" : "Offline");
         const modelSelect = document.getElementById("modelSelect");
         if (modelSelect) {
           const label = (data.provider ? data.provider.toUpperCase() + " · " : "") + (data.model || "Modelo ativo");
@@ -4405,44 +4459,44 @@ ${logoYaraStyles()}
         await api("/api/users/profile").catch(function() { return null; });
         const data = await api("/api/settings");
         const settings = data.settings || {};
-        document.getElementById("displayName").value = settings.display_name || (currentUser ? currentUser.name : "");
-        document.getElementById("fullName").value = settings.full_name || (currentUser ? currentUser.name : "");
-        document.getElementById("profileEmail").value = currentUser ? currentUser.email : "";
-        document.getElementById("profilePhone").value = currentUser && currentUser.phone ? currentUser.phone : "";
-        document.getElementById("avatarUrl").value = settings.avatar_url || "";
-        document.getElementById("aiStyle").value = settings.ai_style || "balanced";
-        document.getElementById("language").value = settings.language || "pt-BR";
-        document.getElementById("responseLength").value = settings.response_length || "medium";
+        setValue("displayName", settings.display_name || (currentUser ? currentUser.name : ""));
+        setValue("fullName", settings.full_name || (currentUser ? currentUser.name : ""));
+        setValue("profileEmail", currentUser ? currentUser.email : "");
+        setValue("profilePhone", currentUser && currentUser.phone ? currentUser.phone : "");
+        setValue("avatarUrl", settings.avatar_url || "");
+        setValue("aiStyle", settings.ai_style || "balanced");
+        setValue("language", settings.language || "pt-BR");
+        setValue("responseLength", settings.response_length || "medium");
         applyVoiceSettings(settings);
-        document.getElementById("settingsName").textContent = currentUser ? currentUser.name : "Usuário";
-        document.getElementById("settingsEmail").textContent = currentUser ? currentUser.email : "Conta YARA";
+        setText("settingsName", currentUser ? currentUser.name : "Usuário");
+        setText("settingsEmail", currentUser ? currentUser.email : "Conta YARA");
         els.settingsAvatar.textContent = initials(currentUser ? currentUser.name : "YA");
         await loadCognitiveProfile().catch(function() {});
       }
 
       function linesFromTextarea(id) {
-        return document.getElementById(id).value.split("\\n").map(function(item) { return item.trim(); }).filter(Boolean);
+        return getValue(id).split("\\n").map(function(item) { return item.trim(); }).filter(Boolean);
       }
 
       function setTextareaLines(id, values) {
-        document.getElementById(id).value = (values || []).join("\\n");
+        setValue(id, (values || []).join("\\n"));
       }
 
       function renderCognitiveProfile(data) {
         const profile = data.profile || {};
         const preferences = data.preferences || {};
         const goals = profile.goals || {};
-        document.getElementById("cognitiveProfession").value = profile.profession || "";
-        document.getElementById("cognitiveStudies").value = profile.studies || "";
+        setValue("cognitiveProfession", profile.profession || "");
+        setValue("cognitiveStudies", profile.studies || "");
         setTextareaLines("cognitiveProjects", profile.projects || []);
         setTextareaLines("cognitiveInterests", profile.interests || []);
-        document.getElementById("cognitiveGoalShort").value = goals.shortTerm || "";
-        document.getElementById("cognitiveGoalMedium").value = goals.mediumTerm || "";
-        document.getElementById("cognitiveGoalLong").value = goals.longTerm || "";
-        document.getElementById("cognitiveCommunication").value = preferences.communicationStyle || "";
-        document.getElementById("cognitiveLanguage").value = preferences.language || "pt-BR";
-        document.getElementById("cognitiveResponseStyle").value = preferences.responseStyle || "balanced";
-        document.getElementById("cognitiveResponseLength").value = preferences.responseLength || "medium";
+        setValue("cognitiveGoalShort", goals.shortTerm || "");
+        setValue("cognitiveGoalMedium", goals.mediumTerm || "");
+        setValue("cognitiveGoalLong", goals.longTerm || "");
+        setValue("cognitiveCommunication", preferences.communicationStyle || "");
+        setValue("cognitiveLanguage", preferences.language || "pt-BR");
+        setValue("cognitiveResponseStyle", preferences.responseStyle || "balanced");
+        setValue("cognitiveResponseLength", preferences.responseLength || "medium");
 
         const cards = document.getElementById("cognitiveProfileCards");
         const facts = document.getElementById("cognitiveProfileFacts");
@@ -4506,18 +4560,18 @@ ${logoYaraStyles()}
         if (target) setView(target.dataset.viewTarget);
       });
 
-      els.pinnedList.addEventListener("click", function(event) {
+      on(els.pinnedList, "click", function(event) {
         const button = event.target.closest("[data-conversation]");
         if (button) openConversation(button.dataset.conversation);
       });
-      els.conversationList.addEventListener("click", function(event) {
+      on(els.conversationList, "click", function(event) {
         const button = event.target.closest("[data-conversation]");
         if (button) openConversation(button.dataset.conversation);
       });
 
-      document.getElementById("newConversationButton").addEventListener("click", newConversation);
-      document.getElementById("refreshDashboardButton").addEventListener("click", loadDashboard);
-      document.getElementById("view-dashboard").addEventListener("click", async function(event) {
+      on("newConversationButton", "click", newConversation);
+      on("refreshDashboardButton", "click", loadDashboard);
+      on("view-dashboard", "click", async function(event) {
         const projectButton = event.target.closest("[data-dashboard-project]");
         if (projectButton) {
           setView("projects");
@@ -4531,31 +4585,31 @@ ${logoYaraStyles()}
           await openConversation(conversationButton.dataset.dashboardConversation);
         }
       });
-      document.getElementById("chatForm").addEventListener("submit", sendMessage);
-      document.getElementById("messageInput").addEventListener("input", autoGrowMessageInput);
-      document.getElementById("messageInput").addEventListener("keydown", function(event) {
+      on("chatForm", "submit", sendMessage);
+      on("messageInput", "input", autoGrowMessageInput);
+      on("messageInput", "keydown", function(event) {
         if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();
-          document.getElementById("chatForm").requestSubmit();
+          byId("chatForm")?.requestSubmit();
         }
       });
-      document.getElementById("mobileToggle").addEventListener("click", toggleSidebarDrawer);
-      document.getElementById("quickSettingsButton").addEventListener("click", openQuickSettingsModal);
-      document.getElementById("sidebarSettingsButton").addEventListener("click", function() { setView("settings"); });
-      document.getElementById("helpButton").addEventListener("click", openHelpModal);
-      document.getElementById("termsButton").addEventListener("click", openTermsModal);
-      document.getElementById("chatMenuButton").addEventListener("click", toggleChatMenu);
-      document.getElementById("attachButton").addEventListener("click", function() { els.attachMenu.classList.toggle("open"); });
-      document.getElementById("webSearchToggle").addEventListener("click", function() {
+      on("mobileToggle", "click", toggleSidebarDrawer);
+      on("quickSettingsButton", "click", openQuickSettingsModal);
+      on("sidebarSettingsButton", "click", function() { setView("settings"); });
+      on("helpButton", "click", openHelpModal);
+      on("termsButton", "click", openTermsModal);
+      on("chatMenuButton", "click", toggleChatMenu);
+      on("attachButton", "click", function() { els.attachMenu.classList.toggle("open"); });
+      on("webSearchToggle", "click", function() {
         setWebSearchNext(!useWebSearchNext);
         showToast(useWebSearchNext ? "A próxima mensagem usará pesquisa online." : "Pesquisa online desativada.");
       });
-      document.getElementById("dictationButton").addEventListener("click", toggleDictation);
-      document.getElementById("conversationModeButton").addEventListener("click", function() {
+      on("dictationButton", "click", toggleDictation);
+      on("conversationModeButton", "click", function() {
         setConversationMode(!conversationMode);
       });
-      document.getElementById("modalClose").addEventListener("click", closeModal);
-      els.modalOverlay.addEventListener("click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
+      on("modalClose", "click", closeModal);
+      on(els.modalOverlay, "click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
       document.addEventListener("click", function(event) {
         if (!els.chatActionMenu.classList.contains("open")) return;
         if (event.target.closest("#chatActionMenu") || event.target.closest("#chatMenuButton")) return;
@@ -4572,13 +4626,13 @@ ${logoYaraStyles()}
         closeSidebarDrawer();
         els.attachMenu.classList.remove("open");
       });
-      els.attachmentPreview.addEventListener("click", function(event) {
+      on(els.attachmentPreview, "click", function(event) {
         const button = event.target.closest("#removeAttachmentButton");
         if (!button) return;
         clearPendingAttachment();
         showToast("Anexo removido.");
       });
-      els.messages.addEventListener("click", async function(event) {
+      on(els.messages, "click", async function(event) {
         const promptButton = event.target.closest("[data-prompt]");
         if (promptButton) {
           els.messageInput.value = promptButton.dataset.prompt || "";
@@ -4641,7 +4695,7 @@ ${logoYaraStyles()}
         await downloadUpload(button.dataset.downloadUpload, button.dataset.fileName || "arquivo");
       });
 
-      document.getElementById("chatActionMenu").addEventListener("click", async function(event) {
+      on("chatActionMenu", "click", async function(event) {
         const item = event.target.closest("[data-action]");
         if (!item) return;
         const action = item.dataset.action;
@@ -4656,21 +4710,21 @@ ${logoYaraStyles()}
         if (action === "deleteConversation") await deleteCurrentConversation();
       });
 
-      document.getElementById("attachMenu").addEventListener("click", async function(event) {
+      on("attachMenu", "click", async function(event) {
         const item = event.target.closest("[data-action]");
         if (!item) return;
         openAttachmentPicker(item.dataset.action);
       });
 
       [els.fileInputImages, els.fileInputDocument, els.fileInputPdf, els.fileInputCamera].forEach(function(input) {
-        input.addEventListener("change", function(event) {
+        on(input, "change", function(event) {
           const file = event.target.files && event.target.files[0];
           setPendingAttachment(file);
           event.target.value = "";
         });
       });
 
-      document.getElementById("modalBody").addEventListener("click", async function(event) {
+      on("modalBody", "click", async function(event) {
         const settingsTab = event.target.closest("[data-modal-settings-tab]");
         if (settingsTab) {
           document.querySelectorAll("[data-modal-settings-tab]").forEach(function(tab) {
@@ -4721,15 +4775,15 @@ ${logoYaraStyles()}
         showToast("Conversa adicionada ao projeto.");
       });
 
-      document.getElementById("modalBody").addEventListener("submit", async function(event) {
+      on("modalBody", "submit", async function(event) {
         if (event.target && event.target.id === "quickSettingsForm") {
           event.preventDefault();
           await api("/api/settings", {
             method: "PATCH",
             body: JSON.stringify({
-              language: document.getElementById("quickLanguage").value,
-              aiStyle: document.getElementById("quickAiStyle").value,
-              responseLength: document.getElementById("quickResponseLength").value,
+              language: getValue("quickLanguage"),
+              aiStyle: getValue("quickAiStyle"),
+              responseLength: getValue("quickResponseLength"),
               theme: "dark"
             })
           });
@@ -4738,24 +4792,25 @@ ${logoYaraStyles()}
         }
       });
 
-      document.getElementById("chatSearchInput").addEventListener("input", function(event) {
+      on("chatSearchInput", "input", function(event) {
         const query = event.target.value.trim().toLowerCase();
         document.querySelectorAll(".message").forEach(function(node) {
           node.classList.toggle("hidden-by-search", query && !node.textContent.toLowerCase().includes(query));
         });
       });
-      document.getElementById("closeSearchButton").addEventListener("click", function() {
-        document.getElementById("chatSearchInput").value = "";
-        document.getElementById("chatSearchRow").classList.remove("open");
+      on("closeSearchButton", "click", function() {
+        setValue("chatSearchInput", "");
+        byId("chatSearchRow")?.classList.remove("open");
         document.querySelectorAll(".message").forEach(function(node) { node.classList.remove("hidden-by-search"); });
       });
 
-      document.getElementById("generatorForm").addEventListener("submit", async function(event) {
+      on("generatorForm", "submit", async function(event) {
         event.preventDefault();
-        const prompt = document.getElementById("generatorPrompt").value.trim();
-        const type = document.getElementById("systemType").value;
+        const prompt = getValue("generatorPrompt").trim();
+        const type = getValue("systemType");
         if (prompt.length < 8) return showToast("Descreva melhor o sistema que você quer criar.");
         const result = document.getElementById("generatorResult");
+        if (!result) return showToast("Área do gerador indisponível.");
         result.textContent = "A YARA está estruturando o sistema...";
         try {
           const data = await api("/api/generator", {
@@ -4764,7 +4819,7 @@ ${logoYaraStyles()}
           });
           generatedProject = data.project;
           result.textContent = data.project.content || data.project.output;
-          document.getElementById("generatorPrompt").value = "";
+          setValue("generatorPrompt", "");
           showToast("Sistema gerado e salvo em Meus Projetos.");
         } catch (error) {
           result.textContent = "Não foi possível gerar agora.";
@@ -4772,30 +4827,30 @@ ${logoYaraStyles()}
         }
       });
 
-      document.getElementById("openGeneratedProject").addEventListener("click", async function() {
+      on("openGeneratedProject", "click", async function() {
         if (!generatedProject) return showToast("Gere um projeto primeiro.");
         setView("projects");
         await loadProjects();
         await selectProject(generatedProject.id);
       });
 
-      document.getElementById("continueGeneratedChat").addEventListener("click", async function() {
+      on("continueGeneratedChat", "click", async function() {
         if (!generatedProject) return showToast("Gere um projeto primeiro.");
         await newConversation();
         els.messageInput.value = "Vamos continuar o projeto " + generatedProject.name + ".";
         els.messageInput.focus();
       });
 
-      document.getElementById("projectSearch").addEventListener("input", renderProjects);
-      document.getElementById("projectList").addEventListener("click", function(event) {
+      on("projectSearch", "input", renderProjects);
+      on("projectList", "click", function(event) {
         const button = event.target.closest("[data-open-project]");
         if (button) selectProject(button.dataset.openProject);
       });
-      document.getElementById("projectTaskForm").addEventListener("submit", async function(event) {
+      on("projectTaskForm", "submit", async function(event) {
         event.preventDefault();
         if (!selectedProject) return showToast("Selecione um projeto.");
-        const title = document.getElementById("projectTaskTitle").value.trim();
-        const dueDate = document.getElementById("projectTaskDueDate").value;
+        const title = getValue("projectTaskTitle").trim();
+        const dueDate = getValue("projectTaskDueDate");
         if (title.length < 2) return showToast("Informe uma tarefa válida.");
         await api("/api/projects/" + selectedProject.id + "/tasks", {
           method: "POST",
@@ -4805,7 +4860,7 @@ ${logoYaraStyles()}
         await selectProject(selectedProject.id);
         showToast("Tarefa adicionada.");
       });
-      document.getElementById("projectTaskList").addEventListener("click", async function(event) {
+      on("projectTaskList", "click", async function(event) {
         if (!selectedProject) return;
         const toggle = event.target.closest("[data-toggle-task]");
         if (toggle) {
@@ -4823,10 +4878,10 @@ ${logoYaraStyles()}
         await selectProject(selectedProject.id);
         showToast("Tarefa removida.");
       });
-      document.getElementById("projectNoteForm").addEventListener("submit", async function(event) {
+      on("projectNoteForm", "submit", async function(event) {
         event.preventDefault();
         if (!selectedProject) return showToast("Selecione um projeto.");
-        const content = document.getElementById("projectNoteContent").value.trim();
+        const content = getValue("projectNoteContent").trim();
         if (content.length < 2) return showToast("Escreva uma nota válida.");
         await api("/api/projects/" + selectedProject.id + "/notes", {
           method: "POST",
@@ -4836,7 +4891,7 @@ ${logoYaraStyles()}
         await selectProject(selectedProject.id);
         showToast("Nota salva.");
       });
-      document.getElementById("projectNoteList").addEventListener("click", async function(event) {
+      on("projectNoteList", "click", async function(event) {
         if (!selectedProject) return;
         const editButton = event.target.closest("[data-edit-note]");
         if (editButton) {
@@ -4856,9 +4911,9 @@ ${logoYaraStyles()}
         await selectProject(selectedProject.id);
         showToast("Nota removida.");
       });
-      document.getElementById("linkProjectFileButton").addEventListener("click", async function() {
+      on("linkProjectFileButton", "click", async function() {
         if (!selectedProject) return showToast("Selecione um projeto.");
-        const uploadId = document.getElementById("projectUploadSelect").value;
+        const uploadId = getValue("projectUploadSelect");
         if (!uploadId) return showToast("Envie um arquivo antes de vincular.");
         await api("/api/projects/" + selectedProject.id + "/files", {
           method: "POST",
@@ -4867,48 +4922,48 @@ ${logoYaraStyles()}
         await selectProject(selectedProject.id);
         showToast("Arquivo vinculado ao projeto.");
       });
-      document.getElementById("refreshProjectFilesButton").addEventListener("click", async function() {
+      on("refreshProjectFilesButton", "click", async function() {
         if (!selectedProject) return showToast("Selecione um projeto.");
         await selectProject(selectedProject.id);
         showToast("Arquivos do projeto atualizados.");
       });
-      document.getElementById("projectFileList").addEventListener("click", async function(event) {
+      on("projectFileList", "click", async function(event) {
         const button = event.target.closest("[data-download-upload]");
         if (button) await downloadUpload(button.dataset.downloadUpload, button.dataset.fileName || "arquivo");
       });
-      document.getElementById("projectConversationList").addEventListener("click", async function(event) {
+      on("projectConversationList", "click", async function(event) {
         const button = event.target.closest("[data-open-conversation]");
         if (!button) return;
         setView("chat");
         await openConversation(button.dataset.openConversation);
       });
-      document.getElementById("continueProjectButton").addEventListener("click", async function() {
+      on("continueProjectButton", "click", async function() {
         if (!selectedProject) return showToast("Selecione um projeto.");
         await newConversation();
         els.messageInput.value = "Quero continuar o projeto " + selectedProject.name + ".";
         els.messageInput.focus();
       });
-      document.getElementById("deleteProjectButton").addEventListener("click", async function() {
+      on("deleteProjectButton", "click", async function() {
         if (!selectedProject) return showToast("Selecione um projeto.");
         if (!window.confirm("Excluir este projeto?")) return;
         await api("/api/projects/" + selectedProject.id, { method: "DELETE" });
         selectedProject = null;
         currentProjectDetails = null;
-        document.getElementById("projectDetailTitle").textContent = "Selecione um projeto";
-        document.getElementById("projectDetailDescription").textContent = "Abra um projeto para ver detalhes, continuar no chat ou excluir.";
-        document.getElementById("projectDetail").textContent = "Nenhum projeto selecionado.";
-        document.getElementById("projectWorkspace").hidden = true;
+        setText("projectDetailTitle", "Selecione um projeto");
+        setText("projectDetailDescription", "Abra um projeto para ver detalhes, continuar no chat ou excluir.");
+        setText("projectDetail", "Nenhum projeto selecionado.");
+        setHidden("projectWorkspace", true);
         await loadProjects();
         showToast("Projeto excluído.");
       });
 
-      document.getElementById("settingsTabs").addEventListener("click", function(event) {
+      on("settingsTabs", "click", function(event) {
         const button = event.target.closest("[data-settings-tab]");
         if (!button) return;
         selectSettingsTab(button.dataset.settingsTab);
       });
 
-      document.getElementById("view-settings").addEventListener("click", async function(event) {
+      on("view-settings", "click", async function(event) {
         const tabTarget = event.target.closest("[data-settings-tab-target]");
         if (tabTarget) {
           selectSettingsTab(tabTarget.dataset.settingsTabTarget);
@@ -4931,13 +4986,13 @@ ${logoYaraStyles()}
         }
       });
 
-      document.getElementById("profileForm").addEventListener("submit", async function(event) {
+      on("profileForm", "submit", async function(event) {
         event.preventDefault();
-        const displayName = document.getElementById("displayName").value.trim();
-        const fullName = document.getElementById("fullName").value.trim();
-        const email = document.getElementById("profileEmail").value.trim();
-        const phone = document.getElementById("profilePhone").value.trim();
-        const avatarUrl = document.getElementById("avatarUrl").value.trim();
+        const displayName = getValue("displayName").trim();
+        const fullName = getValue("fullName").trim();
+        const email = getValue("profileEmail").trim();
+        const phone = getValue("profilePhone").trim();
+        const avatarUrl = getValue("avatarUrl").trim();
         await api("/api/users/profile", {
           method: "PATCH",
           body: JSON.stringify({ name: displayName || fullName, email: email, phone: phone || null })
@@ -4951,20 +5006,20 @@ ${logoYaraStyles()}
         showToast("Perfil atualizado.");
       });
 
-      document.getElementById("cognitiveProfileForm").addEventListener("submit", async function(event) {
+      on("cognitiveProfileForm", "submit", async function(event) {
         event.preventDefault();
         await api("/api/profile", {
           method: "PUT",
           body: JSON.stringify({
-            preferredName: document.getElementById("displayName").value.trim(),
-            profession: document.getElementById("cognitiveProfession").value.trim(),
-            studies: document.getElementById("cognitiveStudies").value.trim(),
+            preferredName: getValue("displayName").trim(),
+            profession: getValue("cognitiveProfession").trim(),
+            studies: getValue("cognitiveStudies").trim(),
             projects: linesFromTextarea("cognitiveProjects"),
             interests: linesFromTextarea("cognitiveInterests"),
             goals: {
-              shortTerm: document.getElementById("cognitiveGoalShort").value.trim(),
-              mediumTerm: document.getElementById("cognitiveGoalMedium").value.trim(),
-              longTerm: document.getElementById("cognitiveGoalLong").value.trim()
+              shortTerm: getValue("cognitiveGoalShort").trim(),
+              mediumTerm: getValue("cognitiveGoalMedium").trim(),
+              longTerm: getValue("cognitiveGoalLong").trim()
             },
             source: "manual",
             confidenceScore: 0.95
@@ -4974,13 +5029,13 @@ ${logoYaraStyles()}
         showToast("Perfil cognitivo atualizado.");
       });
 
-      document.getElementById("cognitivePreferencesForm").addEventListener("submit", async function(event) {
+      on("cognitivePreferencesForm", "submit", async function(event) {
         event.preventDefault();
         const preferences = {
-          communicationStyle: document.getElementById("cognitiveCommunication").value.trim(),
-          language: document.getElementById("cognitiveLanguage").value,
-          responseStyle: document.getElementById("cognitiveResponseStyle").value,
-          responseLength: document.getElementById("cognitiveResponseLength").value,
+          communicationStyle: getValue("cognitiveCommunication").trim(),
+          language: getValue("cognitiveLanguage"),
+          responseStyle: getValue("cognitiveResponseStyle"),
+          responseLength: getValue("cognitiveResponseLength"),
           source: "manual",
           confidenceScore: 0.92
         };
@@ -5001,11 +5056,11 @@ ${logoYaraStyles()}
         showToast("Preferências cognitivas salvas.");
       });
 
-      document.getElementById("passwordForm").addEventListener("submit", async function(event) {
+      on("passwordForm", "submit", async function(event) {
         event.preventDefault();
-        const currentPassword = document.getElementById("currentPassword").value;
-        const newPassword = document.getElementById("newPassword").value;
-        const confirmPassword = document.getElementById("confirmPassword").value;
+        const currentPassword = getValue("currentPassword");
+        const newPassword = getValue("newPassword");
+        const confirmPassword = getValue("confirmPassword");
         await api("/api/users/password", {
           method: "PATCH",
           body: JSON.stringify({ currentPassword: currentPassword, newPassword: newPassword, confirmPassword: confirmPassword })
@@ -5014,29 +5069,29 @@ ${logoYaraStyles()}
         showToast("Senha atualizada com segurança.");
       });
 
-      document.getElementById("preferencesForm").addEventListener("submit", async function(event) {
+      on("preferencesForm", "submit", async function(event) {
         event.preventDefault();
         await api("/api/settings", {
           method: "PATCH",
           body: JSON.stringify({
-            aiStyle: document.getElementById("aiStyle").value,
-            language: document.getElementById("language").value,
-            responseLength: document.getElementById("responseLength").value,
+            aiStyle: getValue("aiStyle"),
+            language: getValue("language"),
+            responseLength: getValue("responseLength"),
             theme: "dark"
           })
         });
         showToast("Preferências salvas.");
       });
 
-      document.getElementById("voiceForm").addEventListener("submit", async function(event) {
+      on("voiceForm", "submit", async function(event) {
         event.preventDefault();
         const payload = {
-          voiceEnabled: document.getElementById("voiceEnabled").checked,
-          voiceLanguage: document.getElementById("voiceLanguage").value,
-          voiceRate: Number(document.getElementById("voiceRate").value || 1),
-          voicePitch: Number(document.getElementById("voicePitch").value || 1),
-          voiceGender: document.getElementById("voiceGender").value,
-          voiceAutoRead: document.getElementById("voiceAutoRead").checked
+          voiceEnabled: getChecked("voiceEnabled"),
+          voiceLanguage: getValue("voiceLanguage"),
+          voiceRate: Number(getValue("voiceRate") || 1),
+          voicePitch: Number(getValue("voicePitch") || 1),
+          voiceGender: getValue("voiceGender"),
+          voiceAutoRead: getChecked("voiceAutoRead")
         };
         const data = await api("/api/settings", {
           method: "PATCH",
@@ -5051,12 +5106,12 @@ ${logoYaraStyles()}
         showToast("Configurações de voz salvas.");
       });
 
-      document.getElementById("memoryForm").addEventListener("submit", async function(event) {
+      on("memoryForm", "submit", async function(event) {
         event.preventDefault();
-        const title = document.getElementById("memoryTitle").value.trim();
-        const category = document.getElementById("memoryCategory").value;
-        const importance = Number(document.getElementById("memoryImportance").value || 3);
-        const content = document.getElementById("memoryContent").value.trim();
+        const title = getValue("memoryTitle").trim();
+        const category = getValue("memoryCategory");
+        const importance = Number(getValue("memoryImportance") || 3);
+        const content = getValue("memoryContent").trim();
         if (content.length < 2) return showToast("Escreva uma memória para salvar.");
         await api("/api/memory", {
           method: "POST",
@@ -5067,15 +5122,15 @@ ${logoYaraStyles()}
         showToast("Memória salva.");
       });
 
-      document.getElementById("memorySearchForm").addEventListener("submit", async function(event) {
+      on("memorySearchForm", "submit", async function(event) {
         event.preventDefault();
-        const query = document.getElementById("memorySearchQuery").value.trim();
+        const query = getValue("memorySearchQuery").trim();
         if (query.length < 2) return showToast("Informe uma busca para a memória.");
         const data = await api("/api/memory/search?query=" + encodeURIComponent(query));
         renderMemorySearchResults(data.results || []);
       });
 
-      document.getElementById("memoryList").addEventListener("click", async function(event) {
+      on("memoryList", "click", async function(event) {
         const editButton = event.target.closest("[data-edit-memory]");
         if (editButton) {
           const title = window.prompt("Editar título da memória", editButton.dataset.title || "Memória");
@@ -5107,51 +5162,51 @@ ${logoYaraStyles()}
         showToast("Memória removida.");
       });
 
-      document.getElementById("clearMemoriesButton").addEventListener("click", async function() {
+      on("clearMemoriesButton", "click", async function() {
         if (!window.confirm("Limpar todas as memórias da YARA?")) return;
         await api("/api/memories", { method: "DELETE" });
         await loadMemories();
         showToast("Memórias limpas.");
       });
 
-      document.getElementById("loadSessionsButton").addEventListener("click", function() {
+      on("loadSessionsButton", "click", function() {
         loadSessions("sessionList");
       });
 
-      document.getElementById("logoutAllButton").addEventListener("click", async function() {
+      on("logoutAllButton", "click", async function() {
         const data = await api("/api/users/logout-all", { method: "POST" });
         showToast(data.message || "Sessões encerradas.");
       });
 
-      document.getElementById("securitySessionsButton").addEventListener("click", function() {
+      on("securitySessionsButton", "click", function() {
         loadSessions("sessionList");
         selectSettingsTab("profile");
         showToast("Sessões carregadas na aba Perfil.");
       });
 
-      document.getElementById("securityDevicesButton").addEventListener("click", function() {
+      on("securityDevicesButton", "click", function() {
         loadSessions("securityLoginHistory");
         showToast("Dispositivos conectados carregados.");
       });
 
-      document.getElementById("savePreferredTechButton").addEventListener("click", async function() {
-        const value = document.getElementById("preferredTech").value.trim();
+      on("savePreferredTechButton", "click", async function() {
+        const value = getValue("preferredTech").trim();
         if (!value) return showToast("Informe as tecnologias preferidas.");
         await api("/api/memories", {
           method: "POST",
           body: JSON.stringify({ title: "Tecnologias preferidas", content: value })
         });
-        document.getElementById("preferredTech").value = "";
+        setValue("preferredTech", "");
         await loadMemories();
         showToast("Tecnologias preferidas salvas na memória.");
       });
 
-      document.getElementById("manageFilesButton").addEventListener("click", function() {
+      on("manageFilesButton", "click", function() {
         loadUploads();
         showToast("Arquivos atualizados.");
       });
 
-      document.getElementById("uploadsList").addEventListener("click", async function(event) {
+      on("uploadsList", "click", async function(event) {
         const downloadButton = event.target.closest("[data-download-upload]");
         if (downloadButton) {
           await downloadUpload(downloadButton.dataset.downloadUpload, downloadButton.dataset.fileName || "arquivo");
@@ -5164,16 +5219,16 @@ ${logoYaraStyles()}
         showToast("Arquivo removido.");
       });
 
-      document.getElementById("refreshDocumentsButton").addEventListener("click", async function() {
+      on("refreshDocumentsButton", "click", async function() {
         await loadDocuments();
         showToast("Documentos atualizados.");
       });
-      document.getElementById("refreshDocumentsPageButton").addEventListener("click", async function() {
+      on("refreshDocumentsPageButton", "click", async function() {
         await loadDocuments();
         showToast("Documentos atualizados.");
       });
 
-      document.getElementById("documentForm").addEventListener("submit", async function(event) {
+      on("documentForm", "submit", async function(event) {
         event.preventDefault();
         await createDocumentFromControls({
           titleId: "documentTitle",
@@ -5183,7 +5238,7 @@ ${logoYaraStyles()}
         });
       });
 
-      document.getElementById("documentPageForm").addEventListener("submit", async function(event) {
+      on("documentPageForm", "submit", async function(event) {
         event.preventDefault();
         await createDocumentFromControls({
           titleId: "documentPageTitle",
@@ -5192,18 +5247,18 @@ ${logoYaraStyles()}
           fieldsId: "documentPageFields"
         });
       });
-      document.getElementById("documentsList").addEventListener("click", handleDocumentListClick);
-      document.getElementById("documentsPageList").addEventListener("click", handleDocumentListClick);
-      document.getElementById("documentSearch").addEventListener("input", function() {
+      on("documentsList", "click", handleDocumentListClick);
+      on("documentsPageList", "click", handleDocumentListClick);
+      on("documentSearch", "input", function() {
         renderDocumentList("documentsPageList", filteredDocuments());
       });
-      document.getElementById("documentFormatFilter").addEventListener("change", function() {
+      on("documentFormatFilter", "change", function() {
         renderDocumentList("documentsPageList", filteredDocuments());
       });
-      document.getElementById("documentUploadButton").addEventListener("click", function() {
-        document.getElementById("documentUploadInput").click();
+      on("documentUploadButton", "click", function() {
+        byId("documentUploadInput")?.click();
       });
-      document.getElementById("documentUploadInput").addEventListener("change", async function(event) {
+      on("documentUploadInput", "change", async function(event) {
         const file = event.target.files && event.target.files[0];
         event.target.value = "";
         if (!file) return;
@@ -5213,7 +5268,7 @@ ${logoYaraStyles()}
           showToast(error.message || "Não foi possível enviar o documento.");
         }
       });
-      document.getElementById("documentConvertButton").addEventListener("click", async function() {
+      on("documentConvertButton", "click", async function() {
         try {
           await convertSelectedDocument();
         } catch (error) {
@@ -5221,52 +5276,52 @@ ${logoYaraStyles()}
         }
       });
 
-      document.getElementById("refreshImagesButton").addEventListener("click", async function() {
+      on("refreshImagesButton", "click", async function() {
         await loadImages();
         showToast("Imagens atualizadas.");
       });
-      document.getElementById("imageUploadButton").addEventListener("click", function() {
-        document.getElementById("imageUploadInput").click();
+      on("imageUploadButton", "click", function() {
+        byId("imageUploadInput")?.click();
       });
-      document.getElementById("imageCameraButton").addEventListener("click", function() {
-        document.getElementById("imageCameraInput").click();
+      on("imageCameraButton", "click", function() {
+        byId("imageCameraInput")?.click();
       });
       ["imageUploadInput", "imageCameraInput"].forEach(function(inputId) {
-        document.getElementById(inputId).addEventListener("change", function(event) {
+        on(inputId, "change", function(event) {
           const file = event.target.files && event.target.files[0];
           event.target.value = "";
           setPendingImage(file);
         });
       });
-      document.getElementById("removeImagePreviewButton").addEventListener("click", function() {
+      on("removeImagePreviewButton", "click", function() {
         clearPendingImage();
         showToast("Preview removido.");
       });
-      document.getElementById("sendImageButton").addEventListener("click", async function() {
+      on("sendImageButton", "click", async function() {
         try {
           await uploadPendingImage();
         } catch (error) {
           showToast(error.message || "Não foi possível enviar a imagem.");
         }
       });
-      document.getElementById("imageOcrButton").addEventListener("click", async function() {
+      on("imageOcrButton", "click", async function() {
         try {
-          const imageId = document.getElementById("imageOcrSource").value;
+          const imageId = getValue("imageOcrSource");
           if (!imageId) return showToast("Selecione uma imagem para OCR.");
           await runImageOcr(imageId);
         } catch (error) {
           showToast(error.message || "Não foi possível executar OCR.");
         }
       });
-      document.getElementById("imageEditButton").addEventListener("click", async function() {
+      on("imageEditButton", "click", async function() {
         try {
           await editImageFromControls();
         } catch (error) {
           showToast(error.message || "Não foi possível editar a imagem.");
         }
       });
-      document.getElementById("imageSearch").addEventListener("input", renderImages);
-      document.getElementById("imagesList").addEventListener("click", async function(event) {
+      on("imageSearch", "input", renderImages);
+      on("imagesList", "click", async function(event) {
         try {
           await handleImageListClick(event);
         } catch (error) {
@@ -5274,13 +5329,13 @@ ${logoYaraStyles()}
         }
       });
 
-      document.getElementById("refreshCalendarButton").addEventListener("click", async function() {
+      on("refreshCalendarButton", "click", async function() {
         await loadCalendar();
         showToast("Agenda atualizada.");
       });
-      document.getElementById("calendarEventForm").addEventListener("submit", createEventFromForm);
-      document.getElementById("reminderForm").addEventListener("submit", createReminderFromForm);
-      document.getElementById("calendarRangeTabs").addEventListener("click", async function(event) {
+      on("calendarEventForm", "submit", createEventFromForm);
+      on("reminderForm", "submit", createReminderFromForm);
+      on("calendarRangeTabs", "click", async function(event) {
         const button = event.target.closest("[data-calendar-range]");
         if (!button) return;
         currentCalendarRange = button.dataset.calendarRange;
@@ -5289,49 +5344,49 @@ ${logoYaraStyles()}
         });
         await loadCalendar();
       });
-      document.getElementById("calendarEventsList").addEventListener("click", async function(event) {
+      on("calendarEventsList", "click", async function(event) {
         try {
           await handleCalendarEventClick(event);
         } catch (error) {
           showToast(error.message || "Não foi possível atualizar o evento.");
         }
       });
-      document.getElementById("remindersList").addEventListener("click", async function(event) {
+      on("remindersList", "click", async function(event) {
         try {
           await handleReminderClick(event);
         } catch (error) {
           showToast(error.message || "Não foi possível atualizar o lembrete.");
         }
       });
-      document.getElementById("googleCalendarConnectButton").addEventListener("click", function() {
+      on("googleCalendarConnectButton", "click", function() {
         callGoogleCalendar("/api/calendar/google/connect");
       });
-      document.getElementById("googleCalendarCalendarsButton").addEventListener("click", function() {
+      on("googleCalendarCalendarsButton", "click", function() {
         callGoogleCalendar("/api/calendar/google/calendars");
       });
-      document.getElementById("googleCalendarSyncButton").addEventListener("click", function() {
+      on("googleCalendarSyncButton", "click", function() {
         callGoogleCalendar("/api/calendar/google/sync", "POST");
       });
 
-      document.getElementById("refreshIntegrationsButton").addEventListener("click", loadIntegrations);
-      document.getElementById("integrationCalendarConnect").addEventListener("click", function() {
+      on("refreshIntegrationsButton", "click", loadIntegrations);
+      on("integrationCalendarConnect", "click", function() {
         callIntegration("/api/integrations/google/calendar/connect", "integrationCalendarResult");
       });
-      document.getElementById("integrationGmailConnect").addEventListener("click", function() {
+      on("integrationGmailConnect", "click", function() {
         callIntegration("/api/integrations/google/gmail/connect", "integrationGmailResult");
       });
-      document.getElementById("integrationCalendarSync").addEventListener("click", function() {
+      on("integrationCalendarSync", "click", function() {
         callIntegration("/api/integrations/google/calendar/sync", "integrationCalendarResult", { method: "POST" });
       });
-      document.getElementById("integrationCalendarList").addEventListener("click", function() {
+      on("integrationCalendarList", "click", function() {
         callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult");
       });
-      document.getElementById("integrationCalendarForm").addEventListener("submit", function(event) {
+      on("integrationCalendarForm", "submit", function(event) {
         event.preventDefault();
-        const title = document.getElementById("integrationCalendarTitle").value.trim();
-        const date = document.getElementById("integrationCalendarDate").value;
-        const time = document.getElementById("integrationCalendarTime").value;
-        const location = document.getElementById("integrationCalendarLocation").value.trim();
+        const title = getValue("integrationCalendarTitle").trim();
+        const date = getValue("integrationCalendarDate");
+        const time = getValue("integrationCalendarTime");
+        const location = getValue("integrationCalendarLocation").trim();
         if (!title || !date) {
           showToast("Informe título e data do evento.");
           return;
@@ -5341,47 +5396,47 @@ ${logoYaraStyles()}
           body: JSON.stringify({ title: title, date: date, time: time || null, location: location || null })
         });
       });
-      document.getElementById("integrationGmailRecent").addEventListener("click", function() {
+      on("integrationGmailRecent", "click", function() {
         callIntegration("/api/integrations/gmail/messages?maxResults=5", "integrationGmailResult");
       });
-      document.getElementById("integrationGmailUnread").addEventListener("click", function() {
+      on("integrationGmailUnread", "click", function() {
         callIntegration("/api/integrations/gmail/summarize", "integrationGmailResult", {
           method: "POST",
           body: JSON.stringify({ query: "is:unread", maxResults: 5 })
         });
       });
-      document.getElementById("integrationGmailForm").addEventListener("submit", function(event) {
+      on("integrationGmailForm", "submit", function(event) {
         event.preventDefault();
         callIntegration("/api/integrations/gmail/send", "integrationGmailResult", {
           method: "POST",
           body: JSON.stringify({
-            to: document.getElementById("integrationGmailTo").value.trim(),
-            subject: document.getElementById("integrationGmailSubject").value.trim(),
-            body: document.getElementById("integrationGmailBody").value.trim()
+            to: getValue("integrationGmailTo").trim(),
+            subject: getValue("integrationGmailSubject").trim(),
+            body: getValue("integrationGmailBody").trim()
           })
         });
       });
-      document.getElementById("integrationTelegramForm").addEventListener("submit", function(event) {
+      on("integrationTelegramForm", "submit", function(event) {
         event.preventDefault();
         callIntegration("/api/integrations/telegram/send", "integrationTelegramResult", {
           method: "POST",
           body: JSON.stringify({
-            chatId: document.getElementById("integrationTelegramChatId").value.trim(),
-            text: document.getElementById("integrationTelegramText").value.trim()
+            chatId: getValue("integrationTelegramChatId").trim(),
+            text: getValue("integrationTelegramText").trim()
           })
         });
       });
-      document.getElementById("integrationWhatsappForm").addEventListener("submit", function(event) {
+      on("integrationWhatsappForm", "submit", function(event) {
         event.preventDefault();
         callIntegration("/api/integrations/whatsapp/send", "integrationWhatsappResult", {
           method: "POST",
           body: JSON.stringify({
-            to: document.getElementById("integrationWhatsappTo").value.trim(),
-            text: document.getElementById("integrationWhatsappText").value.trim()
+            to: getValue("integrationWhatsappTo").trim(),
+            text: getValue("integrationWhatsappText").trim()
           })
         });
       });
-      document.getElementById("integrationPushSubscribe").addEventListener("click", async function() {
+      on("integrationPushSubscribe", "click", async function() {
         if (!("Notification" in window)) {
           showToast("Este navegador não oferece notificações web.");
           return;
@@ -5399,11 +5454,11 @@ ${logoYaraStyles()}
         showToast("Notificações autorizadas. Inscrição push remota preparada para service worker.");
         await callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Push YARA AI", message: "Canal de notificação validado." }) });
       });
-      document.getElementById("integrationPushTest").addEventListener("click", function() {
+      on("integrationPushTest", "click", function() {
         callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Teste YARA AI", message: "Notificação interna criada com sucesso." }) });
       });
 
-      document.getElementById("testAiButton").addEventListener("click", async function() {
+      on("testAiButton", "click", async function() {
         try {
           const data = await api("/api/ai/test", { method: "POST" });
           showToast("IA conectada: " + (data.model || "modelo ativo"));
@@ -5413,7 +5468,7 @@ ${logoYaraStyles()}
         }
       });
 
-      document.getElementById("logoutButton").addEventListener("click", function() {
+      on("logoutButton", "click", function() {
         stopSpeech(false);
         stopDictation();
         localStorage.removeItem("yaraToken");
