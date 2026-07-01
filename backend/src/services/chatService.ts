@@ -1,4 +1,5 @@
 import { v4 as uuid } from "uuid";
+import { env } from "../config/env";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
 import { tryCreateCalendarItemFromChat } from "./calendarService";
@@ -350,14 +351,31 @@ function directAnswer(message: string) {
 
 function providerFallback(error: unknown) {
   const rawMessage = error instanceof Error ? error.message : String(error || "");
-  const highDemand = /high demand|overloaded|temporar|try again later|quota|rate/i.test(rawMessage);
-  const response = highDemand
-    ? "Estou online e recebi sua mensagem, mas o provedor de IA está temporariamente instável ou em alta demanda. Tente enviar novamente em alguns instantes. Enquanto isso, suas conversas, arquivos, projetos e agenda continuam salvos normalmente."
-    : "Estou online e recebi sua mensagem, mas não consegui concluir a resposta pelo provedor de IA agora. Tente novamente em alguns instantes.";
+  const highDemand = /high demand|overloaded|temporar|try again later|quota|rate|429|503|timeout/i.test(rawMessage);
+  const configurationIssue = /api[_ -]?key|permission|unauthori[sz]ed|forbidden|billing|invalid/i.test(rawMessage);
+  const response = configurationIssue
+    ? [
+        "Recebi sua mensagem, mas a YARA está sem acesso ao motor de IA neste momento.",
+        "",
+        "Isso normalmente precisa ser verificado pelo administrador no servidor. Suas conversas e dados continuam salvos com segurança.",
+        "",
+        "Você pode tentar novamente mais tarde ou continuar organizando projetos, documentos, imagens e tarefas enquanto a conexão é restabelecida."
+      ].join("\n")
+    : highDemand
+      ? [
+          "Recebi sua mensagem, mas o motor de IA está temporariamente instável ou em alta demanda.",
+          "",
+          "Tente novamente em alguns instantes. A conversa foi preservada e a YARA continua online para os demais módulos."
+        ].join("\n")
+      : [
+          "Recebi sua mensagem, mas não consegui concluir a resposta agora.",
+          "",
+          "Tente reenviar em alguns instantes. Se o problema continuar, revise a conexão da IA nas configurações administrativas do servidor."
+        ].join("\n");
 
   return {
-    provider: "gemini" as const,
-    model: "provider-unavailable",
+    provider: env.aiProvider,
+    model: configurationIssue ? "ai-configuration-unavailable" : "ai-temporarily-unavailable",
     response
   };
 }
@@ -454,7 +472,7 @@ export async function regenerateAssistantMessage(userId: string, messageId: stri
   }
 
   const direct = directAnswer(previousUser.content);
-  let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini"; model: string; response: string };
+  let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini" | "openai"; model: string; response: string };
   if (direct) {
     ai = {
       provider: "gemini" as const,
@@ -568,7 +586,7 @@ export async function sendMessage(
   const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
   const search = searchNeeded ? await runSearch(userId, storedMessage) : null;
-  let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini"; model: string; response: string };
+  let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini" | "openai"; model: string; response: string };
 
   if (integrationAction && !searchNeeded) {
     ai = {
@@ -609,10 +627,11 @@ export async function sendMessage(
         context: readRecentContext(conversationId)
       });
     } catch (error) {
+      const fallback = providerFallback(error);
       ai = {
-        provider: "gemini",
-        model: search ? "search-fallback" : providerFallback(error).model,
-        response: search ? search.response : providerFallback(error).response
+        provider: fallback.provider,
+        model: search ? "search-fallback" : fallback.model,
+        response: search ? search.response : fallback.response
       };
     }
   }

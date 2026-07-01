@@ -2662,7 +2662,7 @@ ${logoYaraStyles()}
       let activeUtterance = null;
       let speakingMessageId = null;
       let speechPaused = false;
-      const uiBuild = "pilar-01-fase-7-mobile-stability";
+      const uiBuild = "pilar-01-fase-8-chat-quality";
       let voiceSettings = {
         enabled: true,
         language: "pt-BR",
@@ -2866,6 +2866,17 @@ ${logoYaraStyles()}
 
       function errorMessage(error, fallback) {
         return error && error.message ? error.message : (fallback || "Não foi possível concluir esta ação.");
+      }
+
+      function friendlyChatError(error) {
+        const message = errorMessage(error, "");
+        if (/Failed to fetch|NetworkError|Load failed|interrompida|timeout/i.test(message)) {
+          return "A conexão com a YARA oscilou agora. Verifique sua internet e tente enviar novamente.";
+        }
+        if (/Gemini|OpenAI|API key|quota|rate|provider|IA|motor de IA|alta demanda/i.test(message)) {
+          return "A YARA recebeu sua mensagem, mas a inteligência artificial está temporariamente indisponível. Tente novamente em alguns instantes.";
+        }
+        return message || "A YARA não conseguiu responder agora. Tente novamente em alguns instantes.";
       }
 
       function describeControl(control) {
@@ -3808,7 +3819,7 @@ ${logoYaraStyles()}
 
         if (!response.ok || !response.body) {
           const data = await response.json().catch(function() { return {}; });
-          throw new Error(data.error && data.error.message ? data.error.message : "Erro ao conversar com YARA.");
+          throw new Error(data.error && data.error.message ? data.error.message : "A YARA não conseguiu responder agora.");
         }
 
         const reader = response.body.getReader();
@@ -3878,7 +3889,7 @@ ${logoYaraStyles()}
           handleAssistantVoiceAfterResponse(conversation.messages || data.messages || []);
           await loadConversations();
         } catch (error) {
-          const text = error.message || "Não foi possível enviar este arquivo.";
+          const text = friendlyChatError(error);
           setResponseState("error");
           showToast(text);
           if (currentConversationId) {

@@ -38,6 +38,11 @@ export class GeminiProvider implements AIProvider {
         systemInstruction: {
           parts: [{ text: buildSystemInstruction(input) }]
         },
+        generationConfig: {
+          temperature: 0.55,
+          topP: 0.9,
+          maxOutputTokens: 2400
+        },
         contents: [
           {
             role: "user",
@@ -66,4 +71,3 @@ export class GeminiProvider implements AIProvider {
     };
   }
 }
-
