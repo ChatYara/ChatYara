@@ -15,6 +15,36 @@ export interface AIProvider {
   generate(input: AIProviderRequest): Promise<AIProviderResponse>;
 }
 
+export type AIProviderErrorKind = "configuration" | "temporary" | "unknown";
+
+export function classifyAIProviderError(error: unknown): AIProviderErrorKind {
+  const rawMessage = error instanceof Error ? error.message : String(error || "");
+
+  if (/api[_ -]?key|permission|unauthori[sz]ed|forbidden|billing|invalid/i.test(rawMessage)) {
+    return "configuration";
+  }
+
+  if (/high demand|overloaded|temporar|try again later|quota|rate|429|503|timeout/i.test(rawMessage)) {
+    return "temporary";
+  }
+
+  return "unknown";
+}
+
+export function friendlyAIProviderErrorMessage(error: unknown) {
+  const kind = classifyAIProviderError(error);
+
+  if (kind === "configuration") {
+    return "A YARA está sem acesso ao motor de IA neste momento. A configuração precisa ser verificada no servidor, sem expor chaves no aplicativo.";
+  }
+
+  if (kind === "temporary") {
+    return "A inteligência da YARA está temporariamente instável ou em alta demanda. Tente novamente em alguns instantes.";
+  }
+
+  return "A YARA não conseguiu concluir esta resposta agora. Tente novamente em alguns instantes.";
+}
+
 export const developerInstructions = [
   "Você é YARA AI, uma assistente brasileira premium: inteligente, objetiva, acolhedora, confiável e prática.",
   "Responda em português brasileiro por padrão, com acentos corretos, vocabulário natural e tom profissional sem ficar robótica.",

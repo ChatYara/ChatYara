@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { env } from "../config/env";
 import { getDatabase } from "../db/connection";
+import { classifyAIProviderError } from "./ai/AIProvider";
 import { askYara } from "./ai/aiService";
 import { tryCreateCalendarItemFromChat } from "./calendarService";
 import { buildDocumentContextFromUploads } from "./documentService";
@@ -350,10 +351,8 @@ function directAnswer(message: string) {
 }
 
 function providerFallback(error: unknown) {
-  const rawMessage = error instanceof Error ? error.message : String(error || "");
-  const highDemand = /high demand|overloaded|temporar|try again later|quota|rate|429|503|timeout/i.test(rawMessage);
-  const configurationIssue = /api[_ -]?key|permission|unauthori[sz]ed|forbidden|billing|invalid/i.test(rawMessage);
-  const response = configurationIssue
+  const errorKind = classifyAIProviderError(error);
+  const response = errorKind === "configuration"
     ? [
         "Recebi sua mensagem, mas a YARA está sem acesso ao motor de IA neste momento.",
         "",
@@ -361,7 +360,7 @@ function providerFallback(error: unknown) {
         "",
         "Você pode tentar novamente mais tarde ou continuar organizando projetos, documentos, imagens e tarefas enquanto a conexão é restabelecida."
       ].join("\n")
-    : highDemand
+    : errorKind === "temporary"
       ? [
           "Recebi sua mensagem, mas o motor de IA está temporariamente instável ou em alta demanda.",
           "",
@@ -375,7 +374,7 @@ function providerFallback(error: unknown) {
 
   return {
     provider: env.aiProvider,
-    model: configurationIssue ? "ai-configuration-unavailable" : "ai-temporarily-unavailable",
+    model: errorKind === "configuration" ? "ai-configuration-unavailable" : "ai-temporarily-unavailable",
     response
   };
 }

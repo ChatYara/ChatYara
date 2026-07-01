@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
+import { friendlyAIProviderErrorMessage } from "./ai/AIProvider";
 import { askYara } from "./ai/aiService";
 import { getUserById } from "./authService";
 import { readMemory } from "./chatService";
@@ -474,6 +475,8 @@ export async function generateSystem(userId: string, input: { type?: string; pro
       "Entregue um plano profissional em português com seções: Nome, Descrição, Tecnologias, Telas, APIs, Banco de dados e Próximos passos."
     ].join("\n"),
     memory: readMemory(userId)
+  }).catch((error) => {
+    throw new Error(friendlyAIProviderErrorMessage(error));
   });
 
   const id = uuid();
