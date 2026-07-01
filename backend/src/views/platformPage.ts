@@ -1359,6 +1359,51 @@ ${logoYaraStyles()}
         display: block;
       }
 
+      .diagnostic-panel {
+        position: fixed;
+        right: 18px;
+        bottom: 78px;
+        z-index: 120;
+        display: none;
+        width: min(420px, calc(100vw - 32px));
+        border: 1px solid rgba(248, 113, 113, 0.34);
+        border-radius: 16px;
+        padding: 14px;
+        color: #fee2e2;
+        background: rgba(24, 9, 16, 0.94);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+        backdrop-filter: blur(18px);
+      }
+
+      .diagnostic-panel.open {
+        display: block;
+      }
+
+      .diagnostic-panel h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+
+      .diagnostic-panel dl {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 6px 10px;
+        margin: 0;
+        font-size: 12px;
+      }
+
+      .diagnostic-panel dt {
+        color: #fecaca;
+        font-weight: 800;
+      }
+
+      .diagnostic-panel dd {
+        min-width: 0;
+        margin: 0;
+        overflow-wrap: anywhere;
+        color: #ffe4e6;
+      }
+
       .modal-overlay {
         position: fixed;
         inset: 0;
@@ -2474,8 +2519,19 @@ ${logoYaraStyles()}
     </div>
 
     <div class="toast" id="toast"></div>
+    <div class="diagnostic-panel" id="diagnosticPanel" hidden>
+      <h2>Diagnóstico da interface</h2>
+      <dl>
+        <dt>View atual</dt><dd id="diagnosticView">-</dd>
+        <dt>Botão</dt><dd id="diagnosticButton">-</dd>
+        <dt>Módulo</dt><dd id="diagnosticModule">-</dd>
+        <dt>Erro</dt><dd id="diagnosticError">-</dd>
+      </dl>
+    </div>
     <script>
       const token = localStorage.getItem("yaraToken");
+      let currentView = "chat";
+      let lastClickedControl = "-";
       let currentUser = null;
       let currentConversationId = null;
       let currentConversation = null;
@@ -2715,9 +2771,44 @@ ${logoYaraStyles()}
         return error && error.message ? error.message : (fallback || "Não foi possível concluir esta ação.");
       }
 
+      function describeControl(control) {
+        if (!control) return "-";
+        return [
+          control.id ? "#" + control.id : "",
+          control.dataset && control.dataset.view ? "view:" + control.dataset.view : "",
+          control.dataset && control.dataset.action ? "action:" + control.dataset.action : "",
+          control.dataset && control.dataset.settingsTab ? "settings:" + control.dataset.settingsTab : "",
+          (control.textContent || "").trim().slice(0, 80)
+        ].filter(Boolean).join(" · ") || control.tagName || "-";
+      }
+
+      function updateDiagnosticPanel(payload) {
+        const panel = byId("diagnosticPanel");
+        if (!panel) return;
+        setText("diagnosticView", payload.view || currentView || "-");
+        setText("diagnosticButton", payload.button || lastClickedControl || "-");
+        setText("diagnosticModule", payload.module || "-");
+        setText("diagnosticError", payload.error || "-");
+        panel.hidden = false;
+        panel.classList.add("open");
+      }
+
+      function clearDiagnosticPanel() {
+        const panel = byId("diagnosticPanel");
+        if (!panel) return;
+        panel.hidden = true;
+        panel.classList.remove("open");
+      }
+
       function handleUiError(context, error, options) {
         const message = errorMessage(error);
         console.error("[YARA UI]", context, error);
+        updateDiagnosticPanel({
+          view: currentView,
+          button: lastClickedControl,
+          module: options && options.view ? options.view : context,
+          error: message
+        });
         if (!options || options.toast !== false) showToast(message);
         if (options && options.view) showModuleError(options.view, message);
       }
@@ -2737,7 +2828,7 @@ ${logoYaraStyles()}
         const target = moduleTarget(view);
         if (!target) return;
         const existing = target.querySelector("[data-module-error]");
-        const html = '<div class="module-error" data-module-error><div><strong>Não foi possível carregar este módulo.</strong><span>' + escapeHtml(message) + '</span></div><button class="button" data-retry-view="' + escapeHtml(view) + '" type="button">Tentar novamente</button></div>';
+        const html = '<div class="module-error" data-module-error><div><strong>Este módulo encontrou um erro.</strong><span>' + escapeHtml(message) + '</span></div><button class="button" data-retry-view="' + escapeHtml(view) + '" type="button">Tentar novamente</button></div>';
         if (existing) {
           existing.outerHTML = html;
           return;
@@ -2868,6 +2959,8 @@ ${logoYaraStyles()}
           targetView = "chat";
         }
         const finalConfig = viewConfig(targetView) || viewConfig("chat");
+        currentView = targetView;
+        clearDiagnosticPanel();
         console.info("[YARA UI] Navegando para módulo:", requestedView, "=>", targetView);
         document.querySelectorAll(".view").forEach(function(item) {
           item.hidden = item.id !== "view-" + targetView;
@@ -2902,7 +2995,7 @@ ${logoYaraStyles()}
         const pane = byId("settings-" + tabName);
         if (!pane) return;
         const existing = pane.querySelector("[data-settings-error]");
-        const html = '<div class="module-error" data-settings-error><div><strong>Não foi possível carregar esta aba.</strong><span>' + escapeHtml(errorMessage(error)) + '</span></div><button class="button" data-retry-settings-tab="' + escapeHtml(tabName) + '" type="button">Tentar novamente</button></div>';
+        const html = '<div class="module-error" data-settings-error><div><strong>Este módulo encontrou um erro.</strong><span>' + escapeHtml(errorMessage(error)) + '</span></div><button class="button" data-retry-settings-tab="' + escapeHtml(tabName) + '" type="button">Tentar novamente</button></div>';
         if (existing) {
           existing.outerHTML = html;
           return;
@@ -4741,6 +4834,333 @@ ${logoYaraStyles()}
         setText(els.accountEmail, data.user.email);
       }
 
+      async function runChatMenuAction(action) {
+        closeChatMenu();
+        console.info("[YARA UI] Ação do menu:", action);
+        if (action === "shareConversation") return shareConversation();
+        if (action === "pinConversation") return pinConversation();
+        if (action === "projectConversation") return showProjectPicker();
+        if (action === "filesConversation") return showConversationFiles();
+        if (action === "searchConversation") return toggleSearch();
+        if (action === "searchHistory") return showSearchHistory();
+        if (action === "archiveConversation") return archiveConversation();
+        if (action === "deleteConversation") return deleteCurrentConversation();
+        console.warn("[YARA UI] Ação de menu desconhecida:", action);
+        showToast("Ação indisponível.");
+      }
+
+      function captureHandled(event, control, moduleName) {
+        lastClickedControl = describeControl(control);
+        if (moduleName) currentView = moduleName === "memory" ? "settings" : currentView;
+        console.info("[YARA UI] Clique:", lastClickedControl);
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      }
+
+      function runCapturedAction(label, event, control, action) {
+        captureHandled(event, control, label);
+        Promise.resolve()
+          .then(action)
+          .catch(function(error) {
+            handleUiError("capture:" + label, error, { view: currentView });
+          });
+      }
+
+      function installCoreDelegation() {
+        if (window.__yaraCoreDelegationInstalled) return;
+        window.__yaraCoreDelegationInstalled = true;
+
+        document.addEventListener("click", function(event) {
+          try {
+            const target = event.target && event.target.closest ? event.target : null;
+            if (!target) return;
+            const control = target.closest("button, [data-view], [data-view-target], [data-action], [data-settings-tab], [data-settings-tab-target], [data-retry-view], [data-retry-settings-tab]");
+            if (!control) return;
+            lastClickedControl = describeControl(control);
+
+            const retryView = target.closest("[data-retry-view]");
+            if (retryView) {
+              return runCapturedAction("retry-view", event, retryView, function() {
+                setView(retryView.dataset.retryView || "chat");
+              });
+            }
+
+            const retrySettings = target.closest("[data-retry-settings-tab]");
+            if (retrySettings) {
+              return runCapturedAction("retry-settings", event, retrySettings, function() {
+                return selectSettingsTab(retrySettings.dataset.retrySettingsTab || "profile");
+              });
+            }
+
+            const viewButton = target.closest("[data-view]");
+            if (viewButton) {
+              return runCapturedAction("nav:" + (viewButton.dataset.view || "chat"), event, viewButton, function() {
+                setView(viewButton.dataset.view || "chat");
+              });
+            }
+
+            const viewTarget = target.closest("[data-view-target]");
+            if (viewTarget) {
+              return runCapturedAction("view-target:" + (viewTarget.dataset.viewTarget || "chat"), event, viewTarget, function() {
+                setView(viewTarget.dataset.viewTarget || "chat");
+              });
+            }
+
+            if (target.closest("#mobileToggle")) {
+              return runCapturedAction("mobile-menu", event, control, toggleSidebarDrawer);
+            }
+            if (target.closest("#sidebarSettingsButton")) {
+              return runCapturedAction("sidebar-settings", event, control, function() { setView("settings"); });
+            }
+            if (target.closest("#quickSettingsButton")) {
+              return runCapturedAction("quick-settings", event, control, openQuickSettingsModal);
+            }
+            if (target.closest("#helpButton")) {
+              return runCapturedAction("help", event, control, openHelpModal);
+            }
+            if (target.closest("#termsButton")) {
+              return runCapturedAction("terms", event, control, openTermsModal);
+            }
+            if (target.closest("#logoutButton")) {
+              return runCapturedAction("logout", event, control, function() {
+                stopSpeech(false);
+                stopDictation();
+                localStorage.removeItem("yaraToken");
+                localStorage.removeItem("yaraUser");
+                window.location.href = "/";
+              });
+            }
+            if (target.closest("#chatMenuButton")) {
+              return runCapturedAction("chat-menu-toggle", event, control, function() {
+                toggleChatMenu(event);
+              });
+            }
+            if (target.closest("#modalClose")) {
+              return runCapturedAction("modal-close", event, control, closeModal);
+            }
+
+            const chatAction = target.closest("#chatActionMenu [data-action]");
+            if (chatAction) {
+              return runCapturedAction("chat-action:" + chatAction.dataset.action, event, chatAction, function() {
+                return runChatMenuAction(chatAction.dataset.action);
+              });
+            }
+
+            const attachAction = target.closest("#attachMenu [data-action]");
+            if (attachAction) {
+              return runCapturedAction("attach-action:" + attachAction.dataset.action, event, attachAction, function() {
+                openAttachmentPicker(attachAction.dataset.action);
+              });
+            }
+
+            const settingsTab = target.closest("#settingsTabs [data-settings-tab]");
+            if (settingsTab) {
+              return runCapturedAction("settings-tab:" + settingsTab.dataset.settingsTab, event, settingsTab, function() {
+                return selectSettingsTab(settingsTab.dataset.settingsTab || "profile");
+              });
+            }
+
+            const settingsTabTarget = target.closest("[data-settings-tab-target]");
+            if (settingsTabTarget) {
+              return runCapturedAction("settings-tab-target:" + settingsTabTarget.dataset.settingsTabTarget, event, settingsTabTarget, function() {
+                return selectSettingsTab(settingsTabTarget.dataset.settingsTabTarget || "profile");
+              });
+            }
+
+            const choice = target.closest("#view-settings [data-choice-group]");
+            if (choice) {
+              return runCapturedAction("settings-choice:" + choice.dataset.choiceGroup, event, choice, async function() {
+                document.querySelectorAll('[data-choice-group="' + choice.dataset.choiceGroup + '"]').forEach(function(item) {
+                  item.classList.toggle("active", item === choice);
+                });
+                if (choice.dataset.choiceGroup === "theme") {
+                  await api("/api/settings", {
+                    method: "PATCH",
+                    body: JSON.stringify({ theme: choice.textContent.trim().toLowerCase() })
+                  });
+                }
+                showToast("Preferência salva.");
+              });
+            }
+          } catch (error) {
+            handleUiError("capture:click", error, { view: currentView });
+          }
+        }, true);
+
+        document.addEventListener("submit", function(event) {
+          const form = event.target;
+          if (!form || !form.id) return;
+          const handledForms = {
+            chatForm: true,
+            quickSettingsForm: true,
+            profileForm: true,
+            cognitiveProfileForm: true,
+            cognitivePreferencesForm: true,
+            passwordForm: true,
+            preferencesForm: true,
+            voiceForm: true,
+            memoryForm: true,
+            memorySearchForm: true
+          };
+          if (!handledForms[form.id]) return;
+          captureHandled(event, form, currentView);
+          Promise.resolve()
+            .then(async function() {
+              if (form.id === "chatForm") return sendMessage(event);
+              if (form.id === "quickSettingsForm") {
+                await api("/api/settings", {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    language: getValue("quickLanguage"),
+                    aiStyle: getValue("quickAiStyle"),
+                    responseLength: getValue("quickResponseLength"),
+                    theme: "dark"
+                  })
+                });
+                closeModal();
+                showToast("Configurações salvas.");
+                return;
+              }
+              if (form.id === "profileForm") {
+                const displayName = getValue("displayName").trim();
+                const fullName = getValue("fullName").trim();
+                const email = getValue("profileEmail").trim();
+                const phone = getValue("profilePhone").trim();
+                const avatarUrl = getValue("avatarUrl").trim();
+                await api("/api/users/profile", {
+                  method: "PATCH",
+                  body: JSON.stringify({ name: displayName || fullName, email: email, phone: phone || null })
+                });
+                await api("/api/settings", {
+                  method: "PATCH",
+                  body: JSON.stringify({ displayName: displayName || fullName, fullName: fullName, avatarUrl: avatarUrl })
+                });
+                await refreshUser();
+                await loadSettings();
+                showToast("Perfil atualizado.");
+                return;
+              }
+              if (form.id === "cognitiveProfileForm") {
+                await api("/api/profile", {
+                  method: "PUT",
+                  body: JSON.stringify({
+                    preferredName: getValue("displayName").trim(),
+                    profession: getValue("cognitiveProfession").trim(),
+                    studies: getValue("cognitiveStudies").trim(),
+                    projects: linesFromTextarea("cognitiveProjects"),
+                    interests: linesFromTextarea("cognitiveInterests"),
+                    goals: {
+                      shortTerm: getValue("cognitiveGoalShort").trim(),
+                      mediumTerm: getValue("cognitiveGoalMedium").trim(),
+                      longTerm: getValue("cognitiveGoalLong").trim()
+                    },
+                    source: "manual",
+                    confidenceScore: 0.95
+                  })
+                });
+                await loadCognitiveProfile();
+                showToast("Perfil cognitivo atualizado.");
+                return;
+              }
+              if (form.id === "cognitivePreferencesForm") {
+                const preferences = {
+                  communicationStyle: getValue("cognitiveCommunication").trim(),
+                  language: getValue("cognitiveLanguage"),
+                  responseStyle: getValue("cognitiveResponseStyle"),
+                  responseLength: getValue("cognitiveResponseLength"),
+                  source: "manual",
+                  confidenceScore: 0.92
+                };
+                await api("/api/profile/preferences", { method: "PUT", body: JSON.stringify(preferences) });
+                await api("/api/settings", {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    aiStyle: preferences.responseStyle,
+                    language: preferences.language,
+                    responseLength: preferences.responseLength,
+                    theme: "dark"
+                  })
+                });
+                await loadSettings();
+                showToast("Preferências cognitivas salvas.");
+                return;
+              }
+              if (form.id === "passwordForm") {
+                await api("/api/users/password", {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    currentPassword: getValue("currentPassword"),
+                    newPassword: getValue("newPassword"),
+                    confirmPassword: getValue("confirmPassword")
+                  })
+                });
+                form.reset();
+                showToast("Senha atualizada com segurança.");
+                return;
+              }
+              if (form.id === "preferencesForm") {
+                await api("/api/settings", {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    aiStyle: getValue("aiStyle"),
+                    language: getValue("language"),
+                    responseLength: getValue("responseLength"),
+                    theme: "dark"
+                  })
+                });
+                showToast("Preferências salvas.");
+                return;
+              }
+              if (form.id === "voiceForm") {
+                const payload = {
+                  voiceEnabled: getChecked("voiceEnabled"),
+                  voiceLanguage: getValue("voiceLanguage"),
+                  voiceRate: Number(getValue("voiceRate") || 1),
+                  voicePitch: Number(getValue("voicePitch") || 1),
+                  voiceGender: getValue("voiceGender"),
+                  voiceAutoRead: getChecked("voiceAutoRead")
+                };
+                const data = await api("/api/settings", { method: "PATCH", body: JSON.stringify(payload) });
+                applyVoiceSettings(data.settings || {});
+                if (!voiceSettings.enabled) {
+                  stopSpeech(false);
+                  stopDictation();
+                  setConversationMode(false);
+                }
+                showToast("Configurações de voz salvas.");
+                return;
+              }
+              if (form.id === "memoryForm") {
+                const title = getValue("memoryTitle").trim();
+                const category = getValue("memoryCategory");
+                const importance = Number(getValue("memoryImportance") || 3);
+                const content = getValue("memoryContent").trim();
+                if (content.length < 2) return showToast("Escreva uma memória para salvar.");
+                await api("/api/memory", {
+                  method: "POST",
+                  body: JSON.stringify({ title: title || undefined, category: category, importance: importance, content: content })
+                });
+                form.reset();
+                await loadMemories();
+                showToast("Memória salva.");
+                return;
+              }
+              if (form.id === "memorySearchForm") {
+                const query = getValue("memorySearchQuery").trim();
+                if (query.length < 2) return showToast("Informe uma busca para a memória.");
+                const data = await api("/api/memory/search?query=" + encodeURIComponent(query));
+                renderMemorySearchResults(data.results || []);
+              }
+            })
+            .catch(function(error) {
+              handleUiError("capture:submit:" + form.id, error, { view: currentView });
+            });
+        }, true);
+      }
+
+      installCoreDelegation();
+
       async function init() {
         if (!token) {
           window.location.href = "/?auth=login";
@@ -5710,11 +6130,11 @@ ${logoYaraStyles()}
 }
 
 function navButton(view: string, label: string, iconName: IconName, active = false) {
-  return `<button class="nav-button ${active ? "active" : ""}" data-view="${view}" type="button">${icon(iconName)}${label}</button>`;
+  return `<button class="nav-button ${active ? "active" : ""}" id="nav-${view}" data-view="${view}" type="button">${icon(iconName)}${label}</button>`;
 }
 
 function menuButton(action: string, label: string, iconName: IconName, danger = false) {
-  return `<button class="menu-item ${danger ? "danger" : ""}" data-action="${action}" type="button">${icon(iconName)}${label}</button>`;
+  return `<button class="menu-item ${danger ? "danger" : ""}" id="menu-${action}" data-action="${action}" type="button">${icon(iconName)}${label}</button>`;
 }
 
 function settingsInfoCard(title: string, description: string, iconName: IconName) {
