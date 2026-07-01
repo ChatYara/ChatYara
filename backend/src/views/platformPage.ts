@@ -4867,6 +4867,158 @@ ${logoYaraStyles()}
           });
       }
 
+      function coreButtonAction(buttonId) {
+        const actions = {
+          newConversationButton: newConversation,
+          refreshDashboardButton: loadDashboard,
+          closeSearchButton: function() {
+            setValue("chatSearchInput", "");
+            byId("chatSearchRow")?.classList.remove("open");
+            document.querySelectorAll(".message").forEach(function(node) { node.classList.remove("hidden-by-search"); });
+          },
+          webSearchToggle: function() {
+            setWebSearchNext(!useWebSearchNext);
+            showToast(useWebSearchNext ? "A próxima mensagem usará pesquisa online." : "Pesquisa online desativada.");
+          },
+          conversationModeButton: function() { setConversationMode(!conversationMode); },
+          attachButton: function() { if (els.attachMenu) els.attachMenu.classList.toggle("open"); },
+          dictationButton: toggleDictation,
+          openGeneratedProject: async function() {
+            if (!generatedProject) return showToast("Gere um projeto primeiro.");
+            setView("projects");
+            await loadProjects();
+            await selectProject(generatedProject.id);
+          },
+          continueGeneratedChat: async function() {
+            if (!generatedProject) return showToast("Gere um projeto primeiro.");
+            await newConversation();
+            setValue(els.messageInput, "Vamos continuar o projeto " + generatedProject.name + ".");
+            if (els.messageInput) els.messageInput.focus();
+          },
+          refreshProjectFilesButton: loadProjectUploadOptions,
+          linkProjectFileButton: async function() {
+            if (!selectedProject) return showToast("Selecione um projeto.");
+            const uploadId = getValue("projectUploadSelect");
+            if (!uploadId) return showToast("Escolha um arquivo para vincular.");
+            await api("/api/projects/" + selectedProject.id + "/files", {
+              method: "POST",
+              body: JSON.stringify({ uploadId: uploadId })
+            });
+            const data = await api("/api/projects/" + selectedProject.id + "/details");
+            renderProjectDetails(data);
+            showToast("Arquivo vinculado ao projeto.");
+          },
+          continueProjectButton: async function() {
+            if (!selectedProject) return showToast("Selecione um projeto.");
+            await newConversation();
+            setValue(els.messageInput, "Quero continuar o projeto " + selectedProject.name + ".");
+            if (els.messageInput) els.messageInput.focus();
+          },
+          deleteProjectButton: async function() {
+            if (!selectedProject) return showToast("Selecione um projeto.");
+            if (!window.confirm("Excluir este projeto?")) return;
+            await api("/api/projects/" + selectedProject.id, { method: "DELETE" });
+            selectedProject = null;
+            currentProjectDetails = null;
+            setText("projectDetailTitle", "Selecione um projeto");
+            setText("projectDetailDescription", "Abra um projeto para ver detalhes, continuar no chat ou excluir.");
+            setText("projectDetail", "Nenhum projeto selecionado.");
+            setHidden("projectWorkspace", true);
+            await loadProjects();
+            showToast("Projeto excluído.");
+          },
+          refreshDocumentsPageButton: loadDocuments,
+          refreshDocumentsButton: loadDocuments,
+          documentUploadButton: function() { byId("documentUploadInput")?.click(); },
+          documentConvertButton: convertSelectedDocument,
+          refreshImagesButton: loadImages,
+          imageUploadButton: function() { byId("imageUploadInput")?.click(); },
+          imageCameraButton: function() { byId("imageCameraInput")?.click(); },
+          sendImageButton: uploadPendingImage,
+          removeImagePreviewButton: function() {
+            clearPendingImage();
+            showToast("Preview removido.");
+          },
+          imageEditButton: editImageFromControls,
+          imageOcrButton: function() {
+            const imageId = getValue("imageOcrSource");
+            if (!imageId) return showToast("Selecione uma imagem para OCR.");
+            return runImageOcr(imageId);
+          },
+          refreshCalendarButton: loadCalendar,
+          googleCalendarConnectButton: function() { return callGoogleCalendar("/api/calendar/google/connect"); },
+          googleCalendarCalendarsButton: function() { return callGoogleCalendar("/api/calendar/google/calendars"); },
+          googleCalendarSyncButton: function() { return callGoogleCalendar("/api/calendar/google/sync", "POST"); },
+          refreshIntegrationsButton: loadIntegrations,
+          integrationCalendarConnect: function() { return callIntegration("/api/integrations/google/calendar/connect", "integrationCalendarResult"); },
+          integrationGmailConnect: function() { return callIntegration("/api/integrations/google/gmail/connect", "integrationGmailResult"); },
+          integrationCalendarSync: function() { return callIntegration("/api/integrations/google/calendar/sync", "integrationCalendarResult", { method: "POST" }); },
+          integrationCalendarList: function() { return callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult"); },
+          integrationGmailRecent: function() { return callIntegration("/api/integrations/gmail/messages?maxResults=5", "integrationGmailResult"); },
+          integrationGmailUnread: function() {
+            return callIntegration("/api/integrations/gmail/summarize", "integrationGmailResult", {
+              method: "POST",
+              body: JSON.stringify({ query: "is:unread", maxResults: 5 })
+            });
+          },
+          integrationPushSubscribe: async function() {
+            if (!("Notification" in window)) return showToast("Este navegador não oferece notificações web.");
+            const permission = await Notification.requestPermission();
+            if (permission !== "granted") {
+              await callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Push YARA AI", message: "Permissão local validada." }) });
+              showToast("Permissão local não concedida. Teste interno criado.");
+              return;
+            }
+            showToast("Notificações autorizadas. Inscrição push remota preparada para service worker.");
+            await callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Push YARA AI", message: "Canal de notificação validado." }) });
+          },
+          integrationPushTest: function() {
+            return callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Teste YARA AI", message: "Notificação interna criada com sucesso." }) });
+          },
+          loadSessionsButton: function() { return loadSessions("sessionList"); },
+          logoutAllButton: async function() {
+            const data = await api("/api/users/logout-all", { method: "POST" });
+            showToast(data.message || "Sessões encerradas.");
+          },
+          clearMemoriesButton: async function() {
+            if (!window.confirm("Limpar todas as memórias da YARA?")) return;
+            await api("/api/memories", { method: "DELETE" });
+            await loadMemories();
+            showToast("Memórias limpas.");
+          },
+          savePreferredTechButton: async function() {
+            const value = getValue("preferredTech").trim();
+            if (!value) return showToast("Informe as tecnologias preferidas.");
+            await api("/api/memories", {
+              method: "POST",
+              body: JSON.stringify({ title: "Tecnologias preferidas", content: value })
+            });
+            setValue("preferredTech", "");
+            await loadMemories();
+            showToast("Tecnologias preferidas salvas na memória.");
+          },
+          manageFilesButton: function() {
+            loadUploads();
+            showToast("Arquivos atualizados.");
+          },
+          securitySessionsButton: function() {
+            loadSessions("sessionList");
+            selectSettingsTab("profile");
+            showToast("Sessões carregadas na aba Perfil.");
+          },
+          securityDevicesButton: function() {
+            loadSessions("securityLoginHistory");
+            showToast("Dispositivos conectados carregados.");
+          },
+          testAiButton: async function() {
+            const data = await api("/api/ai/test", { method: "POST" });
+            showToast("IA conectada: " + (data.model || "modelo ativo"));
+            await loadAiStatus();
+          }
+        };
+        return actions[buttonId] || null;
+      }
+
       function installCoreDelegation() {
         if (window.__yaraCoreDelegationInstalled) return;
         window.__yaraCoreDelegationInstalled = true;
@@ -4940,6 +5092,14 @@ ${logoYaraStyles()}
               return runCapturedAction("modal-close", event, control, closeModal);
             }
 
+            const coreButton = target.closest("button[id]");
+            if (coreButton) {
+              const action = coreButtonAction(coreButton.id);
+              if (action) {
+                return runCapturedAction("button:" + coreButton.id, event, coreButton, action);
+              }
+            }
+
             const chatAction = target.closest("#chatActionMenu [data-action]");
             if (chatAction) {
               return runCapturedAction("chat-action:" + chatAction.dataset.action, event, chatAction, function() {
@@ -4993,6 +5153,17 @@ ${logoYaraStyles()}
           if (!form || !form.id) return;
           const handledForms = {
             chatForm: true,
+            generatorForm: true,
+            projectTaskForm: true,
+            projectNoteForm: true,
+            documentForm: true,
+            documentPageForm: true,
+            calendarEventForm: true,
+            reminderForm: true,
+            integrationCalendarForm: true,
+            integrationGmailForm: true,
+            integrationTelegramForm: true,
+            integrationWhatsappForm: true,
             quickSettingsForm: true,
             profileForm: true,
             cognitiveProfileForm: true,
@@ -5008,6 +5179,94 @@ ${logoYaraStyles()}
           Promise.resolve()
             .then(async function() {
               if (form.id === "chatForm") return sendMessage(event);
+              if (form.id === "generatorForm") return submitGeneratorForm();
+              if (form.id === "projectTaskForm") {
+                if (!selectedProject) return showToast("Selecione um projeto.");
+                const title = getValue("projectTaskTitle").trim();
+                if (!title) return showToast("Informe a tarefa.");
+                await api("/api/projects/" + selectedProject.id + "/tasks", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    title: title,
+                    dueDate: getValue("projectTaskDueDate") || null
+                  })
+                });
+                form.reset();
+                await selectProject(selectedProject.id);
+                await loadDashboard();
+                showToast("Tarefa criada.");
+                return;
+              }
+              if (form.id === "projectNoteForm") {
+                if (!selectedProject) return showToast("Selecione um projeto.");
+                const content = getValue("projectNoteContent").trim();
+                if (!content) return showToast("Escreva uma nota.");
+                await api("/api/projects/" + selectedProject.id + "/notes", {
+                  method: "POST",
+                  body: JSON.stringify({ content: content })
+                });
+                form.reset();
+                await selectProject(selectedProject.id);
+                showToast("Nota salva.");
+                return;
+              }
+              if (form.id === "documentForm") {
+                return createDocumentFromControls({
+                  titleId: "documentTitle",
+                  templateId: "documentTemplate",
+                  formatId: "documentFormat",
+                  fieldsId: "documentFields"
+                });
+              }
+              if (form.id === "documentPageForm") {
+                return createDocumentFromControls({
+                  titleId: "documentPageTitle",
+                  templateId: "documentPageTemplate",
+                  formatId: "documentPageFormat",
+                  fieldsId: "documentPageFields"
+                });
+              }
+              if (form.id === "calendarEventForm") return createEventFromForm(event);
+              if (form.id === "reminderForm") return createReminderFromForm(event);
+              if (form.id === "integrationCalendarForm") {
+                const title = getValue("integrationCalendarTitle").trim();
+                const date = getValue("integrationCalendarDate");
+                const time = getValue("integrationCalendarTime");
+                const location = getValue("integrationCalendarLocation").trim();
+                if (!title || !date) return showToast("Informe título e data do evento.");
+                return callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult", {
+                  method: "POST",
+                  body: JSON.stringify({ title: title, date: date, time: time || null, location: location || null })
+                });
+              }
+              if (form.id === "integrationGmailForm") {
+                return callIntegration("/api/integrations/gmail/send", "integrationGmailResult", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    to: getValue("integrationGmailTo").trim(),
+                    subject: getValue("integrationGmailSubject").trim(),
+                    body: getValue("integrationGmailBody").trim()
+                  })
+                });
+              }
+              if (form.id === "integrationTelegramForm") {
+                return callIntegration("/api/integrations/telegram/send", "integrationTelegramResult", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    chatId: getValue("integrationTelegramChatId").trim(),
+                    text: getValue("integrationTelegramText").trim()
+                  })
+                });
+              }
+              if (form.id === "integrationWhatsappForm") {
+                return callIntegration("/api/integrations/whatsapp/send", "integrationWhatsappResult", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    to: getValue("integrationWhatsappTo").trim(),
+                    text: getValue("integrationWhatsappText").trim()
+                  })
+                });
+              }
               if (form.id === "quickSettingsForm") {
                 await api("/api/settings", {
                   method: "PATCH",
@@ -5440,8 +5699,7 @@ ${logoYaraStyles()}
         document.querySelectorAll(".message").forEach(function(node) { node.classList.remove("hidden-by-search"); });
       });
 
-      on("generatorForm", "submit", async function(event) {
-        event.preventDefault();
+      async function submitGeneratorForm() {
         const prompt = getValue("generatorPrompt").trim();
         const type = getValue("systemType");
         if (prompt.length < 8) return showToast("Descreva melhor o sistema que você quer criar.");
@@ -5461,6 +5719,11 @@ ${logoYaraStyles()}
           result.textContent = "Não foi possível gerar agora.";
           showToast(error.message);
         }
+      }
+
+      on("generatorForm", "submit", async function(event) {
+        event.preventDefault();
+        await submitGeneratorForm();
       });
 
       on("openGeneratedProject", "click", async function() {
