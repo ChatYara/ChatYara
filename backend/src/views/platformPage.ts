@@ -975,14 +975,31 @@ ${logoYaraStyles()}
         backdrop-filter: blur(18px);
       }
 
+      .floating-menu[hidden],
+      .attach-menu[hidden] {
+        display: none !important;
+      }
+
       .floating-menu {
         max-height: min(520px, calc(100vh - 120px));
         overflow: auto;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-4px);
+        transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
       }
 
       .floating-menu.open,
       .attach-menu.open {
         display: grid;
+      }
+
+      .floating-menu.open {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
       }
 
       .floating-menu {
@@ -1569,8 +1586,8 @@ ${logoYaraStyles()}
             </select>
             <div class="status"><span class="dot"></span>Ativo</div>
             <button class="icon-button" id="quickSettingsButton" type="button" aria-label="Configurações rápidas">${icon("settings")}</button>
-            <button class="icon-button" id="chatMenuButton" type="button" aria-label="Ações da conversa">${icon("dots")}</button>
-            <div class="floating-menu" id="chatActionMenu">
+            <button class="icon-button" id="chatMenuButton" type="button" aria-label="Ações da conversa" aria-haspopup="menu" aria-expanded="false" aria-controls="chatActionMenu">${icon("dots")}</button>
+            <div class="floating-menu" id="chatActionMenu" role="menu" hidden>
               ${menuButton("shareConversation", "Compartilhar", "share")}
               ${menuButton("pinConversation", "Fixar", "pin")}
               ${menuButton("filesConversation", "Arquivos enviados", "file")}
@@ -2748,9 +2765,9 @@ ${logoYaraStyles()}
         };
         els.pageTitle.textContent = labels[view][0];
         els.pageSubtitle.textContent = labels[view][1];
-        els.sidebar.classList.remove("open");
-        els.chatActionMenu.classList.remove("open");
-        els.attachMenu.classList.remove("open");
+        if (els.sidebar) els.sidebar.classList.remove("open");
+        closeChatMenu();
+        if (els.attachMenu) els.attachMenu.classList.remove("open");
         document.body.classList.remove("drawer-open", "menu-open");
         if (view === "dashboard") loadDashboard();
         if (view === "projects") loadProjects();
@@ -2775,15 +2792,47 @@ ${logoYaraStyles()}
         if (tabName === "ai") loadAiStatus();
       }
 
+      function chatMenuElements() {
+        return {
+          button: byId("chatMenuButton"),
+          menu: byId("chatActionMenu")
+        };
+      }
+
       function closeChatMenu() {
-        els.chatActionMenu.classList.remove("open");
+        const parts = chatMenuElements();
+        if (parts.menu) {
+          parts.menu.classList.remove("open");
+          parts.menu.hidden = true;
+        }
+        if (parts.button) parts.button.setAttribute("aria-expanded", "false");
         document.body.classList.remove("menu-open");
       }
 
-      function toggleChatMenu() {
-        const willOpen = !els.chatActionMenu.classList.contains("open");
-        els.chatActionMenu.classList.toggle("open", willOpen);
-        document.body.classList.toggle("menu-open", willOpen);
+      function openChatMenu() {
+        const parts = chatMenuElements();
+        if (!parts.menu) {
+          showToast("Menu da conversa indisponível.");
+          return;
+        }
+        if (els.attachMenu) els.attachMenu.classList.remove("open");
+        parts.menu.hidden = false;
+        parts.menu.classList.add("open");
+        if (parts.button) parts.button.setAttribute("aria-expanded", "true");
+        document.body.classList.add("menu-open");
+      }
+
+      function toggleChatMenu(event) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        const parts = chatMenuElements();
+        if (parts.menu && parts.menu.classList.contains("open")) {
+          closeChatMenu();
+          return;
+        }
+        openChatMenu();
       }
 
       function closeSidebarDrawer() {
@@ -4599,7 +4648,10 @@ ${logoYaraStyles()}
       on("helpButton", "click", openHelpModal);
       on("termsButton", "click", openTermsModal);
       on("chatMenuButton", "click", toggleChatMenu);
-      on("attachButton", "click", function() { els.attachMenu.classList.toggle("open"); });
+      on("attachButton", "click", function(event) {
+        if (event) event.stopPropagation();
+        if (els.attachMenu) els.attachMenu.classList.toggle("open");
+      });
       on("webSearchToggle", "click", function() {
         setWebSearchNext(!useWebSearchNext);
         showToast(useWebSearchNext ? "A próxima mensagem usará pesquisa online." : "Pesquisa online desativada.");
@@ -4611,12 +4663,12 @@ ${logoYaraStyles()}
       on("modalClose", "click", closeModal);
       on(els.modalOverlay, "click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
       document.addEventListener("click", function(event) {
-        if (!els.chatActionMenu.classList.contains("open")) return;
+        if (!els.chatActionMenu || !els.chatActionMenu.classList.contains("open")) return;
         if (event.target.closest("#chatActionMenu") || event.target.closest("#chatMenuButton")) return;
         closeChatMenu();
       });
       document.addEventListener("click", function(event) {
-        if (!els.sidebar.classList.contains("open")) return;
+        if (!els.sidebar || !els.sidebar.classList.contains("open")) return;
         if (event.target.closest("#sidebar") || event.target.closest("#mobileToggle")) return;
         closeSidebarDrawer();
       });
@@ -4624,7 +4676,7 @@ ${logoYaraStyles()}
         if (event.key !== "Escape") return;
         closeChatMenu();
         closeSidebarDrawer();
-        els.attachMenu.classList.remove("open");
+        if (els.attachMenu) els.attachMenu.classList.remove("open");
       });
       on(els.attachmentPreview, "click", function(event) {
         const button = event.target.closest("#removeAttachmentButton");
