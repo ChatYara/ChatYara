@@ -172,6 +172,29 @@ ${logoYaraStyles()}
         color: #fecdd3;
       }
 
+      .module-error {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+        border: 1px solid rgba(248, 113, 113, 0.28);
+        border-radius: 14px;
+        padding: 13px 14px;
+        color: #fee2e2;
+        background: rgba(127, 29, 29, 0.28);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+      }
+
+      .module-error strong {
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .module-error button {
+        flex: 0 0 auto;
+      }
+
       .icon-button {
         width: 42px;
         padding: 0;
@@ -2640,7 +2663,22 @@ ${logoYaraStyles()}
 
       function on(id, eventName, handler) {
         const target = typeof id === "string" ? byId(id) : id;
-        if (target) target.addEventListener(eventName, handler);
+        if (!target) {
+          console.warn("[YARA UI] Listener não registrado: elemento ausente", id, eventName);
+          return;
+        }
+        target.addEventListener(eventName, function(event) {
+          try {
+            const result = handler(event);
+            if (result && typeof result.catch === "function") {
+              result.catch(function(error) {
+                handleUiError("handler:" + eventName, error);
+              });
+            }
+          } catch (error) {
+            handleUiError("handler:" + eventName, error);
+          }
+        });
       }
 
       function getValue(id, fallback) {
@@ -2673,7 +2711,61 @@ ${logoYaraStyles()}
         if (target) target.hidden = Boolean(value);
       }
 
+      function errorMessage(error, fallback) {
+        return error && error.message ? error.message : (fallback || "Não foi possível concluir esta ação.");
+      }
+
+      function handleUiError(context, error, options) {
+        const message = errorMessage(error);
+        console.error("[YARA UI]", context, error);
+        if (!options || options.toast !== false) showToast(message);
+        if (options && options.view) showModuleError(options.view, message);
+      }
+
+      function moduleTarget(view) {
+        return byId("view-" + view);
+      }
+
+      function clearModuleError(view) {
+        const target = moduleTarget(view);
+        if (!target) return;
+        const existing = target.querySelector("[data-module-error]");
+        if (existing) existing.remove();
+      }
+
+      function showModuleError(view, message) {
+        const target = moduleTarget(view);
+        if (!target) return;
+        const existing = target.querySelector("[data-module-error]");
+        const html = '<div class="module-error" data-module-error><div><strong>Não foi possível carregar este módulo.</strong><span>' + escapeHtml(message) + '</span></div><button class="button" data-retry-view="' + escapeHtml(view) + '" type="button">Tentar novamente</button></div>';
+        if (existing) {
+          existing.outerHTML = html;
+          return;
+        }
+        const panel = target.querySelector(".panel") || target;
+        panel.insertAdjacentHTML("afterbegin", html);
+      }
+
+      function safeDocumentListener(eventName, handler) {
+        document.addEventListener(eventName, function(event) {
+          try {
+            const result = handler(event);
+            if (result && typeof result.catch === "function") {
+              result.catch(function(error) {
+                handleUiError("document:" + eventName, error);
+              });
+            }
+          } catch (error) {
+            handleUiError("document:" + eventName, error);
+          }
+        });
+      }
+
       function showToast(message) {
+        if (!els.toast) {
+          console.warn("[YARA UI] Toast indisponível:", message);
+          return;
+        }
         els.toast.textContent = message;
         els.toast.classList.add("show");
         window.clearTimeout(showToast.timer);
@@ -2683,15 +2775,15 @@ ${logoYaraStyles()}
       }
 
       function openModal(title, text, body) {
-        els.modalTitle.textContent = title;
-        els.modalText.textContent = text || "";
-        els.modalBody.innerHTML = body || "";
-        els.modalOverlay.classList.add("open");
+        setText(els.modalTitle, title);
+        setText(els.modalText, text || "");
+        setHtml(els.modalBody, body || "");
+        if (els.modalOverlay) els.modalOverlay.classList.add("open");
       }
 
       function closeModal() {
-        els.modalOverlay.classList.remove("open");
-        els.modalBody.innerHTML = "";
+        if (els.modalOverlay) els.modalOverlay.classList.remove("open");
+        setHtml(els.modalBody, "");
       }
 
       async function openQuickSettingsModal() {
@@ -2739,57 +2831,115 @@ ${logoYaraStyles()}
         openModal("Termos e privacidade", "Resumo de segurança da plataforma.", '<div class="list"><article class="list-item"><strong>Privacidade</strong><p class="muted">Seus arquivos e conversas exigem autenticação para acesso.</p></article><article class="list-item"><strong>IA segura</strong><p class="muted">Gemini/OpenAI são acessados apenas pelo backend, nunca diretamente pelo navegador ou APK.</p></article><article class="list-item"><strong>Credenciais</strong><p class="muted">Nenhuma chave, token ou segredo é exibido na interface.</p></article></div>');
       }
 
-      function setView(view) {
-        const requestedView = view;
-        if (view === "memory") {
-          view = "settings";
-          window.setTimeout(function() { selectSettingsTab("memory"); }, 0);
+      function viewConfig(view) {
+        const configs = {
+          chat: { title: "YARA AI", subtitle: "Chat geral com a YARA." },
+          dashboard: { title: "Dashboard", subtitle: "Resumo da sua atividade.", loader: loadDashboard },
+          generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
+          projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
+          documents: { title: "Documentos", subtitle: "Gere e baixe documentos protegidos.", loader: loadDocuments },
+          images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
+          calendar: { title: "Agenda", subtitle: "Eventos, lembretes e notificações.", loader: loadCalendar },
+          integrations: { title: "Integrações", subtitle: "Google, Gmail, Telegram, WhatsApp e notificações.", loader: loadIntegrations },
+          settings: { title: "Configurações", subtitle: "Preferências, conta e memória da YARA.", loader: loadSettings }
+        };
+        return configs[view] || null;
+      }
+
+      async function runModuleLoader(view, loader) {
+        if (!loader) {
+          clearModuleError(view);
+          return;
         }
+        try {
+          await loader();
+          clearModuleError(view);
+        } catch (error) {
+          handleUiError("module:" + view, error, { view: view });
+        }
+      }
+
+      function setView(view) {
+        const requestedView = view || "chat";
+        let targetView = requestedView === "memory" ? "settings" : requestedView;
+        const config = viewConfig(targetView);
+        if (!config || !moduleTarget(targetView)) {
+          console.warn("[YARA UI] View inválida, voltando para chat:", requestedView);
+          targetView = "chat";
+        }
+        const finalConfig = viewConfig(targetView) || viewConfig("chat");
+        console.info("[YARA UI] Navegando para módulo:", requestedView, "=>", targetView);
         document.querySelectorAll(".view").forEach(function(item) {
-          item.hidden = item.id !== "view-" + view;
+          item.hidden = item.id !== "view-" + targetView;
         });
-        const activeView = requestedView === "memory" ? "memory" : view;
+        const activeView = requestedView === "memory" ? "memory" : targetView;
         document.querySelectorAll(".nav-button").forEach(function(item) {
           item.classList.toggle("active", item.dataset.view === activeView);
         });
-        const labels = {
-          chat: ["YARA AI", "Chat geral com a YARA."],
-          dashboard: ["Dashboard", "Resumo da sua atividade."],
-          generator: ["Gerador de Sistemas", "Crie sistemas completos em um módulo separado."],
-          projects: ["Projetos", "Organize projetos, tarefas, notas e arquivos."],
-          documents: ["Documentos", "Gere e baixe documentos protegidos."],
-          images: ["Imagens", "OCR, análise e edição inicial de imagens."],
-          calendar: ["Agenda", "Eventos, lembretes e notificações."],
-          integrations: ["Integrações", "Google, Gmail, Telegram, WhatsApp e notificações."],
-          settings: ["Configurações", "Preferências, conta e memória da YARA."]
-        };
-        els.pageTitle.textContent = labels[view][0];
-        els.pageSubtitle.textContent = labels[view][1];
+        setText("pageTitle", finalConfig.title);
+        setText("pageSubtitle", finalConfig.subtitle);
         if (els.sidebar) els.sidebar.classList.remove("open");
         closeChatMenu();
         if (els.attachMenu) els.attachMenu.classList.remove("open");
         document.body.classList.remove("drawer-open", "menu-open");
-        if (view === "dashboard") loadDashboard();
-        if (view === "projects") loadProjects();
-        if (view === "documents") loadDocuments();
-        if (view === "images") loadImages();
-        if (view === "calendar") loadCalendar();
-        if (view === "integrations") loadIntegrations();
-        if (view === "settings") loadSettings();
+        runModuleLoader(targetView, finalConfig.loader).then(function() {
+          if (requestedView === "memory") selectSettingsTab("memory");
+        });
       }
 
-      function selectSettingsTab(tabName) {
+      function settingsTabLoader(tabName) {
+        const loaders = {
+          memory: loadMemories,
+          profile: loadCognitiveProfile,
+          files: loadUploads,
+          documents: loadDocuments,
+          ai: loadAiStatus
+        };
+        return loaders[tabName] || null;
+      }
+
+      function showSettingsTabError(tabName, error) {
+        const pane = byId("settings-" + tabName);
+        if (!pane) return;
+        const existing = pane.querySelector("[data-settings-error]");
+        const html = '<div class="module-error" data-settings-error><div><strong>Não foi possível carregar esta aba.</strong><span>' + escapeHtml(errorMessage(error)) + '</span></div><button class="button" data-retry-settings-tab="' + escapeHtml(tabName) + '" type="button">Tentar novamente</button></div>';
+        if (existing) {
+          existing.outerHTML = html;
+          return;
+        }
+        pane.insertAdjacentHTML("afterbegin", html);
+      }
+
+      function clearSettingsTabError(tabName) {
+        const pane = byId("settings-" + tabName);
+        if (!pane) return;
+        const existing = pane.querySelector("[data-settings-error]");
+        if (existing) existing.remove();
+      }
+
+      async function selectSettingsTab(tabName) {
+        const pane = byId("settings-" + tabName);
+        if (!pane) {
+          console.warn("[YARA UI] Aba de configurações inválida:", tabName);
+          showToast("Aba de configurações indisponível.");
+          return;
+        }
         document.querySelectorAll(".tab").forEach(function(tab) {
           tab.classList.toggle("active", tab.dataset.settingsTab === tabName);
         });
         document.querySelectorAll(".settings-pane").forEach(function(pane) {
           pane.hidden = pane.id !== "settings-" + tabName;
         });
-        if (tabName === "memory") loadMemories();
-        if (tabName === "profile") loadCognitiveProfile();
-        if (tabName === "files") loadUploads();
-        if (tabName === "documents") loadDocuments();
-        if (tabName === "ai") loadAiStatus();
+        const loader = settingsTabLoader(tabName);
+        if (!loader) return;
+        try {
+          await loader();
+          clearSettingsTabError(tabName);
+        } catch (error) {
+          console.error("[YARA UI] Falha na aba de configurações:", tabName, error);
+          showSettingsTabError(tabName, error);
+          showToast(errorMessage(error));
+        }
       }
 
       function chatMenuElements() {
@@ -2970,12 +3120,15 @@ ${logoYaraStyles()}
       }
 
       function autoGrowMessageInput() {
+        if (!els.messageInput) return;
         els.messageInput.style.height = "auto";
         els.messageInput.style.height = Math.min(132, els.messageInput.scrollHeight) + "px";
       }
 
       function scrollMessagesToBottom() {
+        if (!els.messages) return;
         window.requestAnimationFrame(function() {
+          if (!els.messages) return;
           els.messages.scrollTop = els.messages.scrollHeight;
         });
       }
@@ -3175,7 +3328,7 @@ ${logoYaraStyles()}
           }
           const speechText = (finalText || interimText || "").trim();
           const base = voiceBaseText ? voiceBaseText + " " : "";
-          els.messageInput.value = (base + speechText).trim();
+          setValue(els.messageInput, (base + speechText).trim());
           autoGrowMessageInput();
         };
         speechRecognition.onerror = function(event) {
@@ -3187,7 +3340,8 @@ ${logoYaraStyles()}
           refreshVoiceControls();
         };
         speechRecognition.onend = function() {
-          const hasText = els.messageInput.value.trim().length > 0 && els.messageInput.value.trim() !== voiceBaseText;
+          const currentText = getValue(els.messageInput).trim();
+          const hasText = currentText.length > 0 && currentText !== voiceBaseText;
           isListening = false;
           refreshVoiceControls();
           if (conversationMode && hasText && !isResponding) {
@@ -3217,7 +3371,7 @@ ${logoYaraStyles()}
         const recognition = getSpeechRecognition();
         if (!recognition) return;
         recognition.lang = voiceSettings.language || "pt-BR";
-        voiceBaseText = els.messageInput.value.trim();
+        voiceBaseText = getValue(els.messageInput).trim();
         try {
           recognition.start();
         } catch {
@@ -3331,6 +3485,7 @@ ${logoYaraStyles()}
 
       function renderMessages(messages) {
         currentMessages = messages || [];
+        if (!els.messages) return;
         if (!currentMessages.length) {
           els.messages.innerHTML = emptyChatHtml();
           scrollMessagesToBottom();
@@ -3380,7 +3535,7 @@ ${logoYaraStyles()}
         renderMessages([]);
         await loadConversations();
         setView("chat");
-        els.messageInput.focus();
+        if (els.messageInput) els.messageInput.focus();
       }
 
       async function ensureConversation() {
@@ -3394,8 +3549,10 @@ ${logoYaraStyles()}
           URL.revokeObjectURL(pendingAttachment.previewUrl);
         }
         pendingAttachment = null;
-        els.attachmentPreview.hidden = true;
-        els.attachmentPreview.innerHTML = "";
+        if (els.attachmentPreview) {
+          els.attachmentPreview.hidden = true;
+          els.attachmentPreview.innerHTML = "";
+        }
       }
 
       function setPendingAttachment(file) {
@@ -3414,8 +3571,10 @@ ${logoYaraStyles()}
             ? '<audio class="audio-preview" controls preload="metadata" src="' + previewUrl + '"></audio>'
           : '<span class="attachment-icon">${icon("file")}</span>';
 
-        els.attachmentPreview.innerHTML = visual + '<span class="attachment-meta"><strong>' + escapeHtml(file.name) + '</strong><span>' + escapeHtml(file.type || "arquivo") + " · " + formatFileSize(file.size) + '</span></span><button class="icon-button danger" id="removeAttachmentButton" type="button" aria-label="Remover anexo">${icon("trash")}</button>';
-        els.attachmentPreview.hidden = false;
+        if (els.attachmentPreview) {
+          els.attachmentPreview.innerHTML = visual + '<span class="attachment-meta"><strong>' + escapeHtml(file.name) + '</strong><span>' + escapeHtml(file.type || "arquivo") + " · " + formatFileSize(file.size) + '</span></span><button class="icon-button danger" id="removeAttachmentButton" type="button" aria-label="Remover anexo">${icon("trash")}</button>';
+          els.attachmentPreview.hidden = false;
+        }
       }
 
       async function uploadPendingAttachment() {
@@ -3494,9 +3653,9 @@ ${logoYaraStyles()}
       async function sendMessage(event) {
         event.preventDefault();
         if (isResponding) return;
-        const message = els.messageInput.value.trim();
+        const message = getValue(els.messageInput).trim();
         if (!message && !pendingAttachment) return;
-        els.messageInput.value = "";
+        setValue(els.messageInput, "");
         autoGrowMessageInput();
         const baseMessages = currentMessages.slice();
         const userPreview = { role: "user", content: message || "Anexo enviado.", uploads: [] };
@@ -3614,11 +3773,11 @@ ${logoYaraStyles()}
       }
 
       function openAttachmentPicker(action) {
-        els.attachMenu.classList.remove("open");
-        if (action === "attachGallery" || action === "attachImage") els.fileInputImages.click();
-        if (action === "attachDocument") els.fileInputDocument.click();
-        if (action === "attachPdf") els.fileInputPdf.click();
-        if (action === "attachCamera") els.fileInputCamera.click();
+        if (els.attachMenu) els.attachMenu.classList.remove("open");
+        if ((action === "attachGallery" || action === "attachImage") && els.fileInputImages) els.fileInputImages.click();
+        if (action === "attachDocument" && els.fileInputDocument) els.fileInputDocument.click();
+        if (action === "attachPdf" && els.fileInputPdf) els.fileInputPdf.click();
+        if (action === "attachCamera" && els.fileInputCamera) els.fileInputCamera.click();
         if (action === "attachAudio") toggleAudioRecording();
       }
 
@@ -4165,7 +4324,7 @@ ${logoYaraStyles()}
         const file = new File([blob], image.original_name || image.file_name || "imagem", { type: blob.type || image.file_type });
         setView("chat");
         setPendingAttachment(file);
-        els.messageInput.value = "O que tem nessa imagem?";
+        setValue(els.messageInput, "O que tem nessa imagem?");
         autoGrowMessageInput();
         byId("chatForm")?.requestSubmit();
       }
@@ -4519,7 +4678,7 @@ ${logoYaraStyles()}
         applyVoiceSettings(settings);
         setText("settingsName", currentUser ? currentUser.name : "Usuário");
         setText("settingsEmail", currentUser ? currentUser.email : "Conta YARA");
-        els.settingsAvatar.textContent = initials(currentUser ? currentUser.name : "YA");
+        setText(els.settingsAvatar, initials(currentUser ? currentUser.name : "YA"));
         await loadCognitiveProfile().catch(function() {});
       }
 
@@ -4577,9 +4736,9 @@ ${logoYaraStyles()}
       async function refreshUser() {
         const data = await api("/api/auth/me");
         currentUser = data.user;
-        els.accountName.textContent = data.user.name;
-        els.accountAvatar.textContent = initials(data.user.name);
-        els.accountEmail.textContent = data.user.email;
+        setText(els.accountName, data.user.name);
+        setText(els.accountAvatar, initials(data.user.name));
+        setText(els.accountEmail, data.user.email);
       }
 
       async function init() {
@@ -4602,9 +4761,14 @@ ${logoYaraStyles()}
       }
 
       document.querySelectorAll(".nav-button").forEach(function(button) {
-        button.addEventListener("click", function() { setView(button.dataset.view); });
+        on(button, "click", function() { setView(button.dataset.view); });
       });
-      document.body.addEventListener("click", function(event) {
+      safeDocumentListener("click", function(event) {
+        const retry = event.target.closest("[data-retry-view]");
+        if (retry) {
+          setView(retry.dataset.retryView);
+          return;
+        }
         const target = event.target.closest("[data-view-target]");
         if (target) setView(target.dataset.viewTarget);
       });
@@ -4662,17 +4826,17 @@ ${logoYaraStyles()}
       });
       on("modalClose", "click", closeModal);
       on(els.modalOverlay, "click", function(event) { if (event.target === els.modalOverlay) closeModal(); });
-      document.addEventListener("click", function(event) {
+      safeDocumentListener("click", function(event) {
         if (!els.chatActionMenu || !els.chatActionMenu.classList.contains("open")) return;
         if (event.target.closest("#chatActionMenu") || event.target.closest("#chatMenuButton")) return;
         closeChatMenu();
       });
-      document.addEventListener("click", function(event) {
+      safeDocumentListener("click", function(event) {
         if (!els.sidebar || !els.sidebar.classList.contains("open")) return;
         if (event.target.closest("#sidebar") || event.target.closest("#mobileToggle")) return;
         closeSidebarDrawer();
       });
-      document.addEventListener("keydown", function(event) {
+      safeDocumentListener("keydown", function(event) {
         if (event.key !== "Escape") return;
         closeChatMenu();
         closeSidebarDrawer();
@@ -4687,9 +4851,9 @@ ${logoYaraStyles()}
       on(els.messages, "click", async function(event) {
         const promptButton = event.target.closest("[data-prompt]");
         if (promptButton) {
-          els.messageInput.value = promptButton.dataset.prompt || "";
+          setValue(els.messageInput, promptButton.dataset.prompt || "");
           autoGrowMessageInput();
-          els.messageInput.focus();
+          if (els.messageInput) els.messageInput.focus();
           return;
         }
 
@@ -4889,8 +5053,8 @@ ${logoYaraStyles()}
       on("continueGeneratedChat", "click", async function() {
         if (!generatedProject) return showToast("Gere um projeto primeiro.");
         await newConversation();
-        els.messageInput.value = "Vamos continuar o projeto " + generatedProject.name + ".";
-        els.messageInput.focus();
+        setValue(els.messageInput, "Vamos continuar o projeto " + generatedProject.name + ".");
+        if (els.messageInput) els.messageInput.focus();
       });
 
       on("projectSearch", "input", renderProjects);
@@ -4992,8 +5156,8 @@ ${logoYaraStyles()}
       on("continueProjectButton", "click", async function() {
         if (!selectedProject) return showToast("Selecione um projeto.");
         await newConversation();
-        els.messageInput.value = "Quero continuar o projeto " + selectedProject.name + ".";
-        els.messageInput.focus();
+        setValue(els.messageInput, "Quero continuar o projeto " + selectedProject.name + ".");
+        if (els.messageInput) els.messageInput.focus();
       });
       on("deleteProjectButton", "click", async function() {
         if (!selectedProject) return showToast("Selecione um projeto.");
@@ -5009,16 +5173,22 @@ ${logoYaraStyles()}
         showToast("Projeto excluído.");
       });
 
-      on("settingsTabs", "click", function(event) {
+      on("settingsTabs", "click", async function(event) {
         const button = event.target.closest("[data-settings-tab]");
         if (!button) return;
-        selectSettingsTab(button.dataset.settingsTab);
+        await selectSettingsTab(button.dataset.settingsTab);
       });
 
       on("view-settings", "click", async function(event) {
+        const retrySettings = event.target.closest("[data-retry-settings-tab]");
+        if (retrySettings) {
+          await selectSettingsTab(retrySettings.dataset.retrySettingsTab);
+          return;
+        }
+
         const tabTarget = event.target.closest("[data-settings-tab-target]");
         if (tabTarget) {
-          selectSettingsTab(tabTarget.dataset.settingsTabTarget);
+          await selectSettingsTab(tabTarget.dataset.settingsTabTarget);
           return;
         }
 
