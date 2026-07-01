@@ -34,6 +34,12 @@ ${logoYaraStyles()}
 
       * { box-sizing: border-box; }
 
+      html,
+      body {
+        width: 100%;
+        max-width: 100%;
+      }
+
       * {
         scrollbar-width: thin;
         scrollbar-color: rgba(56, 189, 248, 0.42) rgba(15, 23, 42, 0.32);
@@ -76,7 +82,7 @@ ${logoYaraStyles()}
       }
 
       body.menu-open::before {
-        z-index: 35;
+        z-index: 20;
       }
 
       button,
@@ -84,10 +90,12 @@ ${logoYaraStyles()}
       select,
       textarea {
         font: inherit;
+        max-width: 100%;
       }
 
       button {
         cursor: pointer;
+        touch-action: manipulation;
       }
 
       svg {
@@ -98,6 +106,9 @@ ${logoYaraStyles()}
 
       .app-shell {
         height: 100vh;
+        width: 100%;
+        max-width: 100vw;
+        overflow: hidden;
         display: grid;
         grid-template-columns: 300px minmax(0, 1fr);
       }
@@ -131,6 +142,7 @@ ${logoYaraStyles()}
       .button,
       .primary-action,
       .icon-button {
+        min-width: 0;
         min-height: 42px;
         display: inline-flex;
         align-items: center;
@@ -143,6 +155,7 @@ ${logoYaraStyles()}
         background: rgba(15, 23, 42, 0.72);
         font-weight: 700;
         text-decoration: none;
+        line-height: 1.2;
         transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
       }
 
@@ -212,6 +225,8 @@ ${logoYaraStyles()}
       .nav-button,
       .conversation-button {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
         min-height: 42px;
         display: flex;
         align-items: center;
@@ -223,6 +238,7 @@ ${logoYaraStyles()}
         background: transparent;
         text-align: left;
         font-weight: 650;
+        overflow-wrap: anywhere;
       }
 
       .nav-button.active,
@@ -335,11 +351,15 @@ ${logoYaraStyles()}
       .main {
         min-width: 0;
         min-height: 0;
+        overflow: hidden;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
       }
 
       .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 25;
         min-height: 72px;
         display: flex;
         align-items: center;
@@ -371,6 +391,8 @@ ${logoYaraStyles()}
       }
 
       .topbar-actions {
+        min-width: 0;
+        flex: 0 0 auto;
         position: relative;
         display: flex;
         align-items: center;
@@ -418,8 +440,10 @@ ${logoYaraStyles()}
       }
 
       .view {
+        min-width: 0;
         min-height: 0;
         overflow: auto;
+        -webkit-overflow-scrolling: touch;
         padding: clamp(18px, 4vw, 34px);
       }
 
@@ -428,6 +452,7 @@ ${logoYaraStyles()}
       }
 
       .chat-view {
+        min-width: 0;
         min-height: 0;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
@@ -446,6 +471,7 @@ ${logoYaraStyles()}
       }
 
       .messages {
+        min-width: 0;
         min-height: 0;
         display: flex;
         flex-direction: column;
@@ -843,11 +869,13 @@ ${logoYaraStyles()}
         bottom: 0;
         z-index: 20;
         padding-top: 8px;
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
         background: linear-gradient(180deg, rgba(8, 17, 32, 0), rgba(8, 17, 32, 0.96) 32%);
       }
 
       .composer-tools {
         max-width: 920px;
+        min-width: 0;
         display: flex;
         align-items: center;
         justify-content: flex-start;
@@ -946,6 +974,7 @@ ${logoYaraStyles()}
 
       .composer {
         max-width: 920px;
+        min-width: 0;
         margin: 0 auto;
         display: grid;
         grid-template-columns: auto auto minmax(0, 1fr) auto;
@@ -1066,18 +1095,21 @@ ${logoYaraStyles()}
 
       .layout-grid,
       .settings-grid {
+        min-width: 0;
         display: grid;
         grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
         gap: 18px;
       }
 
       .documents-layout {
+        min-width: 0;
         display: grid;
         grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
         gap: 18px;
       }
 
       .dashboard-grid {
+        min-width: 0;
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 14px;
@@ -1085,6 +1117,8 @@ ${logoYaraStyles()}
 
       .panel,
       .card {
+        min-width: 0;
+        max-width: 100%;
         border: 1px solid var(--line);
         border-radius: 18px;
         background: var(--panel);
@@ -1118,6 +1152,7 @@ ${logoYaraStyles()}
       }
 
       .inline-form {
+        min-width: 0;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto auto;
         gap: 10px;
@@ -1149,6 +1184,7 @@ ${logoYaraStyles()}
 
       .project-toolbar,
       .row {
+        min-width: 0;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -1164,6 +1200,7 @@ ${logoYaraStyles()}
       }
 
       .list-item {
+        min-width: 0;
         display: grid;
         gap: 9px;
         border: 1px solid rgba(148, 163, 184, 0.14);
@@ -1173,6 +1210,7 @@ ${logoYaraStyles()}
       }
 
       .item-top {
+        min-width: 0;
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
@@ -1197,12 +1235,14 @@ ${logoYaraStyles()}
       }
 
       .tabs {
+        min-width: 0;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
 
       .tab {
+        flex: 0 0 auto;
         min-height: 38px;
         border: 1px solid rgba(148, 163, 184, 0.16);
         border-radius: 999px;
@@ -1223,6 +1263,7 @@ ${logoYaraStyles()}
       }
 
       .settings-hero {
+        min-width: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1242,6 +1283,7 @@ ${logoYaraStyles()}
 
       .settings-metric {
         min-width: 178px;
+        max-width: 100%;
         border: 1px solid rgba(56, 189, 248, 0.2);
         border-radius: 16px;
         padding: 14px;
@@ -1254,12 +1296,14 @@ ${logoYaraStyles()}
       }
 
       .settings-card-grid {
+        min-width: 0;
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 14px;
       }
 
       .option-grid {
+        min-width: 0;
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
@@ -1282,6 +1326,7 @@ ${logoYaraStyles()}
       }
 
       .toggle-row {
+        min-width: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1462,14 +1507,17 @@ ${logoYaraStyles()}
 
       @media (max-width: 860px) {
         body { overflow: hidden; }
-        .app-shell { height: 100dvh; grid-template-columns: 1fr; }
+        .app-shell { height: 100dvh; grid-template-columns: minmax(0, 1fr); }
         .sidebar {
           position: fixed;
           top: 0;
           left: 0;
           bottom: 0;
           z-index: 50;
-          width: min(86vw, 330px);
+          width: min(88vw, 340px);
+          max-width: calc(100vw - 24px);
+          max-height: 100dvh;
+          overflow: hidden;
           transform: translateX(-102%);
           border-right: 1px solid var(--line);
           border-bottom: 0;
@@ -1477,10 +1525,14 @@ ${logoYaraStyles()}
           box-shadow: 28px 0 70px rgba(0, 0, 0, 0.34);
         }
         .mobile-toggle { display: inline-flex; }
-        .sidebar-body { display: flex; }
+        .sidebar-body {
+          display: flex;
+          overflow-y: auto;
+          padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
         .sidebar.open { transform: translateX(0); }
         .sidebar.open { z-index: 60; }
-        .main { height: 100dvh; }
+        .main { height: 100dvh; min-width: 0; }
         .topbar {
           min-height: 64px;
           align-items: center;
@@ -1493,7 +1545,8 @@ ${logoYaraStyles()}
         .status { padding: 7px 9px; font-size: 0; }
         .status::after { content: "Ativo"; font-size: 12px; }
         .model-select { max-width: 128px; }
-        .floating-menu.open {
+        .floating-menu.open,
+        .attach-menu.open {
           position: fixed;
           inset: auto 10px max(10px, env(safe-area-inset-bottom)) 10px;
           z-index: 70;
@@ -1504,7 +1557,8 @@ ${logoYaraStyles()}
           padding: 10px;
           animation: sheetIn 150ms ease-out;
         }
-        .floating-menu.open::before {
+        .floating-menu.open::before,
+        .attach-menu.open::before {
           content: "";
           width: 42px;
           height: 4px;
@@ -1513,6 +1567,20 @@ ${logoYaraStyles()}
           background: rgba(148, 163, 184, 0.44);
           margin: 2px 0 6px;
         }
+        .attach-menu.open {
+          bottom: max(88px, calc(env(safe-area-inset-bottom) + 88px));
+          left: 10px;
+          right: 10px;
+        }
+        .tabs {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          scroll-snap-type: x proximity;
+        }
+        .tab { min-height: 42px; scroll-snap-align: start; }
+        .item-top,
+        .toggle-row { flex-wrap: wrap; }
         .messages { padding-inline: 4px; }
       }
 
@@ -1525,11 +1593,17 @@ ${logoYaraStyles()}
         .sidebar,
         .view,
         .topbar { padding: 14px; }
+        .view { padding-bottom: max(18px, env(safe-area-inset-bottom)); }
         .chat-view { padding: 8px 10px 10px; gap: 8px; }
         .messages { gap: 14px; padding-bottom: 4px; }
-        .composer-wrap { padding-top: 6px; }
-        .composer-tools { margin-bottom: 6px; overflow-x: auto; }
-        .composer { grid-template-columns: auto auto minmax(0, 1fr) auto; border-radius: 16px; }
+        .composer-wrap { padding-top: 6px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+        .composer-tools {
+          margin-bottom: 6px;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+        .composer-tools > * { flex: 0 0 auto; }
+        .composer { grid-template-columns: auto auto minmax(0, 1fr) auto; border-radius: 16px; gap: 6px; padding: 7px; }
         .composer .primary-action { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
         .composer .primary-action svg { margin: 0; }
         .composer textarea { max-height: 96px; }
@@ -1537,7 +1611,9 @@ ${logoYaraStyles()}
         .message.assistant { margin-left: 38px; }
         .message-avatar { left: -38px; width: 30px; height: 30px; }
         .typing-indicator { font-size: 13px; }
-        .button { width: 100%; }
+        .button,
+        .primary-action { width: 100%; min-height: 44px; }
+        .icon-button { flex: 0 0 42px; }
         .topbar-actions { gap: 8px; }
         .topbar-actions .status { display: none; }
         .topbar-title { min-width: 0; }
@@ -1550,10 +1626,30 @@ ${logoYaraStyles()}
         }
         .project-toolbar,
         .row { align-items: stretch; flex-direction: column; }
+        .row > *,
+        .project-toolbar > * { width: 100%; }
         .settings-hero { align-items: flex-start; flex-direction: column; }
         .settings-card-grid,
         .option-grid,
         .dashboard-grid { grid-template-columns: 1fr; }
+        .settings-metric { width: 100%; min-width: 0; }
+        .modal {
+          width: calc(100vw - 24px);
+          max-height: calc(100dvh - 24px);
+          overflow: auto;
+        }
+        .toast {
+          right: 12px;
+          left: 12px;
+          bottom: max(12px, env(safe-area-inset-bottom));
+          max-width: none;
+        }
+        .diagnostic-panel {
+          right: 12px;
+          left: 12px;
+          bottom: max(12px, env(safe-area-inset-bottom));
+          width: auto;
+        }
         .empty-chat h2 { font-size: 26px; }
         .empty-chat p,
         .quick-prompts,
@@ -2566,6 +2662,7 @@ ${logoYaraStyles()}
       let activeUtterance = null;
       let speakingMessageId = null;
       let speechPaused = false;
+      const uiBuild = "pilar-01-fase-7-mobile-stability";
       let voiceSettings = {
         enabled: true,
         language: "pt-BR",
@@ -2973,7 +3070,7 @@ ${logoYaraStyles()}
         setText("pageSubtitle", finalConfig.subtitle);
         if (els.sidebar) els.sidebar.classList.remove("open");
         closeChatMenu();
-        if (els.attachMenu) els.attachMenu.classList.remove("open");
+        closeAttachMenu();
         document.body.classList.remove("drawer-open", "menu-open");
         runModuleLoader(targetView, finalConfig.loader).then(function() {
           if (requestedView === "memory") selectSettingsTab("memory");
@@ -3089,6 +3186,16 @@ ${logoYaraStyles()}
         const willOpen = !els.sidebar.classList.contains("open");
         els.sidebar.classList.toggle("open", willOpen);
         document.body.classList.toggle("drawer-open", willOpen);
+      }
+
+      function closeAttachMenu() {
+        if (els.attachMenu) els.attachMenu.classList.remove("open");
+      }
+
+      function toggleAttachMenu() {
+        if (!els.attachMenu) return;
+        closeChatMenu();
+        els.attachMenu.classList.toggle("open");
       }
 
       function renderConversationGroup(target, items, emptyText) {
@@ -4881,7 +4988,7 @@ ${logoYaraStyles()}
             showToast(useWebSearchNext ? "A próxima mensagem usará pesquisa online." : "Pesquisa online desativada.");
           },
           conversationModeButton: function() { setConversationMode(!conversationMode); },
-          attachButton: function() { if (els.attachMenu) els.attachMenu.classList.toggle("open"); },
+          attachButton: toggleAttachMenu,
           dictationButton: toggleDictation,
           openGeneratedProject: async function() {
             if (!generatedProject) return showToast("Gere um projeto primeiro.");
@@ -5421,6 +5528,7 @@ ${logoYaraStyles()}
       installCoreDelegation();
 
       async function init() {
+        console.info("[YARA UI] Build:", uiBuild);
         if (!token) {
           window.location.href = "/?auth=login";
           return;
@@ -5493,7 +5601,7 @@ ${logoYaraStyles()}
       on("chatMenuButton", "click", toggleChatMenu);
       on("attachButton", "click", function(event) {
         if (event) event.stopPropagation();
-        if (els.attachMenu) els.attachMenu.classList.toggle("open");
+        toggleAttachMenu();
       });
       on("webSearchToggle", "click", function() {
         setWebSearchNext(!useWebSearchNext);
@@ -5515,11 +5623,27 @@ ${logoYaraStyles()}
         if (event.target.closest("#sidebar") || event.target.closest("#mobileToggle")) return;
         closeSidebarDrawer();
       });
+      safeDocumentListener("click", function(event) {
+        if (!els.attachMenu || !els.attachMenu.classList.contains("open")) return;
+        if (event.target.closest("#attachMenu") || event.target.closest("#attachButton")) return;
+        closeAttachMenu();
+      });
       safeDocumentListener("keydown", function(event) {
         if (event.key !== "Escape") return;
         closeChatMenu();
         closeSidebarDrawer();
-        if (els.attachMenu) els.attachMenu.classList.remove("open");
+        closeAttachMenu();
+      });
+      window.addEventListener("resize", function() {
+        try {
+          if (window.innerWidth > 860) {
+            closeSidebarDrawer();
+            closeChatMenu();
+          }
+          closeAttachMenu();
+        } catch (error) {
+          handleUiError("window:resize", error, { toast: false });
+        }
       });
       on(els.attachmentPreview, "click", function(event) {
         const button = event.target.closest("#removeAttachmentButton");
