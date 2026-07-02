@@ -353,24 +353,10 @@ function directAnswer(message: string) {
 function providerFallback(error: unknown) {
   const errorKind = classifyAIProviderError(error);
   const response = errorKind === "configuration"
-    ? [
-        "Recebi sua mensagem, mas a YARA está sem acesso ao motor de IA neste momento.",
-        "",
-        "Isso normalmente precisa ser verificado pelo administrador no servidor. Suas conversas e dados continuam salvos com segurança.",
-        "",
-        "Você pode tentar novamente mais tarde ou continuar organizando projetos, documentos, imagens e tarefas enquanto a conexão é restabelecida."
-      ].join("\n")
+    ? "A IA está indisponível no momento. Suas conversas continuam salvas; tente novamente em instantes."
     : errorKind === "temporary"
-      ? [
-          "Recebi sua mensagem, mas o motor de IA está temporariamente instável ou em alta demanda.",
-          "",
-          "Tente novamente em alguns instantes. A conversa foi preservada e a YARA continua online para os demais módulos."
-        ].join("\n")
-      : [
-          "Recebi sua mensagem, mas não consegui concluir a resposta agora.",
-          "",
-          "Tente reenviar em alguns instantes. Se o problema continuar, revise a conexão da IA nas configurações administrativas do servidor."
-        ].join("\n");
+      ? "A IA está temporariamente instável. Tente reenviar em alguns instantes."
+      : "Não consegui concluir agora. Tente reenviar em alguns instantes.";
 
   return {
     provider: env.aiProvider,
