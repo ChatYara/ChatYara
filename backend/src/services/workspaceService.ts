@@ -32,6 +32,14 @@ type UploadRow = {
   created_at: string;
 };
 
+type ProjectTaskPriority = "low" | "medium" | "high";
+type ProjectTaskStatus = "pending" | "done";
+
+function normalizePriority(value?: string): ProjectTaskPriority {
+  if (value === "low" || value === "high") return value;
+  return "medium";
+}
+
 function publicUploadSelect(alias = "uploads") {
   return `${alias}.id, ${alias}.user_id, ${alias}.conversation_id, ${alias}.message_id, ${alias}.file_name, ${alias}.original_name, ${alias}.file_type, ${alias}.file_size, ${alias}.storage_path, ${alias}.created_at`;
 }
@@ -105,9 +113,9 @@ export function deleteAllMemories(userId: string) {
 export function listProjects(userId: string) {
   return getDatabase()
     .prepare(
-      `select id, name, type, prompt, output, description, content, created_at, updated_at
+      `select id, name, type, prompt, output, description, content, is_archived, created_at, updated_at
        from projects
-       where user_id = ?
+       where user_id = ? and is_archived = 0
        order by updated_at desc, created_at desc`
     )
     .all(userId);
@@ -131,13 +139,13 @@ export function createProject(
     )
     .run(id, userId, name, type, prompt, content, description, content);
 
-  return { id, name, type, prompt, output: content, description, content };
+  return { id, name, type, prompt, output: content, description, content, is_archived: 0 };
 }
 
 export function getProject(userId: string, projectId: string) {
   const project = getDatabase()
     .prepare(
-      `select id, name, type, prompt, output, description, content, created_at, updated_at
+      `select id, name, type, prompt, output, description, content, is_archived, created_at, updated_at
        from projects
        where id = ? and user_id = ?`
     )
@@ -148,6 +156,38 @@ export function getProject(userId: string, projectId: string) {
   }
 
   return project;
+}
+
+export function updateProject(
+  userId: string,
+  projectId: string,
+  input: { name?: string; description?: string; content?: string; type?: string; isArchived?: boolean }
+) {
+  const current = getProject(userId, projectId) as {
+    id: string;
+    name: string;
+    type: string;
+    description: string | null;
+    content: string | null;
+    output: string;
+    is_archived: number;
+  };
+
+  const name = input.name?.trim() || current.name;
+  const type = input.type?.trim() || current.type;
+  const description = input.description === undefined ? current.description || "" : input.description.trim();
+  const content = input.content === undefined ? current.content || current.output || "" : input.content.trim();
+  const isArchived = input.isArchived === undefined ? current.is_archived : input.isArchived ? 1 : 0;
+
+  getDatabase()
+    .prepare(
+      `update projects
+       set name = ?, type = ?, description = ?, content = ?, output = ?, is_archived = ?, updated_at = current_timestamp
+       where id = ? and user_id = ?`
+    )
+    .run(name, type, description || null, content || description || name, content || description || name, isArchived, projectId, userId);
+
+  return getProject(userId, projectId);
 }
 
 export function getProjectDetails(userId: string, projectId: string) {
@@ -190,10 +230,13 @@ export function listProjectTasks(userId: string, projectId: string) {
   assertProjectOwner(userId, projectId);
   return getDatabase()
     .prepare(
-      `select id, project_id, title, description, status, due_date, created_at, updated_at
+      `select id, project_id, title, description, status, priority, due_date, created_at, updated_at
        from project_tasks
        where user_id = ? and project_id = ?
-       order by status asc, coalesce(due_date, '9999-12-31') asc, updated_at desc`
+       order by status asc,
+                case priority when 'high' then 0 when 'medium' then 1 else 2 end asc,
+                coalesce(due_date, '9999-12-31') asc,
+                updated_at desc`
     )
     .all(userId, projectId);
 }
@@ -201,39 +244,40 @@ export function listProjectTasks(userId: string, projectId: string) {
 export function createProjectTask(
   userId: string,
   projectId: string,
-  input: { title: string; description?: string; dueDate?: string | null }
+  input: { title: string; description?: string; dueDate?: string | null; priority?: string }
 ) {
   assertProjectOwner(userId, projectId);
   const id = uuid();
   const title = input.title.trim();
   const description = input.description?.trim() || "";
   const dueDate = input.dueDate?.trim() || null;
+  const priority = normalizePriority(input.priority);
 
   getDatabase()
     .prepare(
-      `insert into project_tasks (id, user_id, project_id, title, description, due_date)
-       values (?, ?, ?, ?, ?, ?)`
+      `insert into project_tasks (id, user_id, project_id, title, description, priority, due_date)
+       values (?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(id, userId, projectId, title, description || null, dueDate);
+    .run(id, userId, projectId, title, description || null, priority, dueDate);
 
-  return { id, project_id: projectId, title, description, status: "pending", due_date: dueDate };
+  return { id, project_id: projectId, title, description, status: "pending", priority, due_date: dueDate };
 }
 
 export function updateProjectTask(
   userId: string,
   projectId: string,
   taskId: string,
-  input: { title?: string; description?: string; status?: "pending" | "done"; dueDate?: string | null }
+  input: { title?: string; description?: string; status?: ProjectTaskStatus; dueDate?: string | null; priority?: string }
 ) {
   assertProjectOwner(userId, projectId);
   const current = getDatabase()
     .prepare(
-      `select id, title, description, status, due_date
+      `select id, title, description, status, priority, due_date
        from project_tasks
        where id = ? and project_id = ? and user_id = ?`
     )
     .get(taskId, projectId, userId) as
-    | { id: string; title: string; description: string | null; status: "pending" | "done"; due_date: string | null }
+    | { id: string; title: string; description: string | null; status: ProjectTaskStatus; priority: ProjectTaskPriority; due_date: string | null }
     | undefined;
 
   if (!current) {
@@ -243,17 +287,18 @@ export function updateProjectTask(
   const title = input.title?.trim() || current.title;
   const description = input.description?.trim() ?? current.description ?? "";
   const status = input.status || current.status;
+  const priority = input.priority === undefined ? current.priority : normalizePriority(input.priority);
   const dueDate = input.dueDate === undefined ? current.due_date : input.dueDate?.trim() || null;
 
   getDatabase()
     .prepare(
       `update project_tasks
-       set title = ?, description = ?, status = ?, due_date = ?, updated_at = current_timestamp
+       set title = ?, description = ?, status = ?, priority = ?, due_date = ?, updated_at = current_timestamp
        where id = ? and project_id = ? and user_id = ?`
     )
-    .run(title, description || null, status, dueDate, taskId, projectId, userId);
+    .run(title, description || null, status, priority, dueDate, taskId, projectId, userId);
 
-  return { id: taskId, project_id: projectId, title, description, status, due_date: dueDate };
+  return { id: taskId, project_id: projectId, title, description, status, priority, due_date: dueDate };
 }
 
 export function deleteProjectTask(userId: string, projectId: string, taskId: string) {
@@ -371,18 +416,29 @@ export function getDashboard(userId: string) {
     .prepare(
       `select id, name, type, description, updated_at
        from projects
-       where user_id = ?
+       where user_id = ? and is_archived = 0
        order by updated_at desc, created_at desc
        limit 4`
     )
     .all(userId);
   const recentTasks = db
     .prepare(
-      `select project_tasks.id, project_tasks.title, project_tasks.status, project_tasks.due_date, projects.name as project_name
+      `select project_tasks.id, project_tasks.title, project_tasks.status, project_tasks.priority, project_tasks.due_date, projects.name as project_name
        from project_tasks
        join projects on projects.id = project_tasks.project_id
-       where project_tasks.user_id = ?
-       order by project_tasks.status asc, project_tasks.updated_at desc
+       where project_tasks.user_id = ? and projects.is_archived = 0
+       order by project_tasks.status asc,
+                case project_tasks.priority when 'high' then 0 when 'medium' then 1 else 2 end asc,
+                project_tasks.updated_at desc
+       limit 5`
+    )
+    .all(userId);
+  const recentDocuments = db
+    .prepare(
+      `select id, title, type, format, template, status, created_at, updated_at
+       from documents
+       where user_id = ?
+       order by updated_at desc, created_at desc
        limit 5`
     )
     .all(userId);
@@ -436,7 +492,7 @@ export function getDashboard(userId: string) {
   return {
     stats: {
       conversations: count("select count(*) as total from conversations where user_id = ? and is_archived = 0"),
-      projects: count("select count(*) as total from projects where user_id = ?"),
+      projects: count("select count(*) as total from projects where user_id = ? and is_archived = 0"),
       memories: count("select count(*) as total from memories where user_id = ?"),
       uploads: count("select count(*) as total from uploads where user_id = ?"),
       documents: count("select count(*) as total from documents where user_id = ?"),
@@ -445,6 +501,7 @@ export function getDashboard(userId: string) {
       pendingTasks
     },
     recentProjects,
+    recentDocuments,
     recentConversations,
     recentTasks,
     todayEvents,

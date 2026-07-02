@@ -167,6 +167,7 @@ export function runMigrations() {
       output text not null,
       description text,
       content text,
+      is_archived integer not null default 0,
       created_at text not null default current_timestamp,
       updated_at text not null default current_timestamp,
       foreign key (user_id) references users(id) on delete cascade
@@ -249,6 +250,7 @@ export function runMigrations() {
       title text not null,
       description text,
       status text not null default 'pending' check (status in ('pending', 'done')),
+      priority text not null default 'medium' check (priority in ('low', 'medium', 'high')),
       due_date text,
       created_at text not null default current_timestamp,
       updated_at text not null default current_timestamp,
@@ -579,7 +581,9 @@ export function runMigrations() {
   ensureColumn("conversations", "sort_order", "integer not null default 0");
   ensureColumn("projects", "description", "text");
   ensureColumn("projects", "content", "text");
+  ensureColumn("projects", "is_archived", "integer not null default 0");
   ensureColumn("projects", "updated_at", "text");
+  ensureColumn("project_tasks", "priority", "text not null default 'medium'");
   ensureColumn("messages", "edited_at", "text");
   ensureColumn("memories", "category", "text not null default 'general'");
   ensureColumn("memories", "importance", "integer not null default 3");
@@ -654,6 +658,8 @@ export function runMigrations() {
     update users set updated_at = current_timestamp where updated_at is null;
     update projects set updated_at = current_timestamp where updated_at is null;
     update projects set content = output where content is null;
+    update projects set is_archived = 0 where is_archived is null;
+    update project_tasks set priority = 'medium' where priority is null;
     update documents set type = 'generated' where type is null;
     update documents set status = 'ready' where status is null;
     update documents set updated_at = created_at where updated_at is null;

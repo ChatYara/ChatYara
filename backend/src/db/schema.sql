@@ -186,6 +186,7 @@ create table if not exists projects (
   output text not null,
   description text,
   content text,
+  is_archived integer not null default 0,
   created_at text not null default current_timestamp,
   updated_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
@@ -348,6 +349,7 @@ create table if not exists project_tasks (
   title text not null,
   description text,
   status text not null default 'pending' check (status in ('pending', 'done')),
+  priority text not null default 'medium' check (priority in ('low', 'medium', 'high')),
   due_date text,
   created_at text not null default current_timestamp,
   updated_at text not null default current_timestamp,

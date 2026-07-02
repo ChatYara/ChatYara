@@ -25,6 +25,7 @@ import {
   listProjects,
   saveMemory,
   updateMemory,
+  updateProject,
   updateProjectNote,
   updateProjectTask,
   updateSettings
@@ -110,6 +111,28 @@ workspaceRoutes.post("/projects", (req, res) => {
   return res.status(201).json({ project: createProject(req.user!.id, parsed.data) });
 });
 
+workspaceRoutes.patch("/projects/:id", (req, res) => {
+  const parsed = z
+    .object({
+      name: z.string().min(2).optional(),
+      description: z.string().optional(),
+      content: z.string().optional(),
+      type: z.string().optional(),
+      isArchived: z.boolean().optional()
+    })
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    return sendError(res, 400, "Informe uma atualização válida para o projeto.");
+  }
+
+  try {
+    return res.json({ project: updateProject(req.user!.id, req.params.id, parsed.data) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Projeto não encontrado.");
+  }
+});
+
 workspaceRoutes.get("/projects/:id", (req, res) => {
   try {
     return res.json({ project: getProject(req.user!.id, req.params.id) });
@@ -139,6 +162,7 @@ workspaceRoutes.post("/projects/:id/tasks", (req, res) => {
     .object({
       title: z.string().min(2),
       description: z.string().optional(),
+      priority: z.enum(["low", "medium", "high"]).optional(),
       dueDate: z.string().optional().nullable()
     })
     .safeParse(req.body);
@@ -160,6 +184,7 @@ workspaceRoutes.patch("/projects/:id/tasks/:taskId", (req, res) => {
       title: z.string().min(2).optional(),
       description: z.string().optional(),
       status: z.enum(["pending", "done"]).optional(),
+      priority: z.enum(["low", "medium", "high"]).optional(),
       dueDate: z.string().optional().nullable()
     })
     .safeParse(req.body);

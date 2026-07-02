@@ -1777,6 +1777,22 @@ ${logoYaraStyles()}
             <div class="layout-grid">
               <article class="card">
                 <div class="item-top">
+                  <h2>Resumo do dia</h2>
+                  <button class="button" data-view-target="calendar" type="button">${icon("history")}Agenda</button>
+                </div>
+                <div class="list" id="dashboardToday"></div>
+              </article>
+              <article class="card">
+                <div class="item-top">
+                  <h2>Documentos recentes</h2>
+                  <button class="button" data-view-target="documents" type="button">${icon("file")}Abrir documentos</button>
+                </div>
+                <div class="list" id="dashboardDocuments"></div>
+              </article>
+            </div>
+            <div class="layout-grid">
+              <article class="card">
+                <div class="item-top">
                   <h2>Últimos projetos</h2>
                   <button class="button" data-view-target="projects" type="button">${icon("folder")}Abrir projetos</button>
                 </div>
@@ -1876,7 +1892,15 @@ ${logoYaraStyles()}
               <input class="field" id="projectSearch" placeholder="Buscar projeto..." />
             </div>
             <div class="layout-grid">
-              <div class="list" id="projectList"></div>
+              <div class="list">
+                <form class="card compact-card note-form" id="projectCreateForm">
+                  <h2>Criar projeto</h2>
+                  <input class="field" id="projectCreateName" placeholder="Nome do projeto" />
+                  <textarea class="field" id="projectCreateDescription" rows="3" placeholder="Objetivo, contexto ou descrição curta..."></textarea>
+                  <button class="primary-action" type="submit">${icon("plus")}Criar projeto</button>
+                </form>
+                <div class="list" id="projectList"></div>
+              </div>
               <article class="card">
                 <h2 id="projectDetailTitle">Selecione um projeto</h2>
                 <p class="muted" id="projectDetailDescription">Abra um projeto para ver detalhes, continuar no chat ou excluir.</p>
@@ -1890,6 +1914,11 @@ ${logoYaraStyles()}
                     <form class="inline-form" id="projectTaskForm">
                       <input class="field" id="projectTaskTitle" placeholder="Nova tarefa do projeto" />
                       <input class="field" id="projectTaskDueDate" type="date" />
+                      <select class="select" id="projectTaskPriority">
+                        <option value="medium">Prioridade média</option>
+                        <option value="high">Prioridade alta</option>
+                        <option value="low">Prioridade baixa</option>
+                      </select>
                       <button class="button" type="submit">${icon("plus")}Adicionar</button>
                     </form>
                     <div class="list" id="projectTaskList"></div>
@@ -1924,6 +1953,8 @@ ${logoYaraStyles()}
                 </div>
                 <div class="row">
                   <button class="button" id="continueProjectButton" type="button">${icon("chat")}Continuar com a YARA</button>
+                  <button class="button" id="editProjectButton" type="button">${icon("save")}Editar projeto</button>
+                  <button class="button" id="archiveProjectButton" type="button">${icon("archive")}Arquivar</button>
                   <button class="button danger" id="deleteProjectButton" type="button">${icon("trash")}Excluir projeto</button>
                 </div>
               </article>
@@ -2008,6 +2039,9 @@ ${logoYaraStyles()}
                     <option value="xlsx">XLSX</option>
                     <option value="txt">TXT</option>
                     <option value="html">HTML</option>
+                  </select>
+                  <select class="select" id="documentCategoryFilter">
+                    <option value="">Todas as categorias</option>
                   </select>
                 </div>
               </div>
@@ -2662,7 +2696,7 @@ ${logoYaraStyles()}
       let activeUtterance = null;
       let speakingMessageId = null;
       let speechPaused = false;
-      const uiBuild = "pilar-01-fase-8-chat-quality";
+      const uiBuild = "pilar-01-fase-9-productivity-workspace";
       let voiceSettings = {
         enabled: true,
         language: "pt-BR",
@@ -4054,11 +4088,27 @@ ${logoYaraStyles()}
           return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(project.name) + '</strong><button class="button" data-dashboard-project="' + project.id + '" type="button">Abrir</button></div><p class="muted">' + escapeHtml(project.description || project.type || "Projeto YARA AI") + '</p></article>';
         }).join("") : '<p class="muted">Nenhum projeto criado ainda.</p>';
 
+        const todayTarget = document.getElementById("dashboardToday");
+        const todayEvents = dashboard.todayEvents || [];
+        const todayItems = todayEvents.map(function(eventItem) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(eventItem.title || "Compromisso") + '</strong><span class="status"><span class="dot"></span>' + escapeHtml(eventItem.time || "Hoje") + '</span></div><p class="muted">Agenda do dia</p></article>';
+        }).concat((dashboard.upcomingReminders || []).slice(0, 2).map(function(reminder) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(reminder.title || "Lembrete") + '</strong><span class="status">Lembrete</span></div><p class="muted">' + escapeHtml(new Date(reminder.scheduled_at).toLocaleString("pt-BR")) + '</p></article>';
+        }));
+        if (todayTarget) todayTarget.innerHTML = todayItems.length ? todayItems.join("") : '<p class="muted">Nenhum compromisso para hoje. Bom momento para planejar prioridades.</p>';
+
+        const documentTarget = document.getElementById("dashboardDocuments");
+        const recentDocuments = dashboard.recentDocuments || [];
+        if (documentTarget) documentTarget.innerHTML = recentDocuments.length ? recentDocuments.map(function(documentItem) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(documentItem.title || "Documento") + '</strong><button class="button" data-view-target="documents" type="button">Abrir</button></div><p class="muted">' + escapeHtml((documentItem.template || documentItem.type || "documento") + " · " + (documentItem.format || "").toUpperCase()) + '</p></article>';
+        }).join("") : '<p class="muted">Nenhum documento recente. Gere ou envie documentos para organizar seu workspace.</p>';
+
         const taskTarget = document.getElementById("dashboardTasks");
         const recentTasks = dashboard.recentTasks || [];
         if (taskTarget) taskTarget.innerHTML = recentTasks.length ? recentTasks.map(function(task) {
           const due = task.due_date ? " · prazo " + escapeHtml(task.due_date) : "";
-          return '<article class="list-item"><div class="item-top"><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong><span class="status"><span class="dot"></span>' + (task.status === "done" ? "Concluída" : "Pendente") + '</span></div><p class="muted">' + escapeHtml(task.project_name || "Projeto") + due + '</p></article>';
+          const priority = task.priority === "high" ? "Alta" : task.priority === "low" ? "Baixa" : "Média";
+          return '<article class="list-item"><div class="item-top"><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong><span class="status"><span class="dot"></span>' + (task.status === "done" ? "Concluída" : "Pendente") + '</span></div><p class="muted">' + escapeHtml(task.project_name || "Projeto") + " · prioridade " + priority + due + '</p></article>';
         }).join("") : '<p class="muted">Nenhuma tarefa registrada.</p>';
 
         const conversationTarget = document.getElementById("dashboardConversations");
@@ -4094,7 +4144,7 @@ ${logoYaraStyles()}
           return;
         }
         if (target) target.innerHTML = visible.map(function(project) {
-          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(project.name) + '</strong><button class="button" data-open-project="' + project.id + '" type="button">Abrir projeto</button></div><p class="muted">' + escapeHtml(project.description || project.prompt || "Projeto YARA AI") + '</p></article>';
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(project.name) + '</strong><button class="button" data-open-project="' + project.id + '" type="button">Abrir projeto</button></div><p class="muted">' + escapeHtml(project.description || project.prompt || "Projeto YARA AI") + '</p><p class="muted">' + escapeHtml(project.type || "Projeto") + ' · atualizado em ' + escapeHtml(project.updated_at || "") + '</p></article>';
         }).join("");
       }
 
@@ -4118,7 +4168,8 @@ ${logoYaraStyles()}
         const history = details.history || [];
 
         setHtml("projectTaskList", tasks.length ? tasks.map(function(task) {
-          return '<article class="list-item"><div class="item-top"><label class="row"><input type="checkbox" data-toggle-task="' + task.id + '" ' + (task.status === "done" ? "checked" : "") + ' /><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong></label><button class="icon-button danger" data-delete-task="' + task.id + '" type="button" aria-label="Excluir tarefa">${icon("trash")}</button></div><p class="muted">' + escapeHtml(task.description || (task.due_date ? "Prazo: " + task.due_date : "Sem prazo definido")) + '</p></article>';
+          const priority = task.priority === "high" ? "Alta" : task.priority === "low" ? "Baixa" : "Média";
+          return '<article class="list-item"><div class="item-top"><label class="row"><input type="checkbox" data-toggle-task="' + task.id + '" ' + (task.status === "done" ? "checked" : "") + ' /><strong class="task-title ' + (task.status === "done" ? "done" : "") + '">' + escapeHtml(task.title) + '</strong></label><div class="row"><button class="button" data-edit-task="' + task.id + '" data-title="' + escapeHtml(task.title) + '" data-priority="' + escapeHtml(task.priority || "medium") + '" data-due-date="' + escapeHtml(task.due_date || "") + '" type="button">Editar</button><button class="icon-button danger" data-delete-task="' + task.id + '" type="button" aria-label="Excluir tarefa">${icon("trash")}</button></div></div><p class="muted">Prioridade ' + priority + (task.due_date ? " · Prazo: " + escapeHtml(task.due_date) : " · Sem prazo definido") + '</p><p class="muted">' + escapeHtml(task.description || "") + '</p></article>';
         }).join("") : '<p class="muted">Nenhuma tarefa criada para este projeto.</p>');
 
         setHtml("projectNoteList", notes.length ? notes.map(function(note) {
@@ -4253,6 +4304,7 @@ ${logoYaraStyles()}
         });
         renderDocumentTemplates();
         renderDocumentConvertOptions();
+        renderDocumentCategoryOptions();
         renderDocumentList("documentsList", currentDocuments);
         renderDocumentList("documentsPageList", filteredDocuments());
       }
@@ -4260,11 +4312,24 @@ ${logoYaraStyles()}
       function filteredDocuments() {
         const search = (document.getElementById("documentSearch")?.value || "").trim().toLowerCase();
         const format = document.getElementById("documentFormatFilter")?.value || "";
+        const category = document.getElementById("documentCategoryFilter")?.value || "";
         return currentDocuments.filter(function(documentItem) {
           const matchesSearch = !search || [documentItem.title, documentItem.file_name, documentItem.template, documentItem.type].join(" ").toLowerCase().includes(search);
           const matchesFormat = !format || documentItem.format === format;
-          return matchesSearch && matchesFormat;
+          const matchesCategory = !category || documentItem.template === category || documentItem.type === category;
+          return matchesSearch && matchesFormat && matchesCategory;
         });
+      }
+
+      function renderDocumentCategoryOptions() {
+        const select = document.getElementById("documentCategoryFilter");
+        if (!select) return;
+        const categories = Array.from(new Set(currentDocuments.map(function(documentItem) {
+          return documentItem.template || documentItem.type || "";
+        }).filter(Boolean)));
+        select.innerHTML = '<option value="">Todas as categorias</option>' + categories.map(function(category) {
+          return '<option value="' + escapeHtml(category) + '">' + escapeHtml(documentTemplateLabel(category)) + '</option>';
+        }).join("");
       }
 
       function renderDocumentTemplates() {
@@ -5032,6 +5097,39 @@ ${logoYaraStyles()}
             setValue(els.messageInput, "Quero continuar o projeto " + selectedProject.name + ".");
             if (els.messageInput) els.messageInput.focus();
           },
+          editProjectButton: async function() {
+            if (!selectedProject) return showToast("Selecione um projeto.");
+            const name = window.prompt("Nome do projeto", selectedProject.name || "");
+            if (name === null) return;
+            const description = window.prompt("Descrição do projeto", selectedProject.description || selectedProject.prompt || "");
+            if (description === null) return;
+            const data = await api("/api/projects/" + selectedProject.id, {
+              method: "PATCH",
+              body: JSON.stringify({ name: name, description: description, content: selectedProject.content || selectedProject.output || description })
+            });
+            selectedProject = data.project;
+            await loadProjects();
+            await selectProject(selectedProject.id);
+            await loadDashboard();
+            showToast("Projeto atualizado.");
+          },
+          archiveProjectButton: async function() {
+            if (!selectedProject) return showToast("Selecione um projeto.");
+            if (!window.confirm("Arquivar este projeto? Ele sairá da lista ativa, mas não será apagado.")) return;
+            await api("/api/projects/" + selectedProject.id, {
+              method: "PATCH",
+              body: JSON.stringify({ isArchived: true })
+            });
+            selectedProject = null;
+            currentProjectDetails = null;
+            setText("projectDetailTitle", "Selecione um projeto");
+            setText("projectDetailDescription", "Abra um projeto para ver detalhes, continuar no chat ou excluir.");
+            setText("projectDetail", "Nenhum projeto selecionado.");
+            setHidden("projectWorkspace", true);
+            await loadProjects();
+            await loadDashboard();
+            showToast("Projeto arquivado.");
+          },
           deleteProjectButton: async function() {
             if (!selectedProject) return showToast("Selecione um projeto.");
             if (!window.confirm("Excluir este projeto?")) return;
@@ -5272,6 +5370,7 @@ ${logoYaraStyles()}
           const handledForms = {
             chatForm: true,
             generatorForm: true,
+            projectCreateForm: true,
             projectTaskForm: true,
             projectNoteForm: true,
             documentForm: true,
@@ -5298,6 +5397,21 @@ ${logoYaraStyles()}
             .then(async function() {
               if (form.id === "chatForm") return sendMessage(event);
               if (form.id === "generatorForm") return submitGeneratorForm();
+              if (form.id === "projectCreateForm") {
+                const name = getValue("projectCreateName").trim();
+                const description = getValue("projectCreateDescription").trim();
+                if (name.length < 2) return showToast("Informe um nome para o projeto.");
+                const data = await api("/api/projects", {
+                  method: "POST",
+                  body: JSON.stringify({ name: name, description: description, content: description, type: "Projeto" })
+                });
+                form.reset();
+                await loadProjects();
+                await loadDashboard();
+                if (data.project && data.project.id) await selectProject(data.project.id);
+                showToast("Projeto criado.");
+                return;
+              }
               if (form.id === "projectTaskForm") {
                 if (!selectedProject) return showToast("Selecione um projeto.");
                 const title = getValue("projectTaskTitle").trim();
@@ -5306,6 +5420,7 @@ ${logoYaraStyles()}
                   method: "POST",
                   body: JSON.stringify({
                     title: title,
+                    priority: getValue("projectTaskPriority") || "medium",
                     dueDate: getValue("projectTaskDueDate") || null
                   })
                 });
@@ -5880,20 +5995,6 @@ ${logoYaraStyles()}
         const button = event.target.closest("[data-open-project]");
         if (button) selectProject(button.dataset.openProject);
       });
-      on("projectTaskForm", "submit", async function(event) {
-        event.preventDefault();
-        if (!selectedProject) return showToast("Selecione um projeto.");
-        const title = getValue("projectTaskTitle").trim();
-        const dueDate = getValue("projectTaskDueDate");
-        if (title.length < 2) return showToast("Informe uma tarefa válida.");
-        await api("/api/projects/" + selectedProject.id + "/tasks", {
-          method: "POST",
-          body: JSON.stringify({ title: title, dueDate: dueDate || null })
-        });
-        event.currentTarget.reset();
-        await selectProject(selectedProject.id);
-        showToast("Tarefa adicionada.");
-      });
       on("projectTaskList", "click", async function(event) {
         if (!selectedProject) return;
         const toggle = event.target.closest("[data-toggle-task]");
@@ -5906,24 +6007,29 @@ ${logoYaraStyles()}
           showToast("Tarefa atualizada.");
           return;
         }
+        const editButton = event.target.closest("[data-edit-task]");
+        if (editButton) {
+          const title = window.prompt("Editar tarefa", editButton.dataset.title || "");
+          if (title === null) return;
+          const dueDate = window.prompt("Prazo da tarefa (AAAA-MM-DD, opcional)", editButton.dataset.dueDate || "");
+          if (dueDate === null) return;
+          const priority = window.prompt("Prioridade: baixa, média ou alta", editButton.dataset.priority === "high" ? "alta" : editButton.dataset.priority === "low" ? "baixa" : "média");
+          if (priority === null) return;
+          const normalizedPriority = /^alta$/i.test(priority.trim()) ? "high" : /^baixa$/i.test(priority.trim()) ? "low" : "medium";
+          await api("/api/projects/" + selectedProject.id + "/tasks/" + editButton.dataset.editTask, {
+            method: "PATCH",
+            body: JSON.stringify({ title: title, dueDate: dueDate || null, priority: normalizedPriority })
+          });
+          await selectProject(selectedProject.id);
+          await loadDashboard();
+          showToast("Tarefa atualizada.");
+          return;
+        }
         const deleteButton = event.target.closest("[data-delete-task]");
         if (!deleteButton) return;
         await api("/api/projects/" + selectedProject.id + "/tasks/" + deleteButton.dataset.deleteTask, { method: "DELETE" });
         await selectProject(selectedProject.id);
         showToast("Tarefa removida.");
-      });
-      on("projectNoteForm", "submit", async function(event) {
-        event.preventDefault();
-        if (!selectedProject) return showToast("Selecione um projeto.");
-        const content = getValue("projectNoteContent").trim();
-        if (content.length < 2) return showToast("Escreva uma nota válida.");
-        await api("/api/projects/" + selectedProject.id + "/notes", {
-          method: "POST",
-          body: JSON.stringify({ content: content })
-        });
-        event.currentTarget.reset();
-        await selectProject(selectedProject.id);
-        showToast("Nota salva.");
       });
       on("projectNoteList", "click", async function(event) {
         if (!selectedProject) return;
@@ -6293,6 +6399,9 @@ ${logoYaraStyles()}
         renderDocumentList("documentsPageList", filteredDocuments());
       });
       on("documentFormatFilter", "change", function() {
+        renderDocumentList("documentsPageList", filteredDocuments());
+      });
+      on("documentCategoryFilter", "change", function() {
         renderDocumentList("documentsPageList", filteredDocuments());
       });
       on("documentUploadButton", "click", function() {
