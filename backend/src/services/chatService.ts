@@ -347,6 +347,26 @@ function directAnswer(message: string) {
     return `Agora são ${time} de ${date}.`;
   }
 
+  const normalized = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const isShortPdfRequest =
+    message.length <= 220 &&
+    /\b(coloque|gere|gerar|transforme|converter|exporte|exportar)\b/.test(normalized) &&
+    /\bpdf\b/.test(normalized);
+
+  if (isShortPdfRequest) {
+    const contentMatch = /(?:pdf|PDF)\s*[:\-]\s*([\s\S]+)/.exec(message);
+    const content = contentMatch?.[1]?.trim();
+
+    if (content && content.length > 3) {
+      return ["Exportação PDF ainda não disponível. Segue o conteúdo formatado.", "", content].join("\n");
+    }
+
+    return "Exportação PDF ainda não disponível. Envie o conteúdo que deseja formatar.";
+  }
+
   return null;
 }
 

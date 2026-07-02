@@ -3,6 +3,7 @@ import { env } from "../../config/env";
 import {
   buildPrompt,
   buildSystemInstruction,
+  maxOutputTokensForPrompt,
   type AIProvider,
   type AIProviderRequest,
   type AIProviderResponse
@@ -26,7 +27,8 @@ export class OpenAIProvider implements AIProvider {
     const response = await this.getClient().responses.create({
       model: env.openaiModel,
       instructions: buildSystemInstruction(input),
-      input: buildPrompt(input)
+      input: buildPrompt(input),
+      max_output_tokens: maxOutputTokensForPrompt(input.prompt)
     });
 
     return {
@@ -36,4 +38,3 @@ export class OpenAIProvider implements AIProvider {
     };
   }
 }
-

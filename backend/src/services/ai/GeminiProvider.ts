@@ -2,6 +2,7 @@ import { env } from "../../config/env";
 import {
   buildPrompt,
   buildSystemInstruction,
+  maxOutputTokensForPrompt,
   type AIProvider,
   type AIProviderRequest,
   type AIProviderResponse
@@ -41,7 +42,7 @@ export class GeminiProvider implements AIProvider {
         generationConfig: {
           temperature: 0.55,
           topP: 0.9,
-          maxOutputTokens: 2400
+          maxOutputTokens: maxOutputTokensForPrompt(input.prompt)
         },
         contents: [
           {

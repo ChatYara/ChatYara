@@ -15,7 +15,7 @@ export interface AIProvider {
   generate(input: AIProviderRequest): Promise<AIProviderResponse>;
 }
 
-type ResponseDepth = "concise" | "balanced" | "detailed";
+export type ResponseDepth = "concise" | "balanced" | "detailed";
 
 export type AIProviderErrorKind = "configuration" | "temporary" | "unknown";
 
@@ -75,7 +75,7 @@ export const developerInstructions = [
   "Finalize com um próximo passo útil quando houver ação clara, sem frases vazias."
 ].join("\n");
 
-function detectResponseDepth(prompt: string): ResponseDepth {
+export function detectResponseDepth(prompt: string): ResponseDepth {
   const normalized = prompt
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -103,6 +103,13 @@ function detectResponseDepth(prompt: string): ResponseDepth {
   }
 
   return "balanced";
+}
+
+export function maxOutputTokensForPrompt(prompt: string) {
+  const depth = detectResponseDepth(prompt);
+  if (depth === "concise") return 420;
+  if (depth === "detailed") return 3000;
+  return 1500;
 }
 
 function responseDepthInstruction(depth: ResponseDepth, prompt: string) {
