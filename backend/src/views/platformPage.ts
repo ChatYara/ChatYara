@@ -351,6 +351,7 @@ ${logoYaraStyles()}
       .main {
         min-width: 0;
         min-height: 0;
+        max-width: 100vw;
         overflow: hidden;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
@@ -373,6 +374,7 @@ ${logoYaraStyles()}
 
       .topbar-title {
         min-width: 0;
+        flex: 1 1 auto;
         display: flex;
         align-items: center;
         gap: 14px;
@@ -392,7 +394,7 @@ ${logoYaraStyles()}
 
       .topbar-actions {
         min-width: 0;
-        flex: 0 0 auto;
+        flex: 0 1 auto;
         position: relative;
         display: flex;
         align-items: center;
@@ -452,6 +454,8 @@ ${logoYaraStyles()}
       }
 
       .chat-view {
+        width: 100%;
+        max-width: 100%;
         min-width: 0;
         min-height: 0;
         display: grid;
@@ -471,6 +475,8 @@ ${logoYaraStyles()}
       }
 
       .messages {
+        width: 100%;
+        max-width: 100%;
         min-width: 0;
         min-height: 0;
         display: flex;
@@ -528,7 +534,8 @@ ${logoYaraStyles()}
 
       .message {
         position: relative;
-        max-width: min(760px, 82%);
+        max-width: min(760px, 90%);
+        min-width: 0;
         border: 1px solid rgba(148, 163, 184, 0.15);
         border-radius: 22px;
         padding: 14px 16px 12px;
@@ -547,6 +554,7 @@ ${logoYaraStyles()}
 
       .message.assistant {
         align-self: flex-start;
+        max-width: min(760px, calc(90% - 46px));
         margin-left: 46px;
         animation-name: assistantMessageIn;
       }
@@ -609,8 +617,11 @@ ${logoYaraStyles()}
       }
 
       .message-content {
+        min-width: 0;
         display: grid;
         gap: 10px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .message-content p {
@@ -1119,6 +1130,7 @@ ${logoYaraStyles()}
       .card {
         min-width: 0;
         max-width: 100%;
+        overflow-wrap: anywhere;
         border: 1px solid var(--line);
         border-radius: 18px;
         background: var(--panel);
@@ -1201,6 +1213,7 @@ ${logoYaraStyles()}
 
       .list-item {
         min-width: 0;
+        max-width: 100%;
         display: grid;
         gap: 9px;
         border: 1px solid rgba(148, 163, 184, 0.14);
@@ -1211,6 +1224,7 @@ ${logoYaraStyles()}
 
       .item-top {
         min-width: 0;
+        max-width: 100%;
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
@@ -1223,6 +1237,8 @@ ${logoYaraStyles()}
 
       .result-box,
       .project-detail {
+        min-width: 0;
+        max-width: 100%;
         min-height: 240px;
         max-height: 560px;
         overflow: auto;
@@ -1264,6 +1280,7 @@ ${logoYaraStyles()}
 
       .settings-hero {
         min-width: 0;
+        max-width: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1496,16 +1513,7 @@ ${logoYaraStyles()}
         .chat-view { width: min(100%, 1080px); margin: 0 auto; }
       }
 
-      @media (max-width: 1024px) {
-        .layout-grid,
-        .settings-grid,
-        .documents-layout { grid-template-columns: 1fr; }
-        .settings-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .inline-form { grid-template-columns: 1fr; }
-      }
-
-      @media (max-width: 860px) {
+      @media (max-width: 1023px) {
         body { overflow: hidden; }
         .app-shell { height: 100dvh; grid-template-columns: minmax(0, 1fr); }
         .sidebar {
@@ -1514,37 +1522,61 @@ ${logoYaraStyles()}
           left: 0;
           bottom: 0;
           z-index: 50;
-          width: min(88vw, 340px);
-          max-width: calc(100vw - 24px);
+          width: min(86vw, 340px);
+          max-width: calc(100vw - 20px);
           max-height: 100dvh;
           overflow: hidden;
-          transform: translateX(-102%);
+          transform: translateX(-104%);
           border-right: 1px solid var(--line);
           border-bottom: 0;
           transition: transform 180ms ease;
           box-shadow: 28px 0 70px rgba(0, 0, 0, 0.34);
         }
         .mobile-toggle { display: inline-flex; }
+        .topbar-menu-toggle { flex: 0 0 42px; }
         .sidebar-body {
           display: flex;
           overflow-y: auto;
           padding-bottom: max(16px, env(safe-area-inset-bottom));
         }
-        .sidebar.open { transform: translateX(0); }
-        .sidebar.open { z-index: 60; }
-        .main { height: 100dvh; min-width: 0; }
+        .sidebar.open {
+          z-index: 60;
+          transform: translateX(0);
+        }
+        .main {
+          width: 100vw;
+          height: 100dvh;
+          min-width: 0;
+          max-width: 100vw;
+        }
         .topbar {
           min-height: 64px;
           align-items: center;
           flex-direction: row;
           padding: 10px 12px;
         }
-        .topbar-title { align-items: center; }
+        .topbar-title { align-items: center; gap: 10px; }
         .topbar h1 { font-size: 18px; }
         .topbar p { display: none; }
         .status { padding: 7px 9px; font-size: 0; }
         .status::after { content: "Ativo"; font-size: 12px; }
         .model-select { max-width: 128px; }
+        .layout-grid,
+        .settings-grid,
+        .documents-layout { grid-template-columns: 1fr; }
+        .settings-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .inline-form { grid-template-columns: 1fr; }
+        .chat-view {
+          width: 100%;
+          margin: 0;
+        }
+        .messages {
+          padding-inline: 4px;
+        }
+        .message {
+          max-width: 90%;
+        }
         .floating-menu.open,
         .attach-menu.open {
           position: fixed;
@@ -1581,7 +1613,10 @@ ${logoYaraStyles()}
         .tab { min-height: 42px; scroll-snap-align: start; }
         .item-top,
         .toggle-row { flex-wrap: wrap; }
-        .messages { padding-inline: 4px; }
+      }
+
+      @media (max-width: 860px) {
+        .sidebar { width: min(88vw, 340px); max-width: calc(100vw - 18px); }
       }
 
       @keyframes sheetIn {
@@ -1608,7 +1643,8 @@ ${logoYaraStyles()}
         .composer .primary-action svg { margin: 0; }
         .composer textarea { max-height: 96px; }
         .message { max-width: 100%; }
-        .message.assistant { margin-left: 38px; }
+        .message.user { max-width: 90%; }
+        .message.assistant { max-width: calc(90% - 38px); margin-left: 38px; }
         .message-avatar { left: -38px; width: 30px; height: 30px; }
         .typing-indicator { font-size: 13px; }
         .button,
@@ -1689,7 +1725,7 @@ ${logoYaraStyles()}
       <aside class="sidebar" id="sidebar">
         <div class="brand-row">
           ${renderLogoYara({ variant: "complete", tagline: "Plataforma inteligente" })}
-          <button class="icon-button mobile-toggle" id="mobileToggle" type="button" aria-label="Abrir menu">${icon("menu")}</button>
+          <button class="icon-button mobile-toggle" id="mobileToggle" data-sidebar-toggle type="button" aria-label="Fechar menu" aria-expanded="false">${icon("menu")}</button>
         </div>
         <div class="sidebar-body">
           <button class="primary-action" id="newConversationButton" type="button">${icon("plus")}Nova conversa</button>
@@ -1737,6 +1773,7 @@ ${logoYaraStyles()}
 
       <main class="main">
         <header class="topbar">
+          <button class="icon-button mobile-toggle topbar-menu-toggle" id="mobileTopbarToggle" data-sidebar-toggle type="button" aria-label="Abrir menu" aria-expanded="false">${icon("menu")}</button>
           <div class="topbar-title">
             ${renderLogoYara({ variant: "compact", className: "logo-yara--topbar" })}
             <div>
@@ -3113,10 +3150,10 @@ ${logoYaraStyles()}
         });
         setText("pageTitle", finalConfig.title);
         setText("pageSubtitle", finalConfig.subtitle);
-        if (els.sidebar) els.sidebar.classList.remove("open");
+        closeSidebarDrawer();
         closeChatMenu();
         closeAttachMenu();
-        document.body.classList.remove("drawer-open", "menu-open");
+        document.body.classList.remove("menu-open");
         runModuleLoader(targetView, finalConfig.loader).then(function() {
           if (requestedView === "memory") selectSettingsTab("memory");
         });
@@ -3224,6 +3261,9 @@ ${logoYaraStyles()}
         if (!els.sidebar) return;
         els.sidebar.classList.remove("open");
         document.body.classList.remove("drawer-open");
+        document.querySelectorAll("[data-sidebar-toggle]").forEach(function(button) {
+          button.setAttribute("aria-expanded", "false");
+        });
       }
 
       function toggleSidebarDrawer() {
@@ -3231,6 +3271,15 @@ ${logoYaraStyles()}
         const willOpen = !els.sidebar.classList.contains("open");
         els.sidebar.classList.toggle("open", willOpen);
         document.body.classList.toggle("drawer-open", willOpen);
+        document.querySelectorAll("[data-sidebar-toggle]").forEach(function(button) {
+          button.setAttribute("aria-expanded", willOpen ? "true" : "false");
+        });
+      }
+
+      function normalizeSidebarForViewport() {
+        if (window.innerWidth >= 1024) {
+          closeSidebarDrawer();
+        }
       }
 
       function closeAttachMenu() {
@@ -5275,7 +5324,7 @@ ${logoYaraStyles()}
               });
             }
 
-            if (target.closest("#mobileToggle")) {
+            if (target.closest("[data-sidebar-toggle]")) {
               return runCapturedAction("mobile-menu", event, control, toggleSidebarDrawer);
             }
             if (target.closest("#sidebarSettingsButton")) {
@@ -5720,6 +5769,7 @@ ${logoYaraStyles()}
         }
       });
       on("mobileToggle", "click", toggleSidebarDrawer);
+      on("mobileTopbarToggle", "click", toggleSidebarDrawer);
       on("quickSettingsButton", "click", openQuickSettingsModal);
       on("sidebarSettingsButton", "click", function() { setView("settings"); });
       on("helpButton", "click", openHelpModal);
@@ -5746,9 +5796,11 @@ ${logoYaraStyles()}
       });
       safeDocumentListener("click", function(event) {
         if (!els.sidebar || !els.sidebar.classList.contains("open")) return;
-        if (event.target.closest("#sidebar") || event.target.closest("#mobileToggle")) return;
+        if (event.target.closest("#sidebar") || event.target.closest("[data-sidebar-toggle]")) return;
         closeSidebarDrawer();
       });
+      window.addEventListener("resize", normalizeSidebarForViewport);
+      normalizeSidebarForViewport();
       safeDocumentListener("click", function(event) {
         if (!els.attachMenu || !els.attachMenu.classList.contains("open")) return;
         if (event.target.closest("#attachMenu") || event.target.closest("#attachButton")) return;
