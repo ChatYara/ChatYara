@@ -1753,6 +1753,7 @@ ${logoYaraStyles()}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("smartProjects", "Projetos Inteligentes", "brain")}
             ${navButton("knowledge", "Conhecimento", "sparkles")}
+            ${navButton("smartSearch", "Busca Inteligente", "search")}
             ${navButton("documents", "Documentos", "file")}
             ${navButton("files", "Arquivos", "paperclip")}
             ${navButton("images", "Imagens", "image")}
@@ -2179,6 +2180,51 @@ ${logoYaraStyles()}
               <article class="card">
                 <h2>Entidades importantes</h2>
                 <div class="list" id="graphImportantList"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-smartSearch" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Busca Inteligente</h2>
+                <p class="muted">Recupere conversas, memórias, projetos, arquivos e decisões por contexto, não apenas por palavras exatas.</p>
+              </div>
+              <div class="row">
+                <button class="button" id="refreshSmartSearchButton" type="button">${icon("history")}Atualizar</button>
+                <button class="primary-action" id="reindexSmartSearchButton" type="button">${icon("sparkles")}Reindexar</button>
+              </div>
+            </div>
+            <div class="dashboard-grid" id="smartSearchStats"></div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Pesquisar no contexto</h2>
+                <form class="form" id="semanticSearchForm">
+                  <input class="field" id="semanticSearchQuery" placeholder="Ex.: onde falamos sobre deploy, Render, logística ou engenharia?" />
+                  <select class="select" id="semanticSearchMode">
+                    <option value="hybrid">Híbrida</option>
+                    <option value="semantic">Semântica</option>
+                    <option value="context">Contextual</option>
+                  </select>
+                  <button class="primary-action" type="submit">${icon("search")}Buscar</button>
+                </form>
+                <div class="list" id="semanticSearchResults"></div>
+              </article>
+              <article class="card">
+                <h2>Índice vetorial</h2>
+                <div class="list" id="smartSearchSources"></div>
+              </article>
+            </div>
+            <div class="layout-grid">
+              <article class="card">
+                <h2>Pesquisas recentes</h2>
+                <div class="list" id="smartSearchRecent"></div>
+              </article>
+              <article class="card">
+                <h2>Itens indexados recentemente</h2>
+                <div class="list" id="smartSearchIndexed"></div>
               </article>
             </div>
           </div>
@@ -3512,6 +3558,7 @@ ${logoYaraStyles()}
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
           smartProjects: { title: "Projetos Inteligentes", subtitle: "Memória de decisões, fases, pendências e commits.", loader: loadSmartProjects },
           knowledge: { title: "Conhecimento", subtitle: "GraphRAG com relações entre dados da YARA.", loader: loadGraph },
+          smartSearch: { title: "Busca Inteligente", subtitle: "Busca vetorial, híbrida e contextual em todo o workspace.", loader: loadSmartSearch },
           documents: { title: "Documentos", subtitle: "Gere e baixe documentos protegidos.", loader: loadDocuments },
           files: { title: "Arquivos", subtitle: "Envie, visualize, baixe e exporte arquivos reais.", loader: loadFiles },
           images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
@@ -4863,6 +4910,73 @@ ${logoYaraStyles()}
         renderGraph({ nodes: data.nodes || [], edges: data.edges || [], topNodes: data.nodes || [], recentEdges: data.edges || [], insights: data.insights || [], totals: { nodes: (data.nodes || []).length, edges: (data.edges || []).length, insights: (data.insights || []).length } });
       }
 
+      function renderSmartSearchDashboard(dashboard) {
+        dashboard = dashboard || {};
+        const totals = dashboard.totals || {};
+        const status = dashboard.status || {};
+        setHtml("smartSearchStats", [
+          '<article class="metric-card"><span class="metric-label">Itens indexados</span><strong>' + escapeHtml(String(totals.indexedItems || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Embeddings</span><strong>' + escapeHtml(String(totals.embeddings || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Buscas</span><strong>' + escapeHtml(String(totals.semanticSearches || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Banco</span><strong>' + escapeHtml(status.pgvector === "configured" ? "pgvector" : "SQLite") + '</strong><p class="muted">' + escapeHtml(status.cache || "cache local") + '</p></article>'
+        ].join(""));
+        setHtml("smartSearchSources", (dashboard.sourceTypes || []).length
+          ? dashboard.sourceTypes.map(function(item) {
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.type) + '</strong><span class="status"><span class="dot"></span>' + escapeHtml(String(item.total)) + '</span></div></article>';
+            }).join("")
+          : '<p class="muted">Nenhum item indexado ainda. Clique em Reindexar.</p>');
+        setHtml("smartSearchRecent", (dashboard.recentSearches || []).length
+          ? dashboard.recentSearches.map(function(item) {
+              return '<article class="list-item"><strong>' + escapeHtml(item.query) + '</strong><p class="muted">' + escapeHtml(item.mode || "hybrid") + ' · ' + escapeHtml(String(item.resultCount || 0)) + ' resultados · relevância ' + Math.round(Number(item.topScore || 0) * 100) + '%</p></article>';
+            }).join("")
+          : '<p class="muted">Nenhuma busca inteligente recente.</p>');
+        setHtml("smartSearchIndexed", (dashboard.recentIndexed || []).length
+          ? dashboard.recentIndexed.map(function(item) {
+              return '<article class="list-item"><strong>' + escapeHtml(item.title || "Item") + '</strong><p class="muted">' + escapeHtml(item.source_type || "") + ' · ' + escapeHtml(item.updated_at || "") + '</p></article>';
+            }).join("")
+          : '<p class="muted">O índice será exibido após a primeira reindexação.</p>');
+      }
+
+      function renderSemanticSearchResults(results) {
+        const target = document.getElementById("semanticSearchResults");
+        if (!target) return;
+        if (!results || !results.length) {
+          target.innerHTML = '<p class="muted">Nenhum resultado contextual encontrado.</p>';
+          return;
+        }
+        target.innerHTML = results.map(function(item) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.title) + '</strong><span class="status"><span class="dot"></span>' + Math.round(Number(item.score || 0) * 100) + '%</span></div><p class="muted">' + escapeHtml(item.sourceType || "contexto") + ' · semântico ' + Math.round(Number(item.semanticScore || 0) * 100) + '% · texto ' + Math.round(Number(item.lexicalScore || 0) * 100) + '%</p><p class="muted">' + escapeHtml(item.snippet || "") + '</p></article>';
+        }).join("");
+      }
+
+      async function loadSmartSearch() {
+        const data = await api("/api/search");
+        renderSmartSearchDashboard(data.dashboard || {});
+      }
+
+      async function reindexSmartSearchFromUi() {
+        setHtml("semanticSearchResults", '<p class="muted">Reindexando memórias, perfil, projetos, arquivos, conversas e grafo...</p>');
+        const data = await api("/api/search/reindex", { method: "POST", body: JSON.stringify({}) });
+        renderSmartSearchDashboard(data.dashboard || {});
+        showToast("Busca inteligente reindexada: " + String((data.reindex && data.reindex.indexed) || 0) + " itens.");
+      }
+
+      async function runSemanticSearchFromUi(event) {
+        event.preventDefault();
+        const query = getValue("semanticSearchQuery").trim();
+        if (query.length < 2) return showToast("Informe o que deseja encontrar.");
+        const data = await api("/api/search/semantic", {
+          method: "POST",
+          body: JSON.stringify({
+            query: query,
+            mode: getValue("semanticSearchMode") || "hybrid",
+            limit: 10
+          })
+        });
+        renderSemanticSearchResults(data.search ? data.search.results : []);
+        await loadSmartSearch().catch(function() {});
+      }
+
       function renderSystemList() {
         setText("systemsCount", systems.length + " sistema" + (systems.length === 1 ? "" : "s"));
         const target = document.getElementById("systemsList");
@@ -6138,6 +6252,8 @@ ${logoYaraStyles()}
           refreshSmartProjectsButton: loadSmartProjects,
           refreshGraphButton: loadGraph,
           rebuildGraphButton: rebuildGraphFromUi,
+          refreshSmartSearchButton: loadSmartSearch,
+          reindexSmartSearchButton: reindexSmartSearchFromUi,
           refreshProjectFilesButton: loadProjectUploadOptions,
           linkProjectFileButton: async function() {
             if (!selectedProject) return showToast("Selecione um projeto.");
@@ -6482,6 +6598,7 @@ ${logoYaraStyles()}
             smartCommitForm: true,
             smartMilestoneForm: true,
             graphQueryForm: true,
+            semanticSearchForm: true,
             documentForm: true,
             documentPageForm: true,
             calendarEventForm: true,
@@ -6508,6 +6625,7 @@ ${logoYaraStyles()}
               if (form.id === "chatForm") return sendMessage(event);
               if (form.id === "generatorForm") return submitGeneratorForm();
               if (form.id === "systemGenerateForm") return generateSystemFromUi();
+              if (form.id === "semanticSearchForm") return runSemanticSearchFromUi(event);
               if (form.id === "projectCreateForm") {
                 const name = getValue("projectCreateName").trim();
                 const description = getValue("projectCreateDescription").trim();
@@ -7249,6 +7367,14 @@ ${logoYaraStyles()}
         await rebuildGraphFromUi();
       });
       on("graphQueryForm", "submit", queryGraphFromUi);
+      on("refreshSmartSearchButton", "click", async function() {
+        await loadSmartSearch();
+        showToast("Busca inteligente atualizada.");
+      });
+      on("reindexSmartSearchButton", "click", async function() {
+        await reindexSmartSearchFromUi();
+      });
+      on("semanticSearchForm", "submit", runSemanticSearchFromUi);
       on("projectTaskList", "click", async function(event) {
         if (!selectedProject) return;
         const toggle = event.target.closest("[data-toggle-task]");

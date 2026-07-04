@@ -1101,3 +1101,52 @@ create table if not exists search_history (
   created_at text not null default current_timestamp,
   foreign key (user_id) references users(id) on delete cascade
 );
+
+create table if not exists vector_search_index (
+  id text primary key,
+  user_id text not null,
+  source_type text not null,
+  source_id text not null,
+  title text not null,
+  content text not null,
+  search_text text not null,
+  embedding_json text not null,
+  content_hash text not null,
+  metadata_json text not null default '{}',
+  indexed_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, source_type, source_id),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists vector_search_index_user_type
+  on vector_search_index(user_id, source_type, updated_at);
+
+create table if not exists semantic_search_history (
+  id text primary key,
+  user_id text not null,
+  query text not null,
+  mode text not null default 'hybrid',
+  status text not null default 'completed',
+  results_json text not null default '[]',
+  top_score real not null default 0,
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists semantic_search_history_user_created
+  on semantic_search_history(user_id, created_at);
+
+create table if not exists vector_search_audit_logs (
+  id text primary key,
+  user_id text not null,
+  action text not null,
+  status text not null default 'success',
+  message text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists vector_search_audit_user_created
+  on vector_search_audit_logs(user_id, created_at);

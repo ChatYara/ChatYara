@@ -941,6 +941,46 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists vector_search_index (
+      id text primary key,
+      user_id text not null,
+      source_type text not null,
+      source_id text not null,
+      title text not null,
+      content text not null,
+      search_text text not null,
+      embedding_json text not null,
+      content_hash text not null,
+      metadata_json text not null default '{}',
+      indexed_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, source_type, source_id),
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists semantic_search_history (
+      id text primary key,
+      user_id text not null,
+      query text not null,
+      mode text not null default 'hybrid',
+      status text not null default 'completed',
+      results_json text not null default '[]',
+      top_score real not null default 0,
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists vector_search_audit_logs (
+      id text primary key,
+      user_id text not null,
+      action text not null,
+      status text not null default 'success',
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
   `);
 
   ensureColumn("users", "phone", "text");
@@ -1059,6 +1099,14 @@ export function runMigrations() {
   ensureColumn("search_history", "results_json", "text not null default '[]'");
   ensureColumn("search_history", "provider", "text not null default 'none'");
   ensureColumn("search_history", "sources_json", "text not null default '[]'");
+  ensureColumn("vector_search_index", "metadata_json", "text not null default '{}'");
+  ensureColumn("vector_search_index", "indexed_at", "text");
+  ensureColumn("vector_search_index", "updated_at", "text");
+  ensureColumn("semantic_search_history", "mode", "text not null default 'hybrid'");
+  ensureColumn("semantic_search_history", "status", "text not null default 'completed'");
+  ensureColumn("semantic_search_history", "results_json", "text not null default '[]'");
+  ensureColumn("semantic_search_history", "top_score", "real not null default 0");
+  ensureColumn("vector_search_audit_logs", "metadata_json", "text not null default '{}'");
   ensureColumn("systems", "frontend", "text");
   ensureColumn("systems", "backend", "text");
   ensureColumn("systems", "database_choice", "text");
@@ -1103,6 +1151,13 @@ export function runMigrations() {
     update user_settings set response_length = 'medium' where response_length is null;
     update user_settings set voice_language = 'pt-BR' where voice_language is null;
     update user_settings set voice_gender = 'auto' where voice_gender is null;
+    update vector_search_index set metadata_json = '{}' where metadata_json is null;
+    update vector_search_index set indexed_at = current_timestamp where indexed_at is null;
+    update vector_search_index set updated_at = indexed_at where updated_at is null;
+    update semantic_search_history set mode = 'hybrid' where mode is null;
+    update semantic_search_history set status = 'completed' where status is null;
+    update semantic_search_history set results_json = '[]' where results_json is null;
+    update vector_search_audit_logs set metadata_json = '{}' where metadata_json is null;
     update systems set scope_json = '{}' where scope_json is null;
     update systems set stack_json = '{}' where stack_json is null;
     update systems set folder_structure_json = '[]' where folder_structure_json is null;
@@ -1192,6 +1247,15 @@ export function runMigrations() {
 
     create index if not exists search_history_user_created
       on search_history(user_id, created_at);
+
+    create index if not exists vector_search_index_user_type
+      on vector_search_index(user_id, source_type, updated_at);
+
+    create index if not exists semantic_search_history_user_created
+      on semantic_search_history(user_id, created_at);
+
+    create index if not exists vector_search_audit_user_created
+      on vector_search_audit_logs(user_id, created_at);
 
     create index if not exists message_feedback_user_message
       on message_feedback(user_id, message_id);

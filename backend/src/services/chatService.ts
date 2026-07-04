@@ -18,6 +18,7 @@ import {
 import { extractCognitiveFactsFromMessage, readCognitiveProfileContext } from "./profileService";
 import { answerProjectMemoryQuestion, readProjectMemoryContext } from "./projectMemoryService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
+import { answerSemanticSearchQuestion, indexConversationMessageForSearch, readSemanticSearchContext } from "./semanticSearchService";
 import { answerSystemGeneration, detectSystemGenerationRequest } from "./systemGeneratorService";
 import { toPublicUpload } from "./uploadService";
 
@@ -372,6 +373,7 @@ function readUserContext(userId: string, query = "", conversationId?: string) {
     readCognitiveProfileContext(userId),
     readMemory(userId) ? `Memórias manuais:\n${readMemory(userId)}` : "",
     intelligentMemory,
+    query ? readSemanticSearchContext(userId, query) : "",
     readProjectMemoryContext(userId, query),
     readGraphContext(userId, query),
     readLearningContext(userId) ? `Aprendizados automáticos seguros:\n${readLearningContext(userId)}` : ""
@@ -622,6 +624,12 @@ export async function sendMessage(
   const storedMessage = message || "Anexo enviado.";
   db.prepare("insert into messages (id, conversation_id, role, content) values (?, ?, 'user', ?)")
     .run(userMessageId, conversationId, storedMessage);
+  indexConversationMessageForSearch(userId, {
+    messageId: userMessageId,
+    conversationId,
+    role: "user",
+    content: storedMessage
+  });
 
   if (uploads.length > 0) {
     const placeholders = uploadIds.map(() => "?").join(", ");
@@ -650,6 +658,7 @@ export async function sendMessage(
   const direct = directAnswer(storedMessage);
   const projectMemoryAnswer = answerProjectMemoryQuestion(userId, storedMessage);
   const graphAnswer = answerGraphQuestion(userId, storedMessage);
+  const semanticAnswer = answerSemanticSearchQuestion(userId, storedMessage);
   const systemGenerationAnswer = !searchNeeded && detectSystemGenerationRequest(storedMessage)
     ? answerSystemGeneration(userId, storedMessage)
     : null;
@@ -694,6 +703,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "system-generator",
       response: systemGenerationAnswer
+    };
+  } else if (semanticAnswer && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "semantic-search",
+      response: semanticAnswer
     };
   } else if (projectMemoryAnswer && !searchNeeded) {
     ai = {
@@ -755,6 +770,12 @@ export async function sendMessage(
   const assistantMessageId = uuid();
   db.prepare("insert into messages (id, conversation_id, role, content) values (?, ?, 'assistant', ?)")
     .run(assistantMessageId, conversationId, finalResponse);
+  indexConversationMessageForSearch(userId, {
+    messageId: assistantMessageId,
+    conversationId,
+    role: "assistant",
+    content: finalResponse
+  });
   if (exportedFile) {
     exportedFile = attachExportToMessage(userId, exportedFile.id, assistantMessageId);
   }
