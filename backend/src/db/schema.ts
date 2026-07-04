@@ -522,6 +522,22 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists integrations (
+      id text primary key,
+      user_id text not null,
+      provider text not null,
+      service text not null,
+      status text not null default 'available',
+      capabilities_json text not null default '[]',
+      settings_json text not null default '{}',
+      last_sync_at text,
+      last_error text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, provider, service),
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists oauth_states (
       state text primary key,
       user_id text not null,
@@ -564,6 +580,22 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists drive_files_cache (
+      id text primary key,
+      user_id text not null,
+      drive_id text not null,
+      name text not null,
+      mime_type text,
+      web_view_link text,
+      size integer,
+      modified_at text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, drive_id),
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists push_subscriptions (
       id text primary key,
       user_id text not null,
@@ -573,6 +605,35 @@ export function runMigrations() {
       created_at text not null default current_timestamp,
       updated_at text not null default current_timestamp,
       unique (user_id, endpoint),
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automations (
+      id text primary key,
+      user_id text not null,
+      name text not null,
+      type text not null,
+      trigger_type text not null default 'scheduled',
+      schedule_expression text,
+      next_run_at text,
+      action_json text not null default '{}',
+      status text not null default 'active',
+      last_run_at text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automation_executions (
+      id text primary key,
+      automation_id text not null,
+      user_id text not null,
+      status text not null,
+      result_json text not null default '{}',
+      error text,
+      started_at text not null default current_timestamp,
+      finished_at text,
+      foreign key (automation_id) references automations(id) on delete cascade,
       foreign key (user_id) references users(id) on delete cascade
     );
 
@@ -674,6 +735,27 @@ export function runMigrations() {
   ensureColumn("google_calendar_connections", "email", "text");
   ensureColumn("google_calendar_connections", "scopes", "text");
   ensureColumn("google_calendar_connections", "updated_at", "text");
+  ensureColumn("integrations", "capabilities_json", "text not null default '[]'");
+  ensureColumn("integrations", "settings_json", "text not null default '{}'");
+  ensureColumn("integrations", "last_sync_at", "text");
+  ensureColumn("integrations", "last_error", "text");
+  ensureColumn("integrations", "updated_at", "text");
+  ensureColumn("drive_files_cache", "mime_type", "text");
+  ensureColumn("drive_files_cache", "web_view_link", "text");
+  ensureColumn("drive_files_cache", "size", "integer");
+  ensureColumn("drive_files_cache", "modified_at", "text");
+  ensureColumn("drive_files_cache", "metadata_json", "text not null default '{}'");
+  ensureColumn("drive_files_cache", "updated_at", "text");
+  ensureColumn("automations", "trigger_type", "text not null default 'scheduled'");
+  ensureColumn("automations", "schedule_expression", "text");
+  ensureColumn("automations", "next_run_at", "text");
+  ensureColumn("automations", "action_json", "text not null default '{}'");
+  ensureColumn("automations", "status", "text not null default 'active'");
+  ensureColumn("automations", "last_run_at", "text");
+  ensureColumn("automations", "updated_at", "text");
+  ensureColumn("automation_executions", "result_json", "text not null default '{}'");
+  ensureColumn("automation_executions", "error", "text");
+  ensureColumn("automation_executions", "finished_at", "text");
   ensureColumn("notifications", "scheduled_for", "text");
   ensureColumn("notifications", "delivered_at", "text");
   ensureColumn("notifications", "channel", "text");
@@ -695,6 +777,16 @@ export function runMigrations() {
     update files set is_favorite = 0 where is_favorite is null;
     update files set is_shared = 0 where is_shared is null;
     update files set updated_at = created_at where updated_at is null;
+    update integrations set capabilities_json = '[]' where capabilities_json is null;
+    update integrations set settings_json = '{}' where settings_json is null;
+    update integrations set updated_at = created_at where updated_at is null;
+    update drive_files_cache set metadata_json = '{}' where metadata_json is null;
+    update drive_files_cache set updated_at = created_at where updated_at is null;
+    update automations set trigger_type = 'scheduled' where trigger_type is null;
+    update automations set action_json = '{}' where action_json is null;
+    update automations set status = 'active' where status is null;
+    update automations set updated_at = created_at where updated_at is null;
+    update automation_executions set result_json = '{}' where result_json is null;
     update user_settings set language = 'pt-BR' where language is null;
     update user_settings set response_length = 'medium' where response_length is null;
     update user_settings set voice_language = 'pt-BR' where voice_language is null;
@@ -733,6 +825,18 @@ export function runMigrations() {
 
     create index if not exists cognitive_profile_audit_user_created
       on cognitive_profile_audit_logs(user_id, created_at);
+
+    create index if not exists integrations_user_service
+      on integrations(user_id, provider, service, status);
+
+    create index if not exists drive_cache_user_modified
+      on drive_files_cache(user_id, modified_at);
+
+    create index if not exists automations_user_next
+      on automations(user_id, status, next_run_at);
+
+    create index if not exists automation_executions_user_started
+      on automation_executions(user_id, started_at);
 
     create index if not exists memories_user_category_importance
       on memories(user_id, category, importance, updated_at);

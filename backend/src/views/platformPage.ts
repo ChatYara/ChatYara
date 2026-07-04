@@ -2373,9 +2373,66 @@ ${logoYaraStyles()}
                   <input class="field" id="integrationGmailTo" placeholder="Destinatário" />
                   <input class="field" id="integrationGmailSubject" placeholder="Assunto" />
                   <textarea class="field" id="integrationGmailBody" rows="4" placeholder="Mensagem"></textarea>
-                  <button class="primary-action" type="submit">${icon("send")}Enviar e-mail</button>
+                  <div class="row">
+                    <button class="button" id="integrationGmailDraft" type="button">${icon("save")}Criar rascunho</button>
+                    <button class="primary-action" type="submit">${icon("send")}Enviar e-mail</button>
+                  </div>
                 </form>
                 <div class="result-box" id="integrationGmailResult">Gmail aguardando conexão.</div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Google Drive</h2>
+                <p class="muted">Salve documentos gerados, organize pastas e busque arquivos autorizados pelo Google.</p>
+                <div class="row">
+                  <button class="button" id="integrationDriveConnect" type="button">${icon("share")}Conectar Drive</button>
+                  <button class="button" id="integrationDriveList" type="button">${icon("history")}Listar arquivos</button>
+                </div>
+                <div class="split">
+                  <input class="field" id="integrationDriveQuery" placeholder="Buscar no Drive..." />
+                  <button class="button" id="integrationDriveSearch" type="button">${icon("search")}Buscar</button>
+                </div>
+                <div class="split">
+                  <input class="field" id="integrationDriveFolderName" placeholder="Nova pasta" />
+                  <button class="button" id="integrationDriveCreateFolder" type="button">${icon("folder")}Criar pasta</button>
+                </div>
+                <div class="split">
+                  <select class="select" id="integrationDriveFileSelect"><option value="">Nenhum arquivo YARA carregado</option></select>
+                  <button class="primary-action" id="integrationDriveUploadFile" type="button">${icon("save")}Salvar arquivo no Drive</button>
+                </div>
+                <div class="result-box" id="integrationDriveResult">Google Drive aguardando conexão.</div>
+              </article>
+              <article class="card">
+                <h2>Automações</h2>
+                <p class="muted">Crie lembretes, tarefas recorrentes, resumos e verificações programadas.</p>
+                <form class="form" id="automationForm">
+                  <input class="field" id="automationName" placeholder="Nome da automação" />
+                  <div class="split">
+                    <select class="select" id="automationType">
+                      <option value="reminder">Lembrete</option>
+                      <option value="recurring_task">Tarefa recorrente</option>
+                      <option value="daily_summary">Resumo diário</option>
+                      <option value="auto_report">Relatório automático</option>
+                      <option value="scheduled_check">Verificação programada</option>
+                    </select>
+                    <select class="select" id="automationSchedule">
+                      <option value="once">Uma vez</option>
+                      <option value="daily">Diária</option>
+                      <option value="weekly">Semanal</option>
+                      <option value="monthly">Mensal</option>
+                      <option value="manual">Manual</option>
+                    </select>
+                  </div>
+                  <input class="field" id="automationNextRunAt" type="datetime-local" />
+                  <textarea class="field" id="automationMessage" rows="3" placeholder="Mensagem, ação ou instrução da automação"></textarea>
+                  <button class="primary-action" type="submit">${icon("plus")}Criar automação</button>
+                </form>
+                <div class="row">
+                  <button class="button" id="refreshAutomationsButton" type="button">${icon("history")}Atualizar automações</button>
+                </div>
+                <div class="list" id="automationList"></div>
+                <div class="list" id="automationExecutionList"></div>
               </article>
             </div>
             <div class="documents-layout">
@@ -5205,10 +5262,21 @@ ${logoYaraStyles()}
           statusTarget.innerHTML = [
             integrationStatusCard("Google Calendar", integrations.googleCalendar || {}),
             integrationStatusCard("Gmail", integrations.gmail || {}),
+            integrationStatusCard("Google Drive", integrations.googleDrive || {}),
             integrationStatusCard("Telegram", integrations.telegram || {}),
             integrationStatusCard("WhatsApp", integrations.whatsapp || {}),
             integrationStatusCard("Push", integrations.push || {})
           ].join("");
+          const fileSelect = document.getElementById("integrationDriveFileSelect");
+          const filesData = await api("/api/files").catch(function() { return { files: [] }; });
+          currentFiles = filesData.files || currentFiles || [];
+          if (fileSelect) {
+            fileSelect.innerHTML = currentFiles.length
+              ? currentFiles.map(function(file) {
+                  return '<option value="' + escapeHtml(file.id) + '">' + escapeHtml(fileDisplayName(file)) + '</option>';
+                }).join("")
+              : '<option value="">Nenhum arquivo YARA carregado</option>';
+          }
           const subscriptions = await api("/api/push/subscriptions").catch(function() { return { subscriptions: [] }; });
           if (pushTarget) {
             pushTarget.innerHTML = (subscriptions.subscriptions || []).length
@@ -5221,9 +5289,83 @@ ${logoYaraStyles()}
               return '<article class="list-item"><strong>' + escapeHtml(log.service + " · " + log.action) + '</strong><p class="muted">' + escapeHtml(log.status + " · " + log.created_at) + '</p>' + (log.message ? '<p>' + escapeHtml(log.message) + '</p>' : "") + '</article>';
             }).join("") || '<p class="muted">Nenhum log de integração ainda.</p>';
           }
+          await loadAutomations();
         } catch (error) {
           statusTarget.innerHTML = '<article class="list-item"><strong>Integrações indisponíveis</strong><p class="muted">' + escapeHtml(error.message || "Não foi possível carregar integrações.") + '</p></article>';
         }
+      }
+
+      function renderAutomations(automations, executions) {
+        const list = document.getElementById("automationList");
+        const executionList = document.getElementById("automationExecutionList");
+        if (list) {
+          list.innerHTML = (automations || []).length
+            ? automations.map(function(item) {
+                return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(item.name) + '</strong><p class="muted">' + escapeHtml(item.type) + ' · ' + escapeHtml(item.scheduleExpression || 'manual') + ' · ' + escapeHtml(item.status) + '</p><p class="muted">Próxima execução: ' + escapeHtml(item.nextRunAt || "manual") + '</p></div><div class="row"><button class="button" data-run-automation="' + escapeHtml(item.id) + '" type="button">Executar</button><button class="button" data-pause-automation="' + escapeHtml(item.id) + '" data-status="' + escapeHtml(item.status) + '" type="button">' + (item.status === "paused" ? "Ativar" : "Pausar") + '</button><button class="icon-button danger" data-delete-automation="' + escapeHtml(item.id) + '" type="button" aria-label="Excluir automação">${icon("trash")}</button></div></div></article>';
+              }).join("")
+            : '<p class="muted">Nenhuma automação criada ainda.</p>';
+        }
+        if (executionList) {
+          executionList.innerHTML = (executions || []).slice(0, 5).map(function(item) {
+            return '<article class="list-item"><strong>Execução ' + escapeHtml(item.status) + '</strong><p class="muted">' + escapeHtml(item.started_at || "") + '</p></article>';
+          }).join("") || '<p class="muted">Nenhuma execução registrada.</p>';
+        }
+      }
+
+      async function loadAutomations() {
+        const data = await api("/api/automations").catch(function() { return { automations: [] }; });
+        const executions = await api("/api/automations/executions").catch(function() { return { executions: [] }; });
+        renderAutomations(data.automations || [], executions.executions || []);
+      }
+
+      async function createAutomationFromForm(event) {
+        event.preventDefault();
+        const name = getValue("automationName").trim();
+        const message = getValue("automationMessage").trim();
+        if (!name) return showToast("Informe o nome da automação.");
+        const payload = {
+          name: name,
+          type: getValue("automationType") || "reminder",
+          scheduleExpression: getValue("automationSchedule") || "once",
+          nextRunAt: getValue("automationNextRunAt") || null,
+          action: {
+            title: name,
+            message: message || name
+          }
+        };
+        await api("/api/automations", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        event.currentTarget.reset();
+        await loadAutomations();
+        showToast("Automação criada.");
+      }
+
+      async function handleAutomationListClick(event) {
+        const runButton = event.target.closest("[data-run-automation]");
+        if (runButton) {
+          await api("/api/automations/" + runButton.dataset.runAutomation + "/run", { method: "POST" });
+          await loadAutomations();
+          showToast("Automação executada.");
+          return;
+        }
+        const pauseButton = event.target.closest("[data-pause-automation]");
+        if (pauseButton) {
+          await api("/api/automations/" + pauseButton.dataset.pauseAutomation, {
+            method: "PATCH",
+            body: JSON.stringify({ status: pauseButton.dataset.status === "paused" ? "active" : "paused" })
+          });
+          await loadAutomations();
+          showToast("Automação atualizada.");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-automation]");
+        if (!deleteButton) return;
+        if (!window.confirm("Excluir esta automação?")) return;
+        await api("/api/automations/" + deleteButton.dataset.deleteAutomation, { method: "DELETE" });
+        await loadAutomations();
+        showToast("Automação excluída.");
       }
 
       async function loadAiStatus() {
@@ -5476,6 +5618,26 @@ ${logoYaraStyles()}
           refreshIntegrationsButton: loadIntegrations,
           integrationCalendarConnect: function() { return callIntegration("/api/integrations/google/calendar/connect", "integrationCalendarResult"); },
           integrationGmailConnect: function() { return callIntegration("/api/integrations/google/gmail/connect", "integrationGmailResult"); },
+          integrationDriveConnect: function() { return callIntegration("/api/integrations/google/drive/connect", "integrationDriveResult"); },
+          integrationDriveList: function() { return callIntegration("/api/integrations/drive/files?maxResults=10", "integrationDriveResult"); },
+          integrationDriveSearch: function() {
+            return callIntegration("/api/integrations/drive/files?query=" + encodeURIComponent(getValue("integrationDriveQuery").trim()) + "&maxResults=10", "integrationDriveResult");
+          },
+          integrationDriveCreateFolder: function() {
+            return callIntegration("/api/integrations/drive/folders", "integrationDriveResult", {
+              method: "POST",
+              body: JSON.stringify({ name: getValue("integrationDriveFolderName").trim() })
+            });
+          },
+          integrationDriveUploadFile: function() {
+            const fileId = getValue("integrationDriveFileSelect");
+            if (!fileId) return showToast("Escolha um arquivo da YARA.");
+            return callIntegration("/api/integrations/drive/upload-file", "integrationDriveResult", {
+              method: "POST",
+              body: JSON.stringify({ fileId: fileId })
+            });
+          },
+          refreshAutomationsButton: loadAutomations,
           integrationCalendarSync: function() { return callIntegration("/api/integrations/google/calendar/sync", "integrationCalendarResult", { method: "POST" }); },
           integrationCalendarList: function() { return callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult"); },
           integrationGmailRecent: function() { return callIntegration("/api/integrations/gmail/messages?maxResults=5", "integrationGmailResult"); },
@@ -5483,6 +5645,16 @@ ${logoYaraStyles()}
             return callIntegration("/api/integrations/gmail/summarize", "integrationGmailResult", {
               method: "POST",
               body: JSON.stringify({ query: "is:unread", maxResults: 5 })
+            });
+          },
+          integrationGmailDraft: function() {
+            return callIntegration("/api/integrations/gmail/drafts", "integrationGmailResult", {
+              method: "POST",
+              body: JSON.stringify({
+                to: getValue("integrationGmailTo").trim(),
+                subject: getValue("integrationGmailSubject").trim(),
+                body: getValue("integrationGmailBody").trim()
+              })
             });
           },
           integrationPushSubscribe: async function() {
@@ -5687,6 +5859,7 @@ ${logoYaraStyles()}
             reminderForm: true,
             integrationCalendarForm: true,
             integrationGmailForm: true,
+            automationForm: true,
             integrationTelegramForm: true,
             integrationWhatsappForm: true,
             quickSettingsForm: true,
@@ -5789,6 +5962,9 @@ ${logoYaraStyles()}
                     body: getValue("integrationGmailBody").trim()
                   })
                 });
+              }
+              if (form.id === "automationForm") {
+                return createAutomationFromForm(event);
               }
               if (form.id === "integrationTelegramForm") {
                 return callIntegration("/api/integrations/telegram/send", "integrationTelegramResult", {
@@ -6888,6 +7064,29 @@ ${logoYaraStyles()}
       on("integrationGmailConnect", "click", function() {
         callIntegration("/api/integrations/google/gmail/connect", "integrationGmailResult");
       });
+      on("integrationDriveConnect", "click", function() {
+        callIntegration("/api/integrations/google/drive/connect", "integrationDriveResult");
+      });
+      on("integrationDriveList", "click", function() {
+        callIntegration("/api/integrations/drive/files?maxResults=10", "integrationDriveResult");
+      });
+      on("integrationDriveSearch", "click", function() {
+        callIntegration("/api/integrations/drive/files?query=" + encodeURIComponent(getValue("integrationDriveQuery").trim()) + "&maxResults=10", "integrationDriveResult");
+      });
+      on("integrationDriveCreateFolder", "click", function() {
+        callIntegration("/api/integrations/drive/folders", "integrationDriveResult", {
+          method: "POST",
+          body: JSON.stringify({ name: getValue("integrationDriveFolderName").trim() })
+        });
+      });
+      on("integrationDriveUploadFile", "click", function() {
+        const fileId = getValue("integrationDriveFileSelect");
+        if (!fileId) return showToast("Escolha um arquivo da YARA.");
+        callIntegration("/api/integrations/drive/upload-file", "integrationDriveResult", {
+          method: "POST",
+          body: JSON.stringify({ fileId: fileId })
+        });
+      });
       on("integrationCalendarSync", "click", function() {
         callIntegration("/api/integrations/google/calendar/sync", "integrationCalendarResult", { method: "POST" });
       });
@@ -6918,6 +7117,16 @@ ${logoYaraStyles()}
           body: JSON.stringify({ query: "is:unread", maxResults: 5 })
         });
       });
+      on("integrationGmailDraft", "click", function() {
+        callIntegration("/api/integrations/gmail/drafts", "integrationGmailResult", {
+          method: "POST",
+          body: JSON.stringify({
+            to: getValue("integrationGmailTo").trim(),
+            subject: getValue("integrationGmailSubject").trim(),
+            body: getValue("integrationGmailBody").trim()
+          })
+        });
+      });
       on("integrationGmailForm", "submit", function(event) {
         event.preventDefault();
         callIntegration("/api/integrations/gmail/send", "integrationGmailResult", {
@@ -6928,6 +7137,15 @@ ${logoYaraStyles()}
             body: getValue("integrationGmailBody").trim()
           })
         });
+      });
+      on("automationForm", "submit", createAutomationFromForm);
+      on("refreshAutomationsButton", "click", loadAutomations);
+      on("automationList", "click", async function(event) {
+        try {
+          await handleAutomationListClick(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível atualizar a automação.");
+        }
       });
       on("integrationTelegramForm", "submit", function(event) {
         event.preventDefault();

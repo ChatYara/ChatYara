@@ -596,6 +596,25 @@ create table if not exists oauth_connections (
 create index if not exists oauth_connections_user_service
   on oauth_connections(user_id, provider, service, status);
 
+create table if not exists integrations (
+  id text primary key,
+  user_id text not null,
+  provider text not null,
+  service text not null,
+  status text not null default 'available',
+  capabilities_json text not null default '[]',
+  settings_json text not null default '{}',
+  last_sync_at text,
+  last_error text,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, provider, service),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists integrations_user_service
+  on integrations(user_id, provider, service, status);
+
 create table if not exists oauth_states (
   state text primary key,
   user_id text not null,
@@ -647,6 +666,25 @@ create table if not exists gmail_messages_cache (
 create index if not exists gmail_cache_user_received
   on gmail_messages_cache(user_id, received_at);
 
+create table if not exists drive_files_cache (
+  id text primary key,
+  user_id text not null,
+  drive_id text not null,
+  name text not null,
+  mime_type text,
+  web_view_link text,
+  size integer,
+  modified_at text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  unique (user_id, drive_id),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists drive_cache_user_modified
+  on drive_files_cache(user_id, modified_at);
+
 create table if not exists push_subscriptions (
   id text primary key,
   user_id text not null,
@@ -661,6 +699,41 @@ create table if not exists push_subscriptions (
 
 create index if not exists push_subscriptions_user_status
   on push_subscriptions(user_id, status);
+
+create table if not exists automations (
+  id text primary key,
+  user_id text not null,
+  name text not null,
+  type text not null,
+  trigger_type text not null default 'scheduled',
+  schedule_expression text,
+  next_run_at text,
+  action_json text not null default '{}',
+  status text not null default 'active',
+  last_run_at text,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automations_user_next
+  on automations(user_id, status, next_run_at);
+
+create table if not exists automation_executions (
+  id text primary key,
+  automation_id text not null,
+  user_id text not null,
+  status text not null,
+  result_json text not null default '{}',
+  error text,
+  started_at text not null default current_timestamp,
+  finished_at text,
+  foreign key (automation_id) references automations(id) on delete cascade,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automation_executions_user_started
+  on automation_executions(user_id, started_at);
 
 create table if not exists search_history (
   id text primary key,

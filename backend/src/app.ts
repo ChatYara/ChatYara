@@ -6,6 +6,7 @@ import path from "node:path";
 import { env } from "./config/env";
 import { authRoutes } from "./routes/authRoutes";
 import { aiRoutes } from "./routes/aiRoutes";
+import { automationRoutes } from "./routes/automationRoutes";
 import { calendarRoutes } from "./routes/calendarRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { documentRoutes } from "./routes/documentRoutes";
@@ -21,6 +22,7 @@ import { userRoutes } from "./routes/userRoutes";
 import { workspaceRoutes } from "./routes/workspaceRoutes";
 import { renderLandingPage } from "./views/landingPage";
 import { renderPlatformPage } from "./views/platformPage";
+import { startAutomationScheduler } from "./services/automationService";
 
 export function createApp() {
   const app = express();
@@ -73,6 +75,7 @@ export function createApp() {
   app.use("/api/auth", authRoutes);
   app.use("/api/system", systemRoutes);
   app.use("/api", aiRoutes);
+  app.use("/api", automationRoutes);
   app.use("/api", userRoutes);
   app.use("/api", uploadRoutes);
   app.use("/api", fileRoutes);
@@ -89,6 +92,8 @@ export function createApp() {
   app.use((_req, res) => {
     res.status(404).json({ error: { message: "Rota nao encontrada." } });
   });
+
+  startAutomationScheduler();
 
   return app;
 }

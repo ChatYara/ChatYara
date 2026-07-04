@@ -3,6 +3,8 @@ import { z } from "zod";
 import { authRequired } from "../middleware/auth";
 import {
   createGoogleCalendarEvent,
+  createGmailDraft,
+  createGoogleDriveFolder,
   createInternalNotification,
   deleteGoogleCalendarEvent,
   deletePushSubscription,
@@ -12,6 +14,7 @@ import {
   handleWhatsappWebhook,
   listGmailMessages,
   listGoogleCalendarEvents,
+  listGoogleDriveFiles,
   listIntegrationAuditLogs,
   listPushSubscriptions,
   savePushSubscription,
@@ -22,6 +25,7 @@ import {
   summarizeGmailMessages,
   syncGoogleCalendar,
   updateGoogleCalendarEvent,
+  uploadYaraFileToDrive,
   verifyWhatsappWebhook
 } from "../services/integrationService";
 import { sendError } from "../utils/http";
@@ -108,6 +112,12 @@ integrationRoutes.get("/integrations/google/gmail/connect", (req, res) => {
   return res.json(result);
 });
 
+integrationRoutes.get("/integrations/google/drive/connect", (req, res) => {
+  const result = startGoogleOAuth(req.user!.id, "drive");
+  if ("configured" in result && result.configured === false) return res.status(503).json(result);
+  return res.json(result);
+});
+
 integrationRoutes.get("/integrations/google/calendar/events", async (req, res) => {
   const parsed = z.object({
     from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -159,6 +169,30 @@ integrationRoutes.post("/integrations/gmail/send", async (req, res) => {
   const parsed = emailSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Dados inválidos para envio de e-mail.");
   return res.json(await sendGmailMessage(req.user!.id, parsed.data));
+});
+
+integrationRoutes.post("/integrations/gmail/drafts", async (req, res) => {
+  const parsed = emailSchema.safeParse(req.body);
+  if (!parsed.success) return sendError(res, 400, "Dados inválidos para rascunho de e-mail.");
+  return res.json(await createGmailDraft(req.user!.id, parsed.data));
+});
+
+integrationRoutes.get("/integrations/drive/files", async (req, res) => {
+  const query = typeof req.query.query === "string" ? req.query.query : "";
+  const maxResults = Number(req.query.maxResults || 10);
+  return res.json(await listGoogleDriveFiles(req.user!.id, query, maxResults));
+});
+
+integrationRoutes.post("/integrations/drive/folders", async (req, res) => {
+  const parsed = z.object({ name: z.string().min(2) }).safeParse(req.body);
+  if (!parsed.success) return sendError(res, 400, "Informe o nome da pasta.");
+  return res.json(await createGoogleDriveFolder(req.user!.id, parsed.data.name));
+});
+
+integrationRoutes.post("/integrations/drive/upload-file", async (req, res) => {
+  const parsed = z.object({ fileId: z.string().min(1), folderId: z.string().optional().nullable() }).safeParse(req.body);
+  if (!parsed.success) return sendError(res, 400, "Informe o arquivo da YARA para salvar no Drive.");
+  return res.json(await uploadYaraFileToDrive(req.user!.id, parsed.data.fileId, parsed.data.folderId || null));
 });
 
 integrationRoutes.post("/integrations/telegram/send", async (req, res) => {

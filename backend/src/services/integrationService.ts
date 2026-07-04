@@ -1,10 +1,13 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import { v4 as uuid } from "uuid";
 import { env } from "../config/env";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
+import { createAutomation } from "./automationService";
+import { getFileForDownload } from "./fileService";
 
-type IntegrationServiceName = "calendar" | "gmail" | "telegram" | "whatsapp" | "push";
+type IntegrationServiceName = "calendar" | "gmail" | "drive" | "telegram" | "whatsapp" | "push";
 
 type OAuthConnectionRow = {
   id: string;
@@ -34,6 +37,7 @@ type CalendarInput = {
 
 const googleNotConfiguredMessage = "Google OAuth ainda não configurado pelo administrador.";
 const gmailNotConfiguredMessage = "Gmail ainda não configurado pelo administrador.";
+const driveNotConfiguredMessage = "Google Drive ainda não configurado pelo administrador.";
 const telegramNotConfiguredMessage = "Telegram ainda não configurado pelo administrador.";
 const whatsappNotConfiguredMessage = "WhatsApp Business API ainda não configurado pelo administrador.";
 const pushNotConfiguredMessage = "Push notifications ainda precisam das chaves VAPID no servidor.";
@@ -87,6 +91,10 @@ function googleConfigured() {
 }
 
 function gmailConfigured() {
+  return googleConfigured();
+}
+
+function driveConfigured() {
   return googleConfigured();
 }
 
@@ -210,12 +218,16 @@ function googleScopes(service: IntegrationServiceName) {
   if (service === "gmail") {
     return [...base, "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"];
   }
+  if (service === "drive") {
+    return [...base, "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.metadata.readonly"];
+  }
   return base;
 }
 
 export function getIntegrationStatus(userId: string) {
   const calendar = getConnection(userId, "google", "calendar");
   const gmail = getConnection(userId, "google", "gmail");
+  const drive = getConnection(userId, "google", "drive");
   const pushCount = Number(
     (getDatabase()
       .prepare("select count(*) as total from push_subscriptions where user_id = ? and status = 'active'")
@@ -232,6 +244,17 @@ export function getIntegrationStatus(userId: string) {
       configured: gmailConfigured(),
       ...publicConnection(gmail),
       message: gmailConfigured() ? undefined : gmailNotConfiguredMessage
+    },
+    googleDrive: {
+      configured: driveConfigured(),
+      ...publicConnection(drive),
+      message: driveConfigured() ? undefined : driveNotConfiguredMessage
+    },
+    future: {
+      oneDrive: { configured: false, connected: false, status: "prepared", message: "OneDrive preparado para integração futura." },
+      outlook: { configured: false, connected: false, status: "prepared", message: "Outlook preparado para integração futura." },
+      slack: { configured: false, connected: false, status: "prepared", message: "Slack preparado para integração futura." },
+      webhooks: { configured: false, connected: false, status: "prepared", message: "Webhooks personalizados preparados para integração futura." }
     },
     telegram: {
       configured: telegramConfigured(),
@@ -271,9 +294,9 @@ export function listIntegrationAuditLogs(userId: string) {
     }));
 }
 
-export function startGoogleOAuth(userId: string, service: "calendar" | "gmail") {
+export function startGoogleOAuth(userId: string, service: "calendar" | "gmail" | "drive") {
   if (!googleConfigured()) {
-    const message = service === "gmail" ? gmailNotConfiguredMessage : googleNotConfiguredMessage;
+    const message = service === "gmail" ? gmailNotConfiguredMessage : service === "drive" ? driveNotConfiguredMessage : googleNotConfiguredMessage;
     audit(userId, "google", service, "connect", "prepared", message);
     return { configured: false, connected: false, message };
   }
@@ -307,7 +330,7 @@ export async function finishGoogleOAuth(code?: string, state?: string) {
   const db = getDatabase();
   const stateRow = db
     .prepare("select state, user_id, provider, service, scopes, expires_at from oauth_states where state = ?")
-    .get(state) as { state: string; user_id: string; provider: string; service: "calendar" | "gmail"; scopes: string; expires_at: string } | undefined;
+    .get(state) as { state: string; user_id: string; provider: string; service: "calendar" | "gmail" | "drive"; scopes: string; expires_at: string } | undefined;
   if (!stateRow) throw new Error("Estado OAuth inválido.");
   if (new Date(stateRow.expires_at).getTime() < Date.now()) throw new Error("Estado OAuth expirado. Tente conectar novamente.");
 
@@ -356,7 +379,7 @@ export async function finishGoogleOAuth(code?: string, state?: string) {
     connected: true,
     service: stateRow.service,
     email: profile.email || null,
-    message: stateRow.service === "gmail" ? "Gmail conectado com segurança." : "Google Calendar conectado com segurança."
+    message: stateRow.service === "gmail" ? "Gmail conectado com segurança." : stateRow.service === "drive" ? "Google Drive conectado com segurança." : "Google Calendar conectado com segurança."
   };
 }
 
@@ -386,10 +409,10 @@ async function refreshGoogleConnection(row: OAuthConnectionRow) {
   return token.access_token;
 }
 
-async function getGoogleAccessToken(userId: string, service: "calendar" | "gmail") {
+async function getGoogleAccessToken(userId: string, service: "calendar" | "gmail" | "drive") {
   const row = getConnection(userId, "google", service);
   if (!row) {
-    const message = service === "gmail" ? "Conecte o Gmail antes de usar este recurso." : "Conecte o Google Calendar antes de usar este recurso.";
+    const message = service === "gmail" ? "Conecte o Gmail antes de usar este recurso." : service === "drive" ? "Conecte o Google Drive antes de usar este recurso." : "Conecte o Google Calendar antes de usar este recurso.";
     throw new Error(message);
   }
   if (!row.access_token_encrypted) throw new Error("Token Google ausente. Reconecte a integração.");
@@ -400,7 +423,7 @@ async function getGoogleAccessToken(userId: string, service: "calendar" | "gmail
   return decryptSecret(row.access_token_encrypted);
 }
 
-async function googleJson<T>(userId: string, service: "calendar" | "gmail", url: string, init: RequestInit = {}) {
+async function googleJson<T>(userId: string, service: "calendar" | "gmail" | "drive", url: string, init: RequestInit = {}) {
   const accessToken = await getGoogleAccessToken(userId, service);
   const response = await fetch(url, {
     ...init,
@@ -741,6 +764,157 @@ export async function sendGmailMessage(userId: string, input: { to: string; subj
   }
 }
 
+export async function createGmailDraft(userId: string, input: { to: string; subject: string; body: string }) {
+  if (!gmailConfigured()) return { configured: false, message: gmailNotConfiguredMessage };
+  const to = cleanText(input.to);
+  const subject = cleanText(input.subject, "Rascunho da YARA AI");
+  const body = String(input.body || "").trim();
+  if (!/@/.test(to) || !body) throw new Error("Informe destinatário e corpo do rascunho.");
+  const raw = base64Url([
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    body
+  ].join("\r\n"));
+  try {
+    const data = await googleJson<Record<string, any>>(
+      userId,
+      "gmail",
+      "https://gmail.googleapis.com/gmail/v1/users/me/drafts",
+      { method: "POST", body: JSON.stringify({ message: { raw } }) }
+    );
+    audit(userId, "google", "gmail", "create_draft", "success", "Rascunho criado no Gmail.", { to, subject });
+    return { configured: true, connected: true, draft: data };
+  } catch (error) {
+    const message = markConnectionError(userId, "google", "gmail", error);
+    return { configured: true, connected: false, message };
+  }
+}
+
+function driveQuery(value = "") {
+  return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function cacheDriveFile(userId: string, file: Record<string, any>) {
+  if (!file.id) return;
+  getDatabase()
+    .prepare(
+      `insert into drive_files_cache (
+         id, user_id, drive_id, name, mime_type, web_view_link, size, modified_at, metadata_json, updated_at
+       )
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp)
+       on conflict(user_id, drive_id) do update set
+         name = excluded.name,
+         mime_type = excluded.mime_type,
+         web_view_link = excluded.web_view_link,
+         size = excluded.size,
+         modified_at = excluded.modified_at,
+         metadata_json = excluded.metadata_json,
+         updated_at = current_timestamp`
+    )
+    .run(
+      uuid(),
+      userId,
+      file.id,
+      cleanText(file.name, "Arquivo Drive"),
+      file.mimeType || null,
+      file.webViewLink || null,
+      file.size ? Number(file.size) : null,
+      file.modifiedTime || null,
+      JSON.stringify(file)
+    );
+}
+
+export async function listGoogleDriveFiles(userId: string, query = "", maxResults = 10) {
+  if (!driveConfigured()) return { configured: false, message: driveNotConfiguredMessage };
+  try {
+    const url = new URL("https://www.googleapis.com/drive/v3/files");
+    url.searchParams.set("pageSize", String(Math.min(50, Math.max(1, maxResults))));
+    url.searchParams.set("fields", "files(id,name,mimeType,size,modifiedTime,webViewLink,parents)");
+    url.searchParams.set("orderBy", "modifiedTime desc");
+    if (query) {
+      url.searchParams.set("q", `name contains '${driveQuery(query)}' and trashed = false`);
+    } else {
+      url.searchParams.set("q", "trashed = false");
+    }
+    const data = await googleJson<{ files?: Record<string, any>[] }>(userId, "drive", url.toString());
+    const files = data.files || [];
+    files.forEach((file) => cacheDriveFile(userId, file));
+    getDatabase()
+      .prepare(
+        `update oauth_connections set last_sync_at = current_timestamp, status = 'connected', last_error = null, updated_at = current_timestamp
+         where user_id = ? and provider = 'google' and service = 'drive'`
+      )
+      .run(userId);
+    audit(userId, "google", "drive", "list_files", "success", `${files.length} arquivo(s) listado(s).`);
+    return { configured: true, connected: true, files };
+  } catch (error) {
+    const message = markConnectionError(userId, "google", "drive", error);
+    return { configured: true, connected: false, message };
+  }
+}
+
+export async function createGoogleDriveFolder(userId: string, name: string) {
+  if (!driveConfigured()) return { configured: false, message: driveNotConfiguredMessage };
+  try {
+    const folder = await googleJson<Record<string, any>>(
+      userId,
+      "drive",
+      "https://www.googleapis.com/drive/v3/files?fields=id,name,mimeType,webViewLink",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: cleanText(name, "YARA AI"),
+          mimeType: "application/vnd.google-apps.folder"
+        })
+      }
+    );
+    cacheDriveFile(userId, folder);
+    audit(userId, "google", "drive", "create_folder", "success", "Pasta criada no Google Drive.", { id: folder.id });
+    return { configured: true, connected: true, folder };
+  } catch (error) {
+    const message = markConnectionError(userId, "google", "drive", error);
+    return { configured: true, connected: false, message };
+  }
+}
+
+export async function uploadYaraFileToDrive(userId: string, fileId: string, folderId?: string | null) {
+  if (!driveConfigured()) return { configured: false, message: driveNotConfiguredMessage };
+  const file = getFileForDownload(userId, fileId);
+  const accessToken = await getGoogleAccessToken(userId, "drive");
+  const boundary = `yara-drive-${crypto.randomBytes(12).toString("hex")}`;
+  const metadata = {
+    name: file.name,
+    mimeType: file.type,
+    ...(folderId ? { parents: [folderId] } : {})
+  };
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`, "utf8"),
+    Buffer.from(`--${boundary}\r\nContent-Type: ${file.type}\r\n\r\n`, "utf8"),
+    fs.readFileSync(file.path),
+    Buffer.from(`\r\n--${boundary}--`, "utf8")
+  ]);
+  const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,modifiedTime,webViewLink", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/related; boundary=${boundary}`,
+      "Content-Length": String(body.length)
+    },
+    body
+  });
+  const data = (await response.json().catch(() => ({}))) as Record<string, any> & { error?: { message?: string } };
+  if (!response.ok) {
+    const message = data.error?.message || "Não foi possível salvar no Google Drive.";
+    markConnectionError(userId, "google", "drive", new Error(message));
+    return { configured: true, connected: false, message };
+  }
+  cacheDriveFile(userId, data);
+  audit(userId, "google", "drive", "upload_file", "success", "Arquivo YARA enviado ao Drive.", { fileId, driveId: data.id });
+  return { configured: true, connected: true, file: data };
+}
+
 export async function sendTelegramMessage(input: { chatId?: string; text?: string }) {
   if (!telegramConfigured()) return { configured: false, message: telegramNotConfiguredMessage };
   const chatId = cleanText(input.chatId);
@@ -897,8 +1071,54 @@ function dateFromPortuguese(message: string) {
   return found ? nextWeekday(found[1]) : todayInYaraTimezone().toISOString().slice(0, 10);
 }
 
+function parseTime(message: string) {
+  const match = /\b(?:às|as)?\s*(\d{1,2})(?::|h)?(\d{2})?\b/i.exec(message);
+  if (!match) return null;
+  const hour = Math.max(0, Math.min(23, Number(match[1])));
+  const minute = Math.max(0, Math.min(59, Number(match[2] || 0)));
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
 export async function tryHandleIntegrationChatIntent(userId: string, message: string) {
   const lower = normalized(message);
+  const wantsAutomation =
+    /\b(todo dia|diario|diaria|semanal|recorrente|automatico|automacao|automatize|criar relatorio diario|relatorio diario)\b/.test(lower) &&
+    /\b(lembre|relatorio|resumo|tarefa|verificar|checagem)\b/.test(lower);
+  if (wantsAutomation) {
+    const scheduleExpression = /\b(semanal|toda semana)\b/.test(lower) ? "weekly" : "daily";
+    const time = parseTime(message) || "09:00";
+    const tomorrow = todayInYaraTimezone();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextRunAt = new Date(`${tomorrow.toISOString().slice(0, 10)}T${time}:00`).toISOString();
+    const type = /\b(relatorio|resumo)\b/.test(lower) ? "daily_summary" : /\b(tarefa)\b/.test(lower) ? "recurring_task" : "reminder";
+    const automation = createAutomation(userId, {
+      name: cleanText(message.replace(/^(crie|criar|automatize|lembre-me de)\s+/i, ""), "Automação YARA"),
+      type,
+      scheduleExpression,
+      nextRunAt,
+      action: {
+        title: cleanText(message, "Automação YARA"),
+        message,
+        source: "chat"
+      }
+    });
+    return {
+      type: "automation_create",
+      text: `Automação criada: ${automation.name}. Próxima execução: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(automation.nextRunAt || nextRunAt))}.`
+    };
+  }
+
+  if (/\b(drive|google drive)\b/.test(lower) && /\b(busque|procure|listar|arquivos)\b/.test(lower)) {
+    const result = await listGoogleDriveFiles(userId, "", 10);
+    const files = "files" in result && Array.isArray(result.files) ? result.files : null;
+    if (!files) return { type: "drive_list", text: result.message };
+    if (!files.length) return { type: "drive_list", text: "Nenhum arquivo encontrado no Google Drive conectado." };
+    return {
+      type: "drive_list",
+      text: ["Arquivos recentes no Drive:", ...files.map((file, index) => `${index + 1}. ${file.name || "Arquivo"} — ${file.mimeType || "tipo não informado"}`)].join("\n")
+    };
+  }
+
   const wantsEvents = /\b(eventos?|agenda|compromissos?)\b/.test(lower) && /\b(hoje|amanha|semana|quais|listar|tenho)\b/.test(lower);
   if (wantsEvents) {
     const date = dateFromPortuguese(message);
