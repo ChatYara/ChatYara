@@ -30,6 +30,7 @@ import {
   updateProjectTask,
   updateSettings
 } from "../services/workspaceService";
+import { recordAudit, requestAuditContext } from "../services/auditService";
 import { sendError } from "../utils/http";
 
 export const workspaceRoutes = Router();
@@ -108,7 +109,17 @@ workspaceRoutes.post("/projects", (req, res) => {
     return sendError(res, 400, "Informe um nome para o projeto.");
   }
 
-  return res.status(201).json({ project: createProject(req.user!.id, parsed.data) });
+  const project = createProject(req.user!.id, parsed.data);
+  recordAudit({
+    userId: req.user!.id,
+    category: "projects",
+    action: "create",
+    entityType: "project",
+    entityId: project.id,
+    message: "Projeto criado.",
+    ...requestAuditContext(req)
+  });
+  return res.status(201).json({ project });
 });
 
 workspaceRoutes.patch("/projects/:id", (req, res) => {
@@ -172,7 +183,18 @@ workspaceRoutes.post("/projects/:id/tasks", (req, res) => {
   }
 
   try {
-    return res.status(201).json({ task: createProjectTask(req.user!.id, req.params.id, parsed.data) });
+    const task = createProjectTask(req.user!.id, req.params.id, parsed.data);
+    recordAudit({
+      userId: req.user!.id,
+      category: "tasks",
+      action: "create",
+      entityType: "project_task",
+      entityId: task.id,
+      message: "Tarefa criada.",
+      metadata: { projectId: req.params.id },
+      ...requestAuditContext(req)
+    });
+    return res.status(201).json({ task });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Projeto não encontrado.");
   }
@@ -273,7 +295,17 @@ workspaceRoutes.post("/projects/:id/files", (req, res) => {
 
 workspaceRoutes.delete("/projects/:id", (req, res) => {
   try {
-    return res.json({ project: deleteProject(req.user!.id, req.params.id) });
+    const project = deleteProject(req.user!.id, req.params.id);
+    recordAudit({
+      userId: req.user!.id,
+      category: "projects",
+      action: "delete",
+      entityType: "project",
+      entityId: req.params.id,
+      message: "Projeto excluído.",
+      ...requestAuditContext(req)
+    });
+    return res.json({ project });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Projeto não encontrado.");
   }

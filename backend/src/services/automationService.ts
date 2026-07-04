@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
+import { recordAudit } from "./auditService";
 
 type AutomationRow = {
   id: string;
@@ -134,6 +135,15 @@ export function createAutomation(userId: string, input: AutomationInput) {
       JSON.stringify(input.action || {}),
       input.status || "active"
     );
+  recordAudit({
+    userId,
+    category: "automations",
+    action: "create",
+    entityType: "automation",
+    entityId: id,
+    message: "Automação criada.",
+    metadata: { type, schedule }
+  });
   return publicAutomation(assertAutomationOwner(userId, id));
 }
 
@@ -166,6 +176,14 @@ export function updateAutomation(userId: string, automationId: string, input: Pa
 export function deleteAutomation(userId: string, automationId: string) {
   assertAutomationOwner(userId, automationId);
   getDatabase().prepare("delete from automations where id = ? and user_id = ?").run(automationId, userId);
+  recordAudit({
+    userId,
+    category: "automations",
+    action: "delete",
+    entityType: "automation",
+    entityId: automationId,
+    message: "Automação excluída."
+  });
   return { id: automationId, deleted: true };
 }
 
@@ -250,6 +268,15 @@ export function runAutomation(userId: string, automationId: string) {
          where id = ? and user_id = ?`
       )
       .run(JSON.stringify(result), executionId, userId);
+    recordAudit({
+      userId,
+      category: "automations",
+      action: "execute",
+      entityType: "automation",
+      entityId: automation.id,
+      message: "Automação executada.",
+      metadata: { executionId, result }
+    });
     return { executionId, status: "success", result, automation: publicAutomation(assertAutomationOwner(userId, automation.id)) };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao executar automação.";

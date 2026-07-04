@@ -5,6 +5,7 @@ import { env } from "../config/env";
 import { getDatabase } from "../db/connection";
 import { askYara } from "./ai/aiService";
 import { createAutomation } from "./automationService";
+import { recordAudit } from "./auditService";
 import { getFileForDownload } from "./fileService";
 
 type IntegrationServiceName = "calendar" | "gmail" | "drive" | "telegram" | "whatsapp" | "push";
@@ -374,6 +375,15 @@ export async function finishGoogleOAuth(code?: string, state?: string) {
   db.prepare("delete from oauth_states where state = ?").run(state);
   audit(stateRow.user_id, "google", stateRow.service, "connect", "success", "Conta Google conectada.", {
     email: profile.email || null
+  });
+  recordAudit({
+    userId: stateRow.user_id,
+    category: "integrations",
+    action: "connect",
+    entityType: "oauth_connection",
+    entityId: stateRow.service,
+    message: `Integração Google ${stateRow.service} conectada.`,
+    metadata: { email: profile.email || null, service: stateRow.service }
   });
   return {
     connected: true,

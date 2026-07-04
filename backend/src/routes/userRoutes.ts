@@ -9,6 +9,7 @@ import {
   updateUserProfile
 } from "../services/authService";
 import { getSettings } from "../services/workspaceService";
+import { recordAudit, requestAuditContext } from "../services/auditService";
 import { sendError } from "../utils/http";
 
 export const userRoutes = Router();
@@ -58,6 +59,16 @@ userRoutes.get("/users/sessions", (req, res) => {
 
 userRoutes.post("/users/logout-all", (req, res) => {
   const result = revokeOtherSessions(req.user!.id, req.user!.sessionId);
+  recordAudit({
+    userId: req.user!.id,
+    category: "auth",
+    action: "logout_all",
+    entityType: "user_session",
+    status: "success",
+    message: "Outras sessões encerradas.",
+    metadata: { revoked: result.revoked },
+    ...requestAuditContext(req)
+  });
   return res.json({
     message: result.revoked > 0 ? "Outras sessões encerradas com segurança." : "Nenhuma outra sessão ativa encontrada.",
     revoked: result.revoked

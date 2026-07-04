@@ -11,6 +11,7 @@ import {
   uploadFile
 } from "../services/fileService";
 import { parseMultipartUpload } from "../services/uploadService";
+import { recordAudit, requestAuditContext } from "../services/auditService";
 import { sendError } from "../utils/http";
 
 export const fileRoutes = Router();
@@ -27,14 +28,23 @@ fileRoutes.get("/files", (req, res) => {
 fileRoutes.post("/files/upload", async (req, res) => {
   try {
     const { fields, file } = await parseMultipartUpload(req);
-    return res.status(201).json({
-      file: uploadFile(req.user!.id, {
+    const saved = uploadFile(req.user!.id, {
         originalName: file.originalName,
         fileType: file.fileType,
         buffer: file.buffer,
         conversationId: fields.conversationId || fields.conversation_id || null
-      })
+      });
+    recordAudit({
+      userId: req.user!.id,
+      category: "files",
+      action: "upload",
+      entityType: "file",
+      entityId: saved.id,
+      message: "Arquivo enviado.",
+      metadata: { type: saved.type, size: saved.size },
+      ...requestAuditContext(req)
     });
+    return res.status(201).json({ file: saved });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível enviar este arquivo.");
   }
@@ -57,6 +67,16 @@ fileRoutes.get("/files/:id/download", (req, res) => {
     res.setHeader("Content-Type", file.type);
     res.setHeader("Content-Length", String(file.size));
     res.setHeader("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${fileName}"`);
+    recordAudit({
+      userId: req.user!.id,
+      category: "files",
+      action: "download",
+      entityType: "file",
+      entityId: req.params.id,
+      message: "Arquivo baixado ou visualizado.",
+      metadata: { inline, type: file.type, size: file.size },
+      ...requestAuditContext(req)
+    });
     return res.sendFile(file.path);
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Arquivo não encontrado.");
@@ -85,14 +105,23 @@ function exportHandler(format: "pdf" | "docx" | "xlsx" | "txt") {
     }
 
     try {
-      return res.status(201).json({
-        file: await generateExportFile(req.user!.id, {
+      const file = await generateExportFile(req.user!.id, {
           format,
           title: parsed.data.title,
           content: parsed.data.content,
           conversationId: parsed.data.conversationId || null
-        })
+        });
+      recordAudit({
+        userId: req.user!.id,
+        category: "files",
+        action: "export",
+        entityType: "file",
+        entityId: file.id,
+        message: `Exportação ${format.toUpperCase()} criada.`,
+        metadata: { format, size: file.size },
+        ...requestAuditContext(req)
       });
+      return res.status(201).json({ file });
     } catch (error) {
       return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível exportar arquivo.");
     }

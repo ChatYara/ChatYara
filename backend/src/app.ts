@@ -1,9 +1,9 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import morgan from "morgan";
 import path from "node:path";
 import { env } from "./config/env";
+import { csrfProtection, rateLimit, securityHeaders } from "./middleware/security";
 import { authRoutes } from "./routes/authRoutes";
 import { aiRoutes } from "./routes/aiRoutes";
 import { automationRoutes } from "./routes/automationRoutes";
@@ -15,6 +15,7 @@ import { imageRoutes } from "./routes/imageRoutes";
 import { integrationRoutes } from "./routes/integrationRoutes";
 import { memoryRoutes } from "./routes/memoryRoutes";
 import { profileRoutes } from "./routes/profileRoutes";
+import { productionRoutes } from "./routes/productionRoutes";
 import { searchRoutes } from "./routes/searchRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { uploadRoutes } from "./routes/uploadRoutes";
@@ -23,6 +24,8 @@ import { workspaceRoutes } from "./routes/workspaceRoutes";
 import { renderLandingPage } from "./views/landingPage";
 import { renderPlatformPage } from "./views/platformPage";
 import { startAutomationScheduler } from "./services/automationService";
+import { startBackupScheduler } from "./services/backupService";
+import { structuredLog } from "./services/loggerService";
 
 export function createApp() {
   const app = express();
@@ -47,8 +50,21 @@ export function createApp() {
       credentials: true
     })
   );
+  app.use(securityHeaders);
+  app.use(rateLimit({ windowMs: 60_000, max: 240, keyPrefix: "global" }));
   app.use(express.json({ limit: "1mb" }));
-  app.use(morgan("dev"));
+  app.use((req, res, next) => {
+    const started = Date.now();
+    res.once("finish", () => {
+      const level: "info" | "warn" | "error" = res.statusCode >= 500 ? "error" : res.statusCode >= 400 ? "warn" : "info";
+      structuredLog(level, "http", `${req.method} ${req.path}`, {
+        status: res.statusCode,
+        durationMs: Date.now() - started
+      });
+    });
+    next();
+  });
+  app.use(csrfProtection);
   app.use("/assets", express.static(path.join(publicDir, "assets")));
   app.use(express.static(publicDir, { index: false }));
 
@@ -73,7 +89,9 @@ export function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
+  app.use("/api", rateLimit({ windowMs: 60_000, max: 180, keyPrefix: "api" }));
   app.use("/api/system", systemRoutes);
+  app.use("/api", productionRoutes);
   app.use("/api", aiRoutes);
   app.use("/api", automationRoutes);
   app.use("/api", userRoutes);
@@ -89,11 +107,13 @@ export function createApp() {
   app.use("/api", searchRoutes);
   app.use("/api", workspaceRoutes);
 
-  app.use((_req, res) => {
+  app.use((req, res) => {
+    structuredLog("warn", "http", "Rota não encontrada.", { path: req.path, method: req.method });
     res.status(404).json({ error: { message: "Rota nao encontrada." } });
   });
 
   startAutomationScheduler();
+  startBackupScheduler();
 
   return app;
 }

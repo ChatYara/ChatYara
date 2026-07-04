@@ -1755,6 +1755,7 @@ ${logoYaraStyles()}
             ${navButton("images", "Imagens", "image")}
             ${navButton("calendar", "Agenda", "history")}
             ${navButton("integrations", "Integrações", "share")}
+            ${navButton("audit", "Auditoria", "shield")}
             ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
           </nav>
@@ -2476,6 +2477,97 @@ ${logoYaraStyles()}
           </div>
         </section>
 
+        <section class="view" id="view-audit" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Auditoria</h2>
+                <p class="muted">Monitore segurança, atividades, backups e saúde da plataforma em produção.</p>
+              </div>
+              <div class="row">
+                <button class="button" id="refreshAuditButton" type="button">${icon("history")}Atualizar</button>
+                <button class="primary-action" id="createBackupButton" type="button">${icon("save")}Criar backup</button>
+              </div>
+            </div>
+
+            <div class="dashboard-grid" id="auditStatusGrid"></div>
+
+            <div class="documents-layout">
+              <article class="card">
+                <div class="item-top">
+                  <div>
+                    <h2>Trilha de auditoria</h2>
+                    <p class="muted">Ações críticas registradas por usuário, categoria e data.</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <input class="field" id="auditSearch" placeholder="Buscar evento..." />
+                  <select class="select" id="auditCategoryFilter">
+                    <option value="">Todas as categorias</option>
+                    <option value="auth">Autenticação</option>
+                    <option value="project">Projetos</option>
+                    <option value="task">Tarefas</option>
+                    <option value="file">Arquivos</option>
+                    <option value="upload">Uploads</option>
+                    <option value="backup">Backup</option>
+                    <option value="integrations">Integrações</option>
+                    <option value="automation">Automações</option>
+                    <option value="recovery">Recuperação</option>
+                  </select>
+                  <input class="field" id="auditActionFilter" placeholder="Ação" />
+                </div>
+                <div class="list" id="auditList"></div>
+                <div class="row">
+                  <button class="button" id="auditPrevPage" type="button">Anterior</button>
+                  <span class="muted" id="auditPageLabel">Página 1</span>
+                  <button class="button" id="auditNextPage" type="button">Próxima</button>
+                </div>
+              </article>
+
+              <article class="card">
+                <div class="item-top">
+                  <div>
+                    <h2>Logs estruturados</h2>
+                    <p class="muted">Eventos de aplicação, segurança e erros sem expor segredos.</p>
+                  </div>
+                  <select class="select" id="logLevelFilter">
+                    <option value="">Todos</option>
+                    <option value="info">Info</option>
+                    <option value="warn">Warn</option>
+                    <option value="error">Error</option>
+                    <option value="security">Security</option>
+                  </select>
+                </div>
+                <div class="list" id="logList"></div>
+              </article>
+            </div>
+
+            <div class="documents-layout">
+              <article class="card">
+                <div class="item-top">
+                  <div>
+                    <h2>Backups</h2>
+                    <p class="muted">Backups manuais e automáticos do banco, arquivos e configurações operacionais.</p>
+                  </div>
+                  <button class="button" id="refreshBackupsButton" type="button">${icon("history")}Atualizar</button>
+                </div>
+                <div class="list" id="backupList"></div>
+              </article>
+
+              <article class="card">
+                <div class="item-top">
+                  <div>
+                    <h2>Relatório Pilar 01</h2>
+                    <p class="muted">Resumo final de arquitetura, segurança, endpoints e recursos de produção.</p>
+                  </div>
+                  <button class="button" id="loadPilarReportButton" type="button">${icon("file")}Carregar relatório</button>
+                </div>
+                <div class="result-box" id="pilarReportBox">Relatório disponível para consulta segura.</div>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <section class="view" id="view-settings" hidden>
           <div class="panel">
             <div class="settings-hero">
@@ -2857,6 +2949,7 @@ ${logoYaraStyles()}
       let currentCalendarEvents = [];
       let currentReminders = [];
       let currentCalendarRange = "today";
+      let auditPage = 1;
       let pendingImageFile = null;
       let pendingImagePreviewUrl = "";
       let responseState = "done";
@@ -3251,6 +3344,7 @@ ${logoYaraStyles()}
           images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
           calendar: { title: "Agenda", subtitle: "Eventos, lembretes e notificações.", loader: loadCalendar },
           integrations: { title: "Integrações", subtitle: "Google, Gmail, Telegram, WhatsApp e notificações.", loader: loadIntegrations },
+          audit: { title: "Auditoria", subtitle: "Segurança, logs, backups e saúde da produção.", loader: loadAudit },
           settings: { title: "Configurações", subtitle: "Preferências, conta e memória da YARA.", loader: loadSettings }
         };
         return configs[view] || null;
@@ -5318,6 +5412,126 @@ ${logoYaraStyles()}
         renderAutomations(data.automations || [], executions.executions || []);
       }
 
+      function statusBadge(label, state, detail) {
+        return '<article class="card stat-card"><span class="avatar">' + (state ? "OK" : "!") + '</span><strong>' + escapeHtml(label) + '</strong><p class="muted">' + escapeHtml(detail || (state ? "Operacional" : "Atenção necessária")) + '</p></article>';
+      }
+
+      function renderAuditStatus(status) {
+        const target = byId("auditStatusGrid");
+        if (!target) return;
+        const counts = status && status.counts ? status.counts : {};
+        const storage = status && status.storage ? status.storage : {};
+        const apiOnline = typeof status.api === "boolean" ? status.api : Boolean(status.api && status.api.online);
+        const databaseOnline = typeof status.database === "boolean" ? status.database : Boolean(status.database && status.database.online);
+        const databaseDetail = typeof status.database === "boolean" ? "Conectado" : (status.database && status.database.type ? status.database.type : "Verificando");
+        target.innerHTML = [
+          statusBadge("API", apiOnline, apiOnline ? "Online" : "Verificando"),
+          statusBadge("Banco", databaseOnline, databaseDetail),
+          statusBadge("Armazenamento", true, formatFileSize(storage.sizeBytes || 0) + " em uso"),
+          statusBadge("Auditoria", true, String(counts.auditEvents || 0) + " eventos"),
+          statusBadge("Backups", true, String(counts.backups || 0) + " registros"),
+          statusBadge("Automações", Boolean(status && status.automations), String(status && status.automations ? status.automations.active || 0 : 0) + " ativas")
+        ].join("");
+      }
+
+      function renderAuditEvents(data) {
+        const list = byId("auditList");
+        const label = byId("auditPageLabel");
+        const events = data && data.events ? data.events : [];
+        if (label) {
+          const total = data && data.total ? data.total : 0;
+          label.textContent = "Página " + auditPage + " · " + total + " eventos";
+        }
+        if (!list) return;
+        list.innerHTML = events.length
+          ? events.map(function(item) {
+              const metadata = item.metadata_json ? safeJsonPreview(item.metadata_json) : "";
+              return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(item.category + " · " + item.action) + '</strong><p class="muted">' + escapeHtml(item.created_at || "") + (item.entity_type ? " · " + escapeHtml(item.entity_type) : "") + '</p></div><span class="status"><span class="dot"></span>' + escapeHtml(item.status || "ok") + '</span></div><p>' + escapeHtml(item.message || "Evento registrado.") + '</p>' + (metadata ? '<p class="muted">' + metadata + '</p>' : "") + '</article>';
+            }).join("")
+          : '<p class="muted">Nenhum evento encontrado.</p>';
+      }
+
+      function safeJsonPreview(value) {
+        try {
+          const parsed = typeof value === "string" ? JSON.parse(value) : value;
+          const text = JSON.stringify(parsed);
+          return escapeHtml(text.length > 180 ? text.slice(0, 180) + "..." : text);
+        } catch (_error) {
+          return escapeHtml(String(value || "").slice(0, 180));
+        }
+      }
+
+      function renderApplicationLogs(data) {
+        const list = byId("logList");
+        const logs = data && data.logs ? data.logs : [];
+        if (!list) return;
+        list.innerHTML = logs.length
+          ? logs.map(function(item) {
+              return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml((item.level || "info").toUpperCase() + " · " + (item.channel || "app")) + '</strong><p class="muted">' + escapeHtml(item.created_at || "") + '</p></div></div><p>' + escapeHtml(item.message || "") + '</p>' + (item.context_json ? '<p class="muted">' + safeJsonPreview(item.context_json) + '</p>' : "") + '</article>';
+            }).join("")
+          : '<p class="muted">Nenhum log encontrado.</p>';
+      }
+
+      function renderBackups(data) {
+        const list = byId("backupList");
+        const backups = data && data.backups ? data.backups : [];
+        if (!list) return;
+        list.innerHTML = backups.length
+          ? backups.map(function(item) {
+              const name = item.file_name || item.fileName || item.id;
+              return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(name) + '</strong><p class="muted">' + escapeHtml(item.type || "manual") + ' · ' + escapeHtml(item.status || "completed") + ' · ' + formatFileSize(item.file_size || item.fileSize || 0) + '</p><p class="muted">' + escapeHtml(item.created_at || item.createdAt || "") + '</p></div><button class="button" data-download-backup="' + escapeHtml(item.id) + '" data-file-name="' + escapeHtml(name) + '" type="button">Manifesto</button></div></article>';
+            }).join("")
+          : '<p class="muted">Nenhum backup criado ainda.</p>';
+      }
+
+      async function loadAudit() {
+        const query = encodeURIComponent(getValue("auditSearch").trim());
+        const category = encodeURIComponent(getValue("auditCategoryFilter"));
+        const action = encodeURIComponent(getValue("auditActionFilter").trim());
+        const params = ["page=" + auditPage, "pageSize=20"];
+        if (query) params.push("query=" + query);
+        if (category) params.push("category=" + category);
+        if (action) params.push("action=" + action);
+
+        const status = await api("/api/status/details").catch(function(error) {
+          setHtml("auditStatusGrid", '<article class="card"><strong>Status indisponível</strong><p class="muted">' + escapeHtml(error.message) + '</p></article>');
+          return null;
+        });
+        if (status && status.status) renderAuditStatus(status.status);
+
+        const audit = await api("/api/audit?" + params.join("&")).catch(function(error) {
+          setHtml("auditList", '<div class="module-error"><div><strong>Não foi possível carregar auditoria.</strong><span>' + escapeHtml(error.message) + '</span></div></div>');
+          return null;
+        });
+        if (audit) renderAuditEvents(audit);
+
+        const level = encodeURIComponent(getValue("logLevelFilter"));
+        const logs = await api("/api/logs?pageSize=12" + (level ? "&level=" + level : "")).catch(function(error) {
+          setHtml("logList", '<div class="module-error"><div><strong>Não foi possível carregar logs.</strong><span>' + escapeHtml(error.message) + '</span></div></div>');
+          return null;
+        });
+        if (logs) renderApplicationLogs(logs);
+
+        const backups = await api("/api/backups").catch(function(error) {
+          setHtml("backupList", '<div class="module-error"><div><strong>Não foi possível carregar backups.</strong><span>' + escapeHtml(error.message) + '</span></div></div>');
+          return null;
+        });
+        if (backups) renderBackups(backups);
+      }
+
+      async function createBackupFromUi() {
+        const data = await api("/api/backups", { method: "POST", body: JSON.stringify({ type: "manual" }) });
+        showToast("Backup criado com sucesso.");
+        await loadAudit();
+        return data;
+      }
+
+      async function loadPilarReport() {
+        const data = await api("/api/reports/pilar-01");
+        const report = data.report || {};
+        setHtml("pilarReportBox", '<div class="list"><article class="list-item"><strong>' + escapeHtml(report.title || "Relatório Pilar 01") + '</strong><p class="muted">' + escapeHtml(report.generatedAt || "") + '</p></article><article class="list-item"><strong>Arquitetura</strong><p class="muted">' + safeJsonPreview(report.architecture || {}) + '</p></article><article class="list-item"><strong>Recursos</strong><p class="muted">' + escapeHtml((report.features || []).join(" · ")) + '</p></article><article class="list-item"><strong>Segurança</strong><p class="muted">' + escapeHtml((report.security || []).join(" · ")) + '</p></article></div>');
+      }
+
       async function createAutomationFromForm(event) {
         event.preventDefault();
         const name = getValue("automationName").trim();
@@ -5670,6 +5884,18 @@ ${logoYaraStyles()}
           },
           integrationPushTest: function() {
             return callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Teste YARA AI", message: "Notificação interna criada com sucesso." }) });
+          },
+          refreshAuditButton: loadAudit,
+          refreshBackupsButton: loadAudit,
+          createBackupButton: createBackupFromUi,
+          loadPilarReportButton: loadPilarReport,
+          auditPrevPage: function() {
+            auditPage = Math.max(1, auditPage - 1);
+            return loadAudit();
+          },
+          auditNextPage: function() {
+            auditPage += 1;
+            return loadAudit();
           },
           loadSessionsButton: function() { return loadSessions("sessionList"); },
           logoutAllButton: async function() {
@@ -7187,6 +7413,50 @@ ${logoYaraStyles()}
       });
       on("integrationPushTest", "click", function() {
         callIntegration("/api/push/test", "integrationPushList", { method: "POST", body: JSON.stringify({ title: "Teste YARA AI", message: "Notificação interna criada com sucesso." }) });
+      });
+
+      on("refreshAuditButton", "click", async function() {
+        await loadAudit();
+        showToast("Auditoria atualizada.");
+      });
+      on("refreshBackupsButton", "click", async function() {
+        await loadAudit();
+        showToast("Backups atualizados.");
+      });
+      on("createBackupButton", "click", async function() {
+        await createBackupFromUi();
+      });
+      on("loadPilarReportButton", "click", async function() {
+        await loadPilarReport();
+        showToast("Relatório carregado.");
+      });
+      on("auditSearch", "input", function() {
+        auditPage = 1;
+        loadAudit();
+      });
+      on("auditCategoryFilter", "change", function() {
+        auditPage = 1;
+        loadAudit();
+      });
+      on("auditActionFilter", "input", function() {
+        auditPage = 1;
+        loadAudit();
+      });
+      on("logLevelFilter", "change", function() {
+        loadAudit();
+      });
+      on("auditPrevPage", "click", async function() {
+        auditPage = Math.max(1, auditPage - 1);
+        await loadAudit();
+      });
+      on("auditNextPage", "click", async function() {
+        auditPage += 1;
+        await loadAudit();
+      });
+      on("backupList", "click", async function(event) {
+        const button = event.target.closest("[data-download-backup]");
+        if (!button) return;
+        await downloadProtectedPath("/api/backups/" + button.dataset.downloadBackup + "/download", (button.dataset.fileName || "backup") + "-manifest.json");
       });
 
       on("testAiButton", "click", async function() {

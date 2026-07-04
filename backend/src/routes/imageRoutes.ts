@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
+import { recordAudit, requestAuditContext } from "../services/auditService";
 import {
   analyzeImage,
   createImageFromFile,
@@ -33,12 +34,23 @@ imageRoutes.get("/images/history", (req, res) => {
 imageRoutes.post("/images", async (req, res) => {
   try {
     const upload = await parseMultipartUpload(req);
+    const image = await createImageFromFile(req.user!.id, {
+      projectId: upload.fields.projectId || upload.fields.project_id,
+      conversationId: upload.fields.conversationId || upload.fields.conversation_id,
+      file: upload.file
+    });
+    recordAudit({
+      userId: req.user!.id,
+      category: "image",
+      action: "upload",
+      entityType: "image",
+      entityId: image.id,
+      message: "Imagem enviada.",
+      metadata: { fileName: upload.file.originalName, type: upload.file.fileType, size: upload.file.fileSize },
+      ...requestAuditContext(req)
+    });
     return res.status(201).json({
-      image: await createImageFromFile(req.user!.id, {
-        projectId: upload.fields.projectId || upload.fields.project_id,
-        conversationId: upload.fields.conversationId || upload.fields.conversation_id,
-        file: upload.file
-      })
+      image
     });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível enviar a imagem.");
@@ -48,12 +60,23 @@ imageRoutes.post("/images", async (req, res) => {
 imageRoutes.post("/images/upload", async (req, res) => {
   try {
     const upload = await parseMultipartUpload(req);
+    const image = await createImageFromFile(req.user!.id, {
+      projectId: upload.fields.projectId || upload.fields.project_id,
+      conversationId: upload.fields.conversationId || upload.fields.conversation_id,
+      file: upload.file
+    });
+    recordAudit({
+      userId: req.user!.id,
+      category: "image",
+      action: "upload",
+      entityType: "image",
+      entityId: image.id,
+      message: "Imagem enviada.",
+      metadata: { fileName: upload.file.originalName, type: upload.file.fileType, size: upload.file.fileSize },
+      ...requestAuditContext(req)
+    });
     return res.status(201).json({
-      image: await createImageFromFile(req.user!.id, {
-        projectId: upload.fields.projectId || upload.fields.project_id,
-        conversationId: upload.fields.conversationId || upload.fields.conversation_id,
-        file: upload.file
-      })
+      image
     });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível enviar a imagem.");
@@ -65,7 +88,17 @@ imageRoutes.post("/images/analyze", async (req, res) => {
   if (!parsed.success) return sendError(res, 400, "Informe a imagem para análise.");
 
   try {
-    return res.json(await analyzeImage(req.user!.id, parsed.data.imageId));
+    const result = await analyzeImage(req.user!.id, parsed.data.imageId);
+    recordAudit({
+      userId: req.user!.id,
+      category: "image",
+      action: "analyze",
+      entityType: "image",
+      entityId: parsed.data.imageId,
+      message: "Imagem analisada.",
+      ...requestAuditContext(req)
+    });
+    return res.json(result);
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Imagem não encontrada.");
   }
@@ -76,7 +109,17 @@ imageRoutes.post("/images/ocr", (req, res) => {
   if (!parsed.success) return sendError(res, 400, "Informe a imagem para OCR.");
 
   try {
-    return res.json(runOcr(req.user!.id, parsed.data.imageId));
+    const result = runOcr(req.user!.id, parsed.data.imageId);
+    recordAudit({
+      userId: req.user!.id,
+      category: "image",
+      action: "ocr",
+      entityType: "image",
+      entityId: parsed.data.imageId,
+      message: "OCR de imagem solicitado.",
+      ...requestAuditContext(req)
+    });
+    return res.json(result);
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Imagem não encontrada.");
   }
@@ -100,7 +143,18 @@ imageRoutes.post("/images/edit", async (req, res) => {
   if (!parsed.success) return sendError(res, 400, "Informe ajustes válidos para editar a imagem.");
 
   try {
-    return res.json(await editImage(req.user!.id, parsed.data));
+    const result = await editImage(req.user!.id, parsed.data);
+    recordAudit({
+      userId: req.user!.id,
+      category: "image",
+      action: "edit",
+      entityType: "image",
+      entityId: parsed.data.imageId,
+      message: "Imagem editada.",
+      metadata: { format: parsed.data.format, width: parsed.data.width, height: parsed.data.height, optimize: parsed.data.optimize },
+      ...requestAuditContext(req)
+    });
+    return res.json(result);
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível editar a imagem.");
   }
@@ -140,6 +194,16 @@ imageRoutes.get("/images/:id/download", (req, res) => {
   try {
     const image = getImageForDownload(req.user!.id, req.params.id);
     const fileName = (image.file_name || image.original_name).replace(/["\r\n]/g, "");
+    recordAudit({
+      userId: req.user!.id,
+      category: "image",
+      action: "download",
+      entityType: "image",
+      entityId: req.params.id,
+      message: "Imagem baixada.",
+      metadata: { fileName, type: image.file_type, size: image.file_size },
+      ...requestAuditContext(req)
+    });
 
     res.setHeader("Content-Type", image.file_type);
     res.setHeader("Content-Length", String(image.file_size));
@@ -160,7 +224,17 @@ imageRoutes.get("/images/:id", (req, res) => {
 
 imageRoutes.delete("/images/:id", (req, res) => {
   try {
-    return res.json({ image: deleteImage(req.user!.id, req.params.id) });
+    const image = deleteImage(req.user!.id, req.params.id);
+    recordAudit({
+      userId: req.user!.id,
+      category: "image",
+      action: "delete",
+      entityType: "image",
+      entityId: req.params.id,
+      message: "Imagem excluída.",
+      ...requestAuditContext(req)
+    });
+    return res.json({ image });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Imagem não encontrada.");
   }

@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
+import { bruteForceProtection } from "../middleware/security";
+import { recordAudit, requestAuditContext } from "../services/auditService";
 import {
   getUserById,
   loginUser,
@@ -42,21 +44,37 @@ authRoutes.post("/register", async (req, res) => {
   }
 
   try {
-    return res.status(201).json(
-      await registerUser({
+    const result = await registerUser({
         name: parsed.data.name,
         email: parsed.data.email,
         phone: parsed.data.phone,
         password: parsed.data.password,
         device: requestDevice(req)
-      })
-    );
+      });
+    recordAudit({
+      userId: result.user.id,
+      category: "auth",
+      action: "register",
+      entityType: "user",
+      entityId: result.user.id,
+      message: "Usuário cadastrado.",
+      ...requestAuditContext(req)
+    });
+    return res.status(201).json(result);
   } catch (error) {
+    recordAudit({
+      userId: null,
+      category: "auth",
+      action: "register",
+      status: "failed",
+      message: error instanceof Error ? error.message : "Erro ao cadastrar.",
+      ...requestAuditContext(req)
+    });
     return sendError(res, 400, error instanceof Error ? error.message : "Erro ao cadastrar.");
   }
 });
 
-authRoutes.post("/login", async (req, res) => {
+authRoutes.post("/login", bruteForceProtection, async (req, res) => {
   const parsed = authSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -64,8 +82,27 @@ authRoutes.post("/login", async (req, res) => {
   }
 
   try {
-    return res.json(await loginUser({ ...parsed.data, device: requestDevice(req) }));
+    const result = await loginUser({ ...parsed.data, device: requestDevice(req) });
+    recordAudit({
+      userId: result.user.id,
+      category: "auth",
+      action: "login",
+      entityType: "user_session",
+      entityId: result.sessionId,
+      message: "Login realizado.",
+      ...requestAuditContext(req)
+    });
+    return res.json(result);
   } catch (error) {
+    recordAudit({
+      userId: null,
+      category: "auth",
+      action: "login",
+      status: "failed",
+      message: error instanceof Error ? error.message : "Erro ao entrar.",
+      metadata: { identifier: parsed.data.identifier },
+      ...requestAuditContext(req)
+    });
     return sendError(res, 401, error instanceof Error ? error.message : "Erro ao entrar.");
   }
 });

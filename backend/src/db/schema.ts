@@ -502,6 +502,31 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists audit_events (
+      id text primary key,
+      user_id text,
+      category text not null,
+      action text not null,
+      entity_type text,
+      entity_id text,
+      status text not null default 'success',
+      ip_address text,
+      user_agent text,
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete set null
+    );
+
+    create table if not exists application_logs (
+      id text primary key,
+      level text not null,
+      channel text not null,
+      message text not null,
+      context_json text not null default '{}',
+      created_at text not null default current_timestamp
+    );
+
     create table if not exists oauth_connections (
       id text primary key,
       user_id text not null,
@@ -637,6 +662,19 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists backups (
+      id text primary key,
+      user_id text,
+      type text not null default 'manual',
+      status text not null default 'completed',
+      file_name text not null,
+      file_size integer not null default 0,
+      storage_path text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete set null
+    );
+
     create table if not exists search_history (
       id text primary key,
       user_id text not null,
@@ -694,6 +732,10 @@ export function runMigrations() {
   ensureColumn("cognitive_profiles", "history_json", "text not null default '[]'");
   ensureColumn("cognitive_profiles", "confidence_score", "real not null default 0.5");
   ensureColumn("cognitive_profiles", "source", "text not null default 'manual'");
+  ensureColumn("audit_events", "ip_address", "text");
+  ensureColumn("audit_events", "user_agent", "text");
+  ensureColumn("audit_events", "metadata_json", "text not null default '{}'");
+  ensureColumn("application_logs", "context_json", "text not null default '{}'");
   ensureColumn("user_sessions", "last_seen_at", "text");
   ensureColumn("user_sessions", "revoked_at", "text");
   ensureColumn("uploads", "message_id", "text");
@@ -756,6 +798,8 @@ export function runMigrations() {
   ensureColumn("automation_executions", "result_json", "text not null default '{}'");
   ensureColumn("automation_executions", "error", "text");
   ensureColumn("automation_executions", "finished_at", "text");
+  ensureColumn("backups", "metadata_json", "text not null default '{}'");
+  ensureColumn("backups", "file_size", "integer not null default 0");
   ensureColumn("notifications", "scheduled_for", "text");
   ensureColumn("notifications", "delivered_at", "text");
   ensureColumn("notifications", "channel", "text");
@@ -787,6 +831,10 @@ export function runMigrations() {
     update automations set status = 'active' where status is null;
     update automations set updated_at = created_at where updated_at is null;
     update automation_executions set result_json = '{}' where result_json is null;
+    update audit_events set metadata_json = '{}' where metadata_json is null;
+    update application_logs set context_json = '{}' where context_json is null;
+    update backups set metadata_json = '{}' where metadata_json is null;
+    update backups set file_size = 0 where file_size is null;
     update user_settings set language = 'pt-BR' where language is null;
     update user_settings set response_length = 'medium' where response_length is null;
     update user_settings set voice_language = 'pt-BR' where voice_language is null;
@@ -826,6 +874,15 @@ export function runMigrations() {
     create index if not exists cognitive_profile_audit_user_created
       on cognitive_profile_audit_logs(user_id, created_at);
 
+    create index if not exists audit_events_user_created
+      on audit_events(user_id, created_at);
+
+    create index if not exists audit_events_category_action
+      on audit_events(category, action, created_at);
+
+    create index if not exists application_logs_level_created
+      on application_logs(level, channel, created_at);
+
     create index if not exists integrations_user_service
       on integrations(user_id, provider, service, status);
 
@@ -837,6 +894,9 @@ export function runMigrations() {
 
     create index if not exists automation_executions_user_started
       on automation_executions(user_id, started_at);
+
+    create index if not exists backups_created
+      on backups(created_at);
 
     create index if not exists memories_user_category_importance
       on memories(user_id, category, importance, updated_at);

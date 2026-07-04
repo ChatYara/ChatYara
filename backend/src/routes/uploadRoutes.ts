@@ -7,6 +7,7 @@ import {
   listUploads,
   parseMultipartUpload
 } from "../services/uploadService";
+import { recordAudit, requestAuditContext } from "../services/auditService";
 import { sendError } from "../utils/http";
 
 export const uploadRoutes = Router();
@@ -20,12 +21,21 @@ uploadRoutes.get("/uploads", (req, res) => {
 uploadRoutes.post("/uploads", async (req, res) => {
   try {
     const upload = await parseMultipartUpload(req);
-    return res.status(201).json({
-      upload: createUploadFromFile(req.user!.id, {
+    const saved = createUploadFromFile(req.user!.id, {
         conversationId: upload.fields.conversationId || upload.fields.conversation_id,
         file: upload.file
-      })
+      });
+    recordAudit({
+      userId: req.user!.id,
+      category: "files",
+      action: "upload",
+      entityType: "upload",
+      entityId: saved.id,
+      message: "Anexo enviado ao chat.",
+      metadata: { type: saved.file_type, size: saved.file_size },
+      ...requestAuditContext(req)
     });
+    return res.status(201).json({ upload: saved });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível enviar este arquivo.");
   }
@@ -40,6 +50,16 @@ uploadRoutes.get("/uploads/:id/download", (req, res) => {
     res.setHeader("Content-Type", upload.file_type);
     res.setHeader("Content-Length", String(upload.file_size));
     res.setHeader("Content-Disposition", `${disposition}; filename="${originalName}"`);
+    recordAudit({
+      userId: req.user!.id,
+      category: "files",
+      action: "download",
+      entityType: "upload",
+      entityId: req.params.id,
+      message: "Anexo baixado ou visualizado.",
+      metadata: { type: upload.file_type, size: upload.file_size },
+      ...requestAuditContext(req)
+    });
     return res.sendFile(upload.storage_path);
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Arquivo não encontrado.");

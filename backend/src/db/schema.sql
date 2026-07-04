@@ -291,6 +291,40 @@ create index if not exists cognitive_objectives_user_horizon
 create index if not exists cognitive_profile_audit_user_created
   on cognitive_profile_audit_logs(user_id, created_at);
 
+create table if not exists audit_events (
+  id text primary key,
+  user_id text,
+  category text not null,
+  action text not null,
+  entity_type text,
+  entity_id text,
+  status text not null default 'success',
+  ip_address text,
+  user_agent text,
+  message text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete set null
+);
+
+create index if not exists audit_events_user_created
+  on audit_events(user_id, created_at);
+
+create index if not exists audit_events_category_action
+  on audit_events(category, action, created_at);
+
+create table if not exists application_logs (
+  id text primary key,
+  level text not null,
+  channel text not null,
+  message text not null,
+  context_json text not null default '{}',
+  created_at text not null default current_timestamp
+);
+
+create index if not exists application_logs_level_created
+  on application_logs(level, channel, created_at);
+
 create table if not exists user_sessions (
   id text primary key,
   user_id text not null,
@@ -734,6 +768,22 @@ create table if not exists automation_executions (
 
 create index if not exists automation_executions_user_started
   on automation_executions(user_id, started_at);
+
+create table if not exists backups (
+  id text primary key,
+  user_id text,
+  type text not null default 'manual',
+  status text not null default 'completed',
+  file_name text not null,
+  file_size integer not null default 0,
+  storage_path text not null,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete set null
+);
+
+create index if not exists backups_created
+  on backups(created_at);
 
 create table if not exists search_history (
   id text primary key,
