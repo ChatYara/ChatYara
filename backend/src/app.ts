@@ -16,6 +16,7 @@ import { integrationRoutes } from "./routes/integrationRoutes";
 import { memoryRoutes } from "./routes/memoryRoutes";
 import { profileRoutes } from "./routes/profileRoutes";
 import { productionRoutes } from "./routes/productionRoutes";
+import { projectMemoryRoutes } from "./routes/projectMemoryRoutes";
 import { searchRoutes } from "./routes/searchRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
 import { uploadRoutes } from "./routes/uploadRoutes";
@@ -92,6 +93,7 @@ export function createApp() {
   app.use("/api", rateLimit({ windowMs: 60_000, max: 180, keyPrefix: "api" }));
   app.use("/api/system", systemRoutes);
   app.use("/api", productionRoutes);
+  app.use("/api", projectMemoryRoutes);
   app.use("/api", aiRoutes);
   app.use("/api", automationRoutes);
   app.use("/api", userRoutes);

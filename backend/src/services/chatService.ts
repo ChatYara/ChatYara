@@ -15,6 +15,7 @@ import {
   updateConversationMemorySession
 } from "./memoryService";
 import { extractCognitiveFactsFromMessage, readCognitiveProfileContext } from "./profileService";
+import { answerProjectMemoryQuestion, readProjectMemoryContext } from "./projectMemoryService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
 import { toPublicUpload } from "./uploadService";
 
@@ -369,6 +370,7 @@ function readUserContext(userId: string, query = "", conversationId?: string) {
     readCognitiveProfileContext(userId),
     readMemory(userId) ? `Memórias manuais:\n${readMemory(userId)}` : "",
     intelligentMemory,
+    readProjectMemoryContext(userId, query),
     readLearningContext(userId) ? `Aprendizados automáticos seguros:\n${readLearningContext(userId)}` : ""
   ]
     .filter(Boolean)
@@ -642,6 +644,7 @@ export async function sendMessage(
 
   const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
+  const projectMemoryAnswer = answerProjectMemoryQuestion(userId, storedMessage);
   const search = searchNeeded ? await runSearch(userId, storedMessage) : null;
   const exportFormat = detectExportRequest(storedMessage);
   let exportedFile: ReturnType<typeof toPublicFile> | null = null;
@@ -677,6 +680,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "integration-action",
       response: integrationAction.text || "Integração processada pela YARA AI."
+    };
+  } else if (projectMemoryAnswer && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "project-memory",
+      response: projectMemoryAnswer
     };
   } else if (direct && !searchNeeded) {
     ai = {

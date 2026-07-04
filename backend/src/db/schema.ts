@@ -173,6 +173,125 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists project_memories (
+      id text primary key,
+      user_id text not null,
+      name text not null,
+      description text,
+      status text not null default 'active',
+      current_pillar text,
+      current_phase text,
+      next_steps_json text not null default '[]',
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, name),
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists project_phases (
+      id text primary key,
+      user_id text not null,
+      project_memory_id text not null,
+      pillar text,
+      name text not null,
+      status text not null default 'planned',
+      summary text,
+      started_at text,
+      completed_at text,
+      sort_order integer not null default 0,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, project_memory_id, name),
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_memory_id) references project_memories(id) on delete cascade
+    );
+
+    create table if not exists project_decisions (
+      id text primary key,
+      user_id text not null,
+      project_memory_id text not null,
+      title text not null,
+      content text not null,
+      impact text,
+      source text not null default 'manual',
+      decided_at text not null default current_timestamp,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_memory_id) references project_memories(id) on delete cascade
+    );
+
+    create table if not exists project_milestones (
+      id text primary key,
+      user_id text not null,
+      project_memory_id text not null,
+      title text not null,
+      description text,
+      status text not null default 'completed',
+      milestone_date text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_memory_id) references project_memories(id) on delete cascade
+    );
+
+    create table if not exists project_pending_items (
+      id text primary key,
+      user_id text not null,
+      project_memory_id text not null,
+      title text not null,
+      description text,
+      priority text not null default 'medium',
+      status text not null default 'open',
+      due_date text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_memory_id) references project_memories(id) on delete cascade
+    );
+
+    create table if not exists project_commits (
+      id text primary key,
+      user_id text not null,
+      project_memory_id text not null,
+      hash text not null,
+      message text not null,
+      branch text not null default 'main',
+      committed_at text not null default current_timestamp,
+      created_at text not null default current_timestamp,
+      unique (user_id, project_memory_id, hash),
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_memory_id) references project_memories(id) on delete cascade
+    );
+
+    create table if not exists project_timeline_events (
+      id text primary key,
+      user_id text not null,
+      project_memory_id text not null,
+      event_type text not null,
+      title text not null,
+      description text,
+      event_at text not null default current_timestamp,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_memory_id) references project_memories(id) on delete cascade
+    );
+
+    create table if not exists project_memory_audit_logs (
+      id text primary key,
+      user_id text not null,
+      project_memory_id text,
+      action text not null,
+      status text not null default 'success',
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_memory_id) references project_memories(id) on delete set null
+    );
+
     create table if not exists user_settings (
       user_id text primary key,
       display_name text not null,
@@ -936,6 +1055,30 @@ export function runMigrations() {
 
     create index if not exists project_uploads_user_project
       on project_uploads(user_id, project_id, created_at);
+
+    create index if not exists project_memories_user_status
+      on project_memories(user_id, status, updated_at);
+
+    create index if not exists project_phases_user_project
+      on project_phases(user_id, project_memory_id, status, sort_order);
+
+    create index if not exists project_decisions_user_project
+      on project_decisions(user_id, project_memory_id, decided_at);
+
+    create index if not exists project_milestones_user_project
+      on project_milestones(user_id, project_memory_id, milestone_date);
+
+    create index if not exists project_pending_user_project
+      on project_pending_items(user_id, project_memory_id, status, priority);
+
+    create index if not exists project_commits_user_project
+      on project_commits(user_id, project_memory_id, committed_at);
+
+    create index if not exists project_timeline_user_project
+      on project_timeline_events(user_id, project_memory_id, event_at);
+
+    create index if not exists project_memory_audit_user_project
+      on project_memory_audit_logs(user_id, project_memory_id, created_at);
 
     create index if not exists documents_user_created
       on documents(user_id, created_at);

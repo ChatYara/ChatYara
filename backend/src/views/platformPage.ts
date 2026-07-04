@@ -1750,6 +1750,7 @@ ${logoYaraStyles()}
             ${navButton("chat", "Chat", "chat", true)}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
+            ${navButton("smartProjects", "Projetos Inteligentes", "brain")}
             ${navButton("documents", "Documentos", "file")}
             ${navButton("files", "Arquivos", "paperclip")}
             ${navButton("images", "Imagens", "image")}
@@ -2013,6 +2014,89 @@ ${logoYaraStyles()}
                   <button class="button" id="archiveProjectButton" type="button">${icon("archive")}Arquivar</button>
                   <button class="button danger" id="deleteProjectButton" type="button">${icon("trash")}Excluir projeto</button>
                 </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-smartProjects" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Projetos Inteligentes</h2>
+                <p class="muted">Memória viva de fases, decisões, pendências, commits, marcos e próximos passos.</p>
+              </div>
+              <button class="button" id="refreshSmartProjectsButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Projetos cadastrados</h2>
+                <p class="muted">O projeto padrão YARA AI é criado automaticamente para cada usuário.</p>
+                <form class="form" id="smartProjectForm">
+                  <input class="field" id="smartProjectName" placeholder="Nome do projeto" />
+                  <textarea class="field" id="smartProjectDescription" rows="3" placeholder="Descrição, objetivo ou contexto do projeto"></textarea>
+                  <button class="primary-action" type="submit">${icon("plus")}Criar memória de projeto</button>
+                </form>
+                <div class="list" id="smartProjectList"></div>
+              </article>
+              <article class="card">
+                <div class="item-top">
+                  <div>
+                    <h2 id="smartProjectTitle">Selecione um projeto</h2>
+                    <p class="muted" id="smartProjectSubtitle">Abra um projeto inteligente para ver histórico consolidado.</p>
+                  </div>
+                  <span class="status"><span class="dot"></span><span id="smartProjectStatus">Aguardando</span></span>
+                </div>
+                <div class="dashboard-grid" id="smartProjectSummary"></div>
+                <div class="result-box" id="smartProjectNextSteps">Próximos passos aparecerão aqui.</div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Adicionar decisão</h2>
+                <form class="form" id="smartDecisionForm">
+                  <input class="field" id="smartDecisionTitle" placeholder="Título da decisão" />
+                  <textarea class="field" id="smartDecisionContent" rows="3" placeholder="O que foi decidido e por quê"></textarea>
+                  <input class="field" id="smartDecisionImpact" placeholder="Impacto esperado" />
+                  <button class="primary-action" type="submit">${icon("save")}Registrar decisão</button>
+                </form>
+                <div class="list" id="smartDecisionsList"></div>
+              </article>
+              <article class="card">
+                <h2>Adicionar pendência</h2>
+                <form class="form" id="smartPendingForm">
+                  <input class="field" id="smartPendingTitle" placeholder="Pendência" />
+                  <textarea class="field" id="smartPendingDescription" rows="3" placeholder="Descrição da pendência"></textarea>
+                  <select class="select" id="smartPendingPriority">
+                    <option value="medium">Prioridade média</option>
+                    <option value="high">Prioridade alta</option>
+                    <option value="low">Prioridade baixa</option>
+                  </select>
+                  <button class="primary-action" type="submit">${icon("plus")}Registrar pendência</button>
+                </form>
+                <div class="list" id="smartPendingList"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Adicionar commit</h2>
+                <form class="form" id="smartCommitForm">
+                  <input class="field" id="smartCommitHash" placeholder="Hash do commit" />
+                  <input class="field" id="smartCommitMessage" placeholder="Mensagem do commit" />
+                  <input class="field" id="smartCommitBranch" placeholder="Branch" value="main" />
+                  <button class="primary-action" type="submit">${icon("save")}Registrar commit</button>
+                </form>
+                <div class="list" id="smartCommitsList"></div>
+              </article>
+              <article class="card">
+                <h2>Marcos e linha do tempo</h2>
+                <form class="form" id="smartMilestoneForm">
+                  <input class="field" id="smartMilestoneTitle" placeholder="Novo marco" />
+                  <textarea class="field" id="smartMilestoneDescription" rows="2" placeholder="Descrição do marco"></textarea>
+                  <button class="primary-action" type="submit">${icon("plus")}Registrar marco</button>
+                </form>
+                <div class="list" id="smartMilestonesList"></div>
+                <div class="list" id="smartTimelineList"></div>
               </article>
             </div>
           </div>
@@ -2935,6 +3019,8 @@ ${logoYaraStyles()}
       let currentMessages = [];
       let conversations = [];
       let projects = [];
+      let smartProjects = [];
+      let selectedSmartProjectId = null;
       let selectedProject = null;
       let generatedProject = null;
       let pendingAttachment = null;
@@ -3339,6 +3425,7 @@ ${logoYaraStyles()}
           dashboard: { title: "Dashboard", subtitle: "Resumo da sua atividade.", loader: loadDashboard },
           generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
+          smartProjects: { title: "Projetos Inteligentes", subtitle: "Memória de decisões, fases, pendências e commits.", loader: loadSmartProjects },
           documents: { title: "Documentos", subtitle: "Gere e baixe documentos protegidos.", loader: loadDocuments },
           files: { title: "Arquivos", subtitle: "Envie, visualize, baixe e exporte arquivos reais.", loader: loadFiles },
           images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
@@ -4554,6 +4641,84 @@ ${logoYaraStyles()}
         await loadProjectUploadOptions();
       }
 
+      async function loadSmartProjects() {
+        const data = await api("/api/projects-memory");
+        smartProjects = data.projects || [];
+        renderSmartProjectList();
+        if (!selectedSmartProjectId && smartProjects.length) {
+          selectedSmartProjectId = smartProjects[0].id;
+        }
+        if (selectedSmartProjectId) await selectSmartProject(selectedSmartProjectId);
+      }
+
+      function renderSmartProjectList() {
+        const target = byId("smartProjectList");
+        if (!target) return;
+        target.innerHTML = smartProjects.length
+          ? smartProjects.map(function(project) {
+              const active = project.id === selectedSmartProjectId ? " active" : "";
+              return '<article class="list-item' + active + '"><div class="item-top"><div><strong>' + escapeHtml(project.name) + '</strong><p class="muted">' + escapeHtml(project.current_pillar || "Pilar") + ' · ' + escapeHtml(project.current_phase || "Fase atual") + '</p></div><button class="button" data-open-smart-project="' + escapeHtml(project.id) + '" type="button">Abrir</button></div><p class="muted">' + escapeHtml(project.description || "Memória de projeto") + '</p></article>';
+            }).join("")
+          : '<p class="muted">Nenhum projeto inteligente encontrado.</p>';
+      }
+
+      function renderSmartProjectDetails(data) {
+        const project = data.project || {};
+        const phases = data.phases || [];
+        const decisions = data.decisions || [];
+        const milestones = data.milestones || [];
+        const pending = data.pending || [];
+        const commits = data.commits || [];
+        const timeline = data.timeline || [];
+
+        setText("smartProjectTitle", project.name || "Projeto inteligente");
+        setText("smartProjectSubtitle", project.description || "Histórico consolidado do projeto.");
+        setText("smartProjectStatus", project.status || "ativo");
+        setHtml("smartProjectNextSteps", (project.nextSteps || []).length
+          ? '<strong>Próximos passos</strong><ul>' + project.nextSteps.map(function(item) { return '<li>' + escapeHtml(item) + '</li>'; }).join("") + '</ul>'
+          : "Nenhum próximo passo registrado.");
+        setHtml("smartProjectSummary", [
+          ["Fase atual", project.current_phase || "-"],
+          ["Pilar", project.current_pillar || "-"],
+          ["Fases", phases.length],
+          ["Decisões", decisions.length],
+          ["Pendências", pending.filter(function(item) { return item.status !== "done"; }).length],
+          ["Commits", commits.length]
+        ].map(function(item) {
+          return '<article class="card stat-card"><span class="avatar">${icon("brain")}</span><strong>' + escapeHtml(item[1]) + '</strong><p class="muted">' + escapeHtml(item[0]) + '</p></article>';
+        }).join(""));
+        setHtml("smartDecisionsList", decisions.length ? decisions.map(function(item) {
+          return '<article class="list-item"><strong>' + escapeHtml(item.title) + '</strong><p class="muted">' + escapeHtml(item.content) + '</p>' + (item.impact ? '<p class="muted">Impacto: ' + escapeHtml(item.impact) + '</p>' : "") + '</article>';
+        }).join("") : '<p class="muted">Nenhuma decisão registrada.</p>');
+        setHtml("smartPendingList", pending.length ? pending.map(function(item) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.title) + '</strong><span class="status">' + escapeHtml(item.priority || "medium") + ' · ' + escapeHtml(item.status || "open") + '</span></div><p class="muted">' + escapeHtml(item.description || "") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma pendência registrada.</p>');
+        setHtml("smartCommitsList", commits.length ? commits.map(function(item) {
+          return '<article class="list-item"><strong>' + escapeHtml(item.hash) + '</strong><p class="muted">' + escapeHtml(item.message) + ' · ' + escapeHtml(item.branch || "main") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhum commit registrado.</p>');
+        setHtml("smartMilestonesList", milestones.length ? milestones.map(function(item) {
+          return '<article class="list-item"><strong>' + escapeHtml(item.title) + '</strong><p class="muted">' + escapeHtml(item.description || item.status || "") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhum marco registrado.</p>');
+        setHtml("smartTimelineList", timeline.length ? timeline.slice(0, 10).map(function(item) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.title) + '</strong><span class="status">' + escapeHtml(item.event_type || "evento") + '</span></div><p class="muted">' + escapeHtml(item.description || "") + '</p><p class="muted">' + escapeHtml(item.event_at || item.created_at || "") + '</p></article>';
+        }).join("") : '<p class="muted">Linha do tempo vazia.</p>');
+      }
+
+      async function selectSmartProject(projectId) {
+        selectedSmartProjectId = projectId;
+        renderSmartProjectList();
+        const data = await api("/api/projects-memory/" + projectId);
+        renderSmartProjectDetails(data);
+      }
+
+      function requireSmartProject() {
+        if (!selectedSmartProjectId) {
+          showToast("Selecione um projeto inteligente.");
+          return false;
+        }
+        return true;
+      }
+
       async function loadMemories() {
         const intelligent = await api("/api/memory").catch(function() { return null; });
         if (intelligent && intelligent.dashboard) renderMemoryDashboard(intelligent.dashboard);
@@ -5742,6 +5907,7 @@ ${logoYaraStyles()}
             setValue(els.messageInput, "Vamos continuar o projeto " + generatedProject.name + ".");
             if (els.messageInput) els.messageInput.focus();
           },
+          refreshSmartProjectsButton: loadSmartProjects,
           refreshProjectFilesButton: loadProjectUploadOptions,
           linkProjectFileButton: async function() {
             if (!selectedProject) return showToast("Selecione um projeto.");
@@ -6079,6 +6245,11 @@ ${logoYaraStyles()}
             projectCreateForm: true,
             projectTaskForm: true,
             projectNoteForm: true,
+            smartProjectForm: true,
+            smartDecisionForm: true,
+            smartPendingForm: true,
+            smartCommitForm: true,
+            smartMilestoneForm: true,
             documentForm: true,
             documentPageForm: true,
             calendarEventForm: true,
@@ -6117,6 +6288,79 @@ ${logoYaraStyles()}
                 await loadDashboard();
                 if (data.project && data.project.id) await selectProject(data.project.id);
                 showToast("Projeto criado.");
+                return;
+              }
+              if (form.id === "smartProjectForm") {
+                const name = getValue("smartProjectName").trim();
+                const description = getValue("smartProjectDescription").trim();
+                if (name.length < 2) return showToast("Informe o nome do projeto inteligente.");
+                const data = await api("/api/projects-memory", {
+                  method: "POST",
+                  body: JSON.stringify({ name: name, description: description, status: "active" })
+                });
+                form.reset();
+                await loadSmartProjects();
+                if (data.project && data.project.id) await selectSmartProject(data.project.id);
+                showToast("Projeto inteligente criado.");
+                return;
+              }
+              if (form.id === "smartDecisionForm") {
+                if (!requireSmartProject()) return;
+                const title = getValue("smartDecisionTitle").trim();
+                const content = getValue("smartDecisionContent").trim();
+                if (!title || !content) return showToast("Informe título e conteúdo da decisão.");
+                await api("/api/projects-memory/" + selectedSmartProjectId + "/decisions", {
+                  method: "POST",
+                  body: JSON.stringify({ title: title, content: content, impact: getValue("smartDecisionImpact").trim() || undefined })
+                });
+                form.reset();
+                await selectSmartProject(selectedSmartProjectId);
+                showToast("Decisão registrada.");
+                return;
+              }
+              if (form.id === "smartPendingForm") {
+                if (!requireSmartProject()) return;
+                const title = getValue("smartPendingTitle").trim();
+                if (!title) return showToast("Informe a pendência.");
+                await api("/api/projects-memory/" + selectedSmartProjectId + "/pending", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    title: title,
+                    description: getValue("smartPendingDescription").trim() || undefined,
+                    priority: getValue("smartPendingPriority") || "medium"
+                  })
+                });
+                form.reset();
+                await selectSmartProject(selectedSmartProjectId);
+                showToast("Pendência registrada.");
+                return;
+              }
+              if (form.id === "smartCommitForm") {
+                if (!requireSmartProject()) return;
+                const hash = getValue("smartCommitHash").trim();
+                const message = getValue("smartCommitMessage").trim();
+                if (!hash || !message) return showToast("Informe hash e mensagem do commit.");
+                await api("/api/projects-memory/" + selectedSmartProjectId + "/commits", {
+                  method: "POST",
+                  body: JSON.stringify({ hash: hash, message: message, branch: getValue("smartCommitBranch").trim() || "main" })
+                });
+                form.reset();
+                setValue("smartCommitBranch", "main");
+                await selectSmartProject(selectedSmartProjectId);
+                showToast("Commit registrado.");
+                return;
+              }
+              if (form.id === "smartMilestoneForm") {
+                if (!requireSmartProject()) return;
+                const title = getValue("smartMilestoneTitle").trim();
+                if (!title) return showToast("Informe o marco.");
+                await api("/api/projects-memory/" + selectedSmartProjectId + "/milestones", {
+                  method: "POST",
+                  body: JSON.stringify({ title: title, description: getValue("smartMilestoneDescription").trim() || undefined })
+                });
+                form.reset();
+                await selectSmartProject(selectedSmartProjectId);
+                showToast("Marco registrado.");
                 return;
               }
               if (form.id === "projectTaskForm") {
@@ -6729,6 +6973,15 @@ ${logoYaraStyles()}
       on("projectList", "click", function(event) {
         const button = event.target.closest("[data-open-project]");
         if (button) selectProject(button.dataset.openProject);
+      });
+      on("refreshSmartProjectsButton", "click", async function() {
+        await loadSmartProjects();
+        showToast("Projetos inteligentes atualizados.");
+      });
+      on("smartProjectList", "click", async function(event) {
+        const button = event.target.closest("[data-open-smart-project]");
+        if (!button) return;
+        await selectSmartProject(button.dataset.openSmartProject);
       });
       on("projectTaskList", "click", async function(event) {
         if (!selectedProject) return;
