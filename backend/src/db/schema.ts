@@ -232,6 +232,26 @@ export function runMigrations() {
       foreign key (message_id) references messages(id) on delete set null
     );
 
+    create table if not exists files (
+      id text primary key,
+      user_id text not null,
+      conversation_id text,
+      message_id text,
+      name text not null,
+      type text not null,
+      size integer not null,
+      path text not null,
+      category text not null default 'generated',
+      status text not null default 'ready',
+      is_favorite integer not null default 0,
+      is_shared integer not null default 0,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (conversation_id) references conversations(id) on delete set null,
+      foreign key (message_id) references messages(id) on delete set null
+    );
+
     create table if not exists conversation_projects (
       conversation_id text not null,
       project_id text not null,
@@ -617,6 +637,13 @@ export function runMigrations() {
   ensureColumn("user_sessions", "revoked_at", "text");
   ensureColumn("uploads", "message_id", "text");
   ensureColumn("uploads", "original_name", "text");
+  ensureColumn("files", "conversation_id", "text");
+  ensureColumn("files", "message_id", "text");
+  ensureColumn("files", "category", "text not null default 'generated'");
+  ensureColumn("files", "status", "text not null default 'ready'");
+  ensureColumn("files", "is_favorite", "integer not null default 0");
+  ensureColumn("files", "is_shared", "integer not null default 0");
+  ensureColumn("files", "updated_at", "text");
   ensureColumn("documents", "project_id", "text");
   ensureColumn("documents", "type", "text not null default 'generated'");
   ensureColumn("documents", "status", "text not null default 'ready'");
@@ -663,6 +690,11 @@ export function runMigrations() {
     update documents set type = 'generated' where type is null;
     update documents set status = 'ready' where status is null;
     update documents set updated_at = created_at where updated_at is null;
+    update files set category = 'generated' where category is null;
+    update files set status = 'ready' where status is null;
+    update files set is_favorite = 0 where is_favorite is null;
+    update files set is_shared = 0 where is_shared is null;
+    update files set updated_at = created_at where updated_at is null;
     update user_settings set language = 'pt-BR' where language is null;
     update user_settings set response_length = 'medium' where response_length is null;
     update user_settings set voice_language = 'pt-BR' where voice_language is null;
@@ -680,6 +712,15 @@ export function runMigrations() {
 
     create index if not exists uploads_message
       on uploads(message_id);
+
+    create index if not exists files_user_created
+      on files(user_id, created_at);
+
+    create index if not exists files_user_type
+      on files(user_id, type, category);
+
+    create index if not exists files_message
+      on files(message_id);
 
     create index if not exists user_learning_user_key
       on user_learning(user_id, key, updated_at);

@@ -5,6 +5,8 @@ import { classifyAIProviderError } from "./ai/AIProvider";
 import { askYara } from "./ai/aiService";
 import { tryCreateCalendarItemFromChat } from "./calendarService";
 import { buildDocumentContextFromUploads } from "./documentService";
+import { attachExportToMessage, detectExportRequest, extractExportContent, generateExportFile } from "./exportService";
+import { toPublicFile } from "./fileService";
 import { tryHandleIntegrationChatIntent } from "./integrationService";
 import { learnFromUserMessage, readLearningContext } from "./learningService";
 import {
@@ -50,6 +52,23 @@ type UploadRow = {
   created_at: string;
 };
 
+type FileRow = {
+  id: string;
+  user_id: string;
+  conversation_id: string | null;
+  message_id: string | null;
+  name: string;
+  type: string;
+  size: number;
+  path: string;
+  category: string;
+  status: string;
+  is_favorite: number;
+  is_shared: number;
+  created_at: string;
+  updated_at: string;
+};
+
 function conversationTitle(message: string) {
   const clean = message.replace(/\s+/g, " ").trim();
   return clean.length > 42 ? `${clean.slice(0, 42)}...` : clean || "Nova conversa";
@@ -90,10 +109,27 @@ function attachUploadsToMessages(userId: string, messages: MessageRow[]) {
     .all(userId, ...ids) as Array<{ message_id: string; value: "like" | "dislike" }>;
   const feedbackByMessage = new Map(feedback.map((item) => [item.message_id, item.value]));
 
+  const files = getDatabase()
+    .prepare(
+      `select id, user_id, conversation_id, message_id, name, type, size, path, category, status, is_favorite, is_shared, created_at, updated_at
+       from files
+       where user_id = ? and message_id in (${placeholders})
+       order by created_at asc`
+    )
+    .all(userId, ...ids) as FileRow[];
+  const filesByMessage = new Map<string, ReturnType<typeof toPublicFile>[]>();
+  files.forEach((file) => {
+    if (!file.message_id) return;
+    const current = filesByMessage.get(file.message_id) || [];
+    current.push(toPublicFile(file));
+    filesByMessage.set(file.message_id, current);
+  });
+
   return messages.map((message) => ({
     ...message,
     feedback: feedbackByMessage.get(message.id) || null,
-    uploads: byMessage.get(message.id) || []
+    uploads: byMessage.get(message.id) || [],
+    files: filesByMessage.get(message.id) || []
   }));
 }
 
@@ -220,7 +256,8 @@ export function moveConversationToTop(userId: string, conversationId: string) {
 }
 
 export function listConversationFiles(userId: string, conversationId: string) {
-  const conversation = getDatabase()
+  const db = getDatabase();
+  const conversation = db
     .prepare("select id from conversations where id = ? and user_id = ?")
     .get(conversationId, userId);
 
@@ -228,7 +265,7 @@ export function listConversationFiles(userId: string, conversationId: string) {
     throw new Error("Conversa nao encontrada.");
   }
 
-  return getDatabase()
+  const uploads = db
     .prepare(
       `select ${publicUploadSelect()}
        from uploads
@@ -237,6 +274,18 @@ export function listConversationFiles(userId: string, conversationId: string) {
     )
     .all(userId, conversationId)
     .map((upload) => toPublicUpload(upload as UploadRow));
+
+  const generatedFiles = db
+    .prepare(
+      `select id, user_id, conversation_id, message_id, name, type, size, category, 'generated' as source, is_favorite, is_shared, created_at, updated_at
+       from files
+       where user_id = ? and conversation_id = ?
+       order by created_at desc`
+    )
+    .all(userId, conversationId)
+    .map((file) => toPublicFile(file as FileRow));
+
+  return [...generatedFiles, ...uploads];
 }
 
 export function addConversationToProject(userId: string, conversationId: string, projectId: string) {
@@ -339,32 +388,35 @@ function readRecentContext(conversationId: string) {
     .join("\n");
 }
 
+function readLatestExportSource(conversationId: string, currentUserMessageId: string) {
+  const row = getDatabase()
+    .prepare(
+      `select content
+       from messages
+       where conversation_id = ? and id <> ? and length(trim(content)) > 20
+       order by created_at desc
+       limit 1`
+    )
+    .get(conversationId, currentUserMessageId) as { content: string } | undefined;
+
+  return row?.content || "";
+}
+
+function exportTitle(message: string, format: string) {
+  const explicit = /(?:t[ií]tulo|nome)\s*[:\-]\s*([^\n\r]+)/i.exec(message);
+  if (explicit?.[1]?.trim()) return explicit[1].trim();
+  if (/apr\b/i.test(message)) return `apr-yara.${format}`;
+  if (/planilha|excel|escala/i.test(message)) return `planilha-yara.${format}`;
+  if (/relat[oó]rio/i.test(message)) return `relatorio-yara.${format}`;
+  return `arquivo-yara.${format}`;
+}
+
 function directAnswer(message: string) {
   if (/\b(que horas s[aã]o|hor[aá]rio atual|hora agora)\b/i.test(message)) {
     const now = new Date();
     const time = new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(now);
     const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(now);
     return `Agora são ${time} de ${date}.`;
-  }
-
-  const normalized = message
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const isShortPdfRequest =
-    message.length <= 220 &&
-    /\b(coloque|gere|gerar|transforme|converter|exporte|exportar)\b/.test(normalized) &&
-    /\bpdf\b/.test(normalized);
-
-  if (isShortPdfRequest) {
-    const contentMatch = /(?:pdf|PDF)\s*[:\-]\s*([\s\S]+)/.exec(message);
-    const content = contentMatch?.[1]?.trim();
-
-    if (content && content.length > 3) {
-      return ["Exportação PDF ainda não disponível. Segue o conteúdo formatado.", "", content].join("\n");
-    }
-
-    return "Exportação PDF ainda não disponível. Envie o conteúdo que deseja formatar.";
   }
 
   return null;
@@ -591,9 +643,36 @@ export async function sendMessage(
   const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
   const search = searchNeeded ? await runSearch(userId, storedMessage) : null;
+  const exportFormat = detectExportRequest(storedMessage);
+  let exportedFile: ReturnType<typeof toPublicFile> | null = null;
   let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini" | "openai"; model: string; response: string };
 
-  if (integrationAction && !searchNeeded) {
+  if (exportFormat && !searchNeeded) {
+    const exportContent = extractExportContent(
+      storedMessage,
+      [documentContext, readLatestExportSource(conversationId, userMessageId)].filter(Boolean).join("\n\n")
+    );
+
+    if (!exportContent) {
+      ai = {
+        provider: "gemini",
+        model: "export-action",
+        response: "Envie o conteúdo que deseja exportar."
+      };
+    } else {
+      exportedFile = await generateExportFile(userId, {
+        format: exportFormat,
+        title: exportTitle(storedMessage, exportFormat),
+        content: exportContent,
+        conversationId
+      });
+      ai = {
+        provider: "gemini",
+        model: "export-action",
+        response: `Arquivo gerado: ${exportedFile.name}\nBaixar: ${exportedFile.url}`
+      };
+    }
+  } else if (integrationAction && !searchNeeded) {
     ai = {
       provider: "gemini",
       model: "integration-action",
@@ -647,6 +726,9 @@ export async function sendMessage(
   const assistantMessageId = uuid();
   db.prepare("insert into messages (id, conversation_id, role, content) values (?, ?, 'assistant', ?)")
     .run(assistantMessageId, conversationId, finalResponse);
+  if (exportedFile) {
+    exportedFile = attachExportToMessage(userId, exportedFile.id, assistantMessageId);
+  }
 
   db.prepare("update conversations set updated_at = current_timestamp where id = ?").run(conversationId);
   updateConversationMemorySession(userId, conversationId, storedMessage, finalResponse);
@@ -667,7 +749,8 @@ export async function sendMessage(
       {
         id: assistantMessageId,
         role: "assistant",
-        content: finalResponse
+        content: finalResponse,
+        files: exportedFile ? [exportedFile] : []
       }
     ]
   };

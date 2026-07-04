@@ -331,6 +331,35 @@ create table if not exists uploads (
   foreign key (message_id) references messages(id) on delete set null
 );
 
+create table if not exists files (
+  id text primary key,
+  user_id text not null,
+  conversation_id text,
+  message_id text,
+  name text not null,
+  type text not null,
+  size integer not null,
+  path text not null,
+  category text not null default 'generated',
+  status text not null default 'ready',
+  is_favorite integer not null default 0,
+  is_shared integer not null default 0,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (conversation_id) references conversations(id) on delete set null,
+  foreign key (message_id) references messages(id) on delete set null
+);
+
+create index if not exists files_user_created
+  on files(user_id, created_at);
+
+create index if not exists files_user_type
+  on files(user_id, type, category);
+
+create index if not exists files_message
+  on files(message_id);
+
 create table if not exists conversation_projects (
   conversation_id text not null,
   project_id text not null,

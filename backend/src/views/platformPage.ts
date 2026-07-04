@@ -841,6 +841,23 @@ ${logoYaraStyles()}
         background: rgba(2, 6, 23, 0.5);
       }
 
+      .file-preview-frame {
+        width: min(100%, 920px);
+        height: min(72vh, 760px);
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        border-radius: 16px;
+        background: #0f172a;
+      }
+
+      .file-preview-image {
+        width: 100%;
+        max-height: 72vh;
+        object-fit: contain;
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        border-radius: 16px;
+        background: rgba(2, 6, 23, 0.7);
+      }
+
       .attachment-icon {
         width: 44px;
         height: 44px;
@@ -1734,6 +1751,7 @@ ${logoYaraStyles()}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("documents", "Documentos", "file")}
+            ${navButton("files", "Arquivos", "paperclip")}
             ${navButton("images", "Imagens", "image")}
             ${navButton("calendar", "Agenda", "history")}
             ${navButton("integrations", "Integrações", "share")}
@@ -2083,6 +2101,69 @@ ${logoYaraStyles()}
                 </div>
               </div>
                 <div class="list" id="documentsPageList"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-files" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Arquivos</h2>
+                <p class="muted">Envie, visualize, baixe e organize arquivos reais gerados ou anexados na YARA AI.</p>
+              </div>
+              <button class="button" id="refreshFilesButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Enviar arquivo</h2>
+                <p class="muted">PDF, DOCX, XLSX, TXT, CSV, PNG, JPG e JPEG até 10 MB.</p>
+                <input id="fileUploadInput" type="file" accept=".pdf,.docx,.xlsx,.txt,.csv,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,image/png,image/jpeg" hidden />
+                <button class="primary-action" id="fileUploadButton" type="button">${icon("paperclip")}Selecionar arquivo</button>
+                <div class="list" id="fileUploadStatus"></div>
+              </article>
+              <article class="card">
+                <h2>Exportar conteúdo</h2>
+                <p class="muted">Crie arquivos reais diretamente no workspace.</p>
+                <input class="field" id="fileExportTitle" placeholder="Nome do arquivo" />
+                <select class="select" id="fileExportFormat">
+                  <option value="pdf">PDF</option>
+                  <option value="docx">Word DOCX</option>
+                  <option value="xlsx">Excel XLSX</option>
+                  <option value="txt">TXT</option>
+                </select>
+                <textarea class="field" id="fileExportContent" rows="8" placeholder="Cole aqui o conteúdo que deseja exportar..."></textarea>
+                <button class="primary-action" id="fileExportButton" type="button">${icon("save")}Gerar arquivo</button>
+              </article>
+            </div>
+            <article class="card">
+              <div class="item-top">
+                <div>
+                  <h2>Histórico de arquivos</h2>
+                  <p class="muted">Todos os arquivos enviados, gerados pela IA, recentes, favoritos e compartilhados.</p>
+                </div>
+                <div class="row">
+                  <input class="field" id="fileSearch" placeholder="Buscar por nome..." />
+                  <select class="select" id="fileTypeFilter">
+                    <option value="">Todos os tipos</option>
+                    <option value="pdf">PDF</option>
+                    <option value="docx">DOCX</option>
+                    <option value="xlsx">XLSX</option>
+                    <option value="txt">TXT</option>
+                    <option value="csv">CSV</option>
+                    <option value="image">Imagens</option>
+                  </select>
+                  <select class="select" id="fileCategoryFilter">
+                    <option value="">Todos</option>
+                    <option value="generated">Gerados</option>
+                    <option value="uploaded">Enviados</option>
+                    <option value="document">Documentos</option>
+                    <option value="image">Imagens</option>
+                  </select>
+                </div>
+              </div>
+              <div class="dashboard-grid" id="fileStats"></div>
+              <div class="list" id="fileList"></div>
             </article>
           </div>
         </section>
@@ -2714,6 +2795,7 @@ ${logoYaraStyles()}
       let audioChunks = [];
       let documentTemplates = [];
       let currentDocuments = [];
+      let currentFiles = [];
       let currentImages = [];
       let currentCalendarEvents = [];
       let currentReminders = [];
@@ -3108,6 +3190,7 @@ ${logoYaraStyles()}
           generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
           documents: { title: "Documentos", subtitle: "Gere e baixe documentos protegidos.", loader: loadDocuments },
+          files: { title: "Arquivos", subtitle: "Envie, visualize, baixe e exporte arquivos reais.", loader: loadFiles },
           images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
           calendar: { title: "Agenda", subtitle: "Eventos, lembretes e notificações.", loader: loadCalendar },
           integrations: { title: "Integrações", subtitle: "Google, Gmail, Telegram, WhatsApp e notificações.", loader: loadIntegrations },
@@ -3384,6 +3467,10 @@ ${logoYaraStyles()}
         return downloadProtectedPath("/api/documents/" + documentId + "/download", fileName || "documento");
       }
 
+      async function downloadFile(fileId, fileName) {
+        return downloadProtectedPath("/api/files/" + fileId + "/download", fileName || "arquivo");
+      }
+
       async function downloadProtectedPath(path, fileName) {
         try {
           const blob = await fetchProtectedFile(path);
@@ -3398,6 +3485,64 @@ ${logoYaraStyles()}
         } catch (error) {
           showToast(error.message || "Não foi possível abrir este documento.");
         }
+      }
+
+      function fileDisplayName(file) {
+        return file.name || file.original_name || file.file_name || "Arquivo";
+      }
+
+      function fileMime(file) {
+        return file.type || file.file_type || "arquivo";
+      }
+
+      function fileExtension(file) {
+        const name = fileDisplayName(file).toLowerCase();
+        const fromName = name.includes(".") ? name.split(".").pop() : "";
+        const mime = fileMime(file).toLowerCase();
+        if (fromName) return fromName;
+        if (mime.includes("pdf")) return "pdf";
+        if (mime.includes("word")) return "docx";
+        if (mime.includes("spreadsheet")) return "xlsx";
+        if (mime.includes("csv")) return "csv";
+        if (mime.includes("text")) return "txt";
+        if (mime.startsWith("image/")) return "image";
+        return "arquivo";
+      }
+
+      function fileMeta(file) {
+        const source = file.source === "generated" ? "gerado pela IA" : file.source === "upload" || file.category === "uploaded" ? "enviado" : file.source || file.category || "arquivo";
+        return escapeHtml(fileMime(file)) + " · " + formatFileSize(file.size || file.file_size || 0) + " · " + escapeHtml(source);
+      }
+
+      function renderGeneratedFileAttachment(file) {
+        const name = escapeHtml(fileDisplayName(file));
+        const id = escapeHtml(file.id || "");
+        const ext = fileExtension(file);
+        const iconMarkup = isImageType(fileMime(file)) ? '${icon("image")}' : '${icon("file")}';
+        return '<div class="attachment-card"><span class="attachment-icon">' + iconMarkup + '</span><span class="attachment-meta"><strong>' + name + '</strong><span>' + fileMeta(file) + '</span></span><div class="row"><button class="button" data-preview-file="' + id + '" type="button">Visualizar</button><button class="button" data-download-file="' + id + '" data-file-name="' + name + '" type="button">Baixar</button></div></div>';
+      }
+
+      async function previewFile(fileId) {
+        const data = await api("/api/files/" + fileId);
+        const file = data.file || {};
+        const title = fileDisplayName(file);
+        if (data.previewType === "text" || data.previewType === "docx") {
+          openModal("Visualizar arquivo", title, '<pre class="code-block">' + escapeHtml(data.preview || "Prévia indisponível.") + '</pre>');
+          return;
+        }
+        if (data.previewType === "pdf") {
+          const blob = await fetchProtectedFile("/api/files/" + fileId + "/download?inline=1");
+          const url = URL.createObjectURL(blob);
+          openModal("Visualizar PDF", title, '<iframe class="file-preview-frame" src="' + url + '" title="' + escapeHtml(title) + '"></iframe>');
+          return;
+        }
+        if (data.previewType === "image") {
+          const blob = await fetchProtectedFile("/api/files/" + fileId + "/download?inline=1");
+          const url = URL.createObjectURL(blob);
+          openModal("Visualizar imagem", title, '<img class="file-preview-image" src="' + url + '" alt="' + escapeHtml(title) + '" />');
+          return;
+        }
+        openModal("Visualizar arquivo", title, '<p class="muted">Prévia interna indisponível para este formato. Use o botão Baixar para abrir no seu dispositivo.</p>');
       }
 
       function findMessage(messageId) {
@@ -3791,8 +3936,10 @@ ${logoYaraStyles()}
           const state = message.state || (message.typing ? "thinking" : "");
           const avatar = message.role === "assistant" ? '<span class="message-avatar">YA</span>' : "";
           const time = formatTime(message.created_at);
-          const uploads = message.uploads && message.uploads.length
-            ? '<div class="message-attachments">' + message.uploads.map(renderAttachment).join("") + '</div>'
+          const uploadCards = message.uploads && message.uploads.length ? message.uploads.map(renderAttachment).join("") : "";
+          const generatedCards = message.files && message.files.length ? message.files.map(renderGeneratedFileAttachment).join("") : "";
+          const uploads = uploadCards || generatedCards
+            ? '<div class="message-attachments">' + uploadCards + generatedCards + '</div>'
             : "";
           const edited = message.edited_at ? '<span class="muted"> · editada</span>' : "";
           const actions = id
@@ -4049,7 +4196,12 @@ ${logoYaraStyles()}
         const data = await api("/api/conversations/" + currentConversationId + "/files");
         const files = data.files || [];
         openModal("Arquivos enviados", "Anexos salvos nesta conversa.", files.length ? files.map(function(file) {
-          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(file.original_name || file.file_name) + '</strong><button class="button" data-download-upload="' + file.id + '" data-file-name="' + escapeHtml(file.original_name || file.file_name) + '" type="button">Abrir</button></div><p class="muted">' + attachmentMeta(file) + '</p></article>';
+          const isGenerated = file.source === "generated" || file.category === "generated";
+          const name = escapeHtml(fileDisplayName(file));
+          const action = isGenerated
+            ? '<div class="row"><button class="button" data-preview-file="' + file.id + '" type="button">Visualizar</button><button class="button" data-download-file="' + file.id + '" data-file-name="' + name + '" type="button">Baixar</button></div>'
+            : '<button class="button" data-download-upload="' + file.id + '" data-file-name="' + name + '" type="button">Abrir</button>';
+          return '<article class="list-item"><div class="item-top"><strong>' + name + '</strong>' + action + '</div><p class="muted">' + fileMeta(file) + '</p></article>';
         }).join("") : '<p class="muted">Nenhum arquivo enviado nesta conversa.</p>');
       }
 
@@ -4484,6 +4636,113 @@ ${logoYaraStyles()}
         }
         await loadDocuments();
         showToast("Documento convertido com sucesso.");
+      }
+
+      function filteredFiles() {
+        const search = (document.getElementById("fileSearch")?.value || "").trim().toLowerCase();
+        const type = document.getElementById("fileTypeFilter")?.value || "";
+        const category = document.getElementById("fileCategoryFilter")?.value || "";
+        return currentFiles.filter(function(file) {
+          const name = fileDisplayName(file).toLowerCase();
+          const mime = fileMime(file).toLowerCase();
+          const ext = fileExtension(file);
+          const source = String(file.source || file.category || "").toLowerCase();
+          const matchesSearch = !search || [name, mime, ext, source].join(" ").includes(search);
+          const matchesType = !type || (type === "image" ? mime.startsWith("image/") : ext === type || mime.includes(type));
+          const matchesCategory = !category || source === category || file.category === category || file.source === category;
+          return matchesSearch && matchesType && matchesCategory;
+        });
+      }
+
+      function renderFileStats() {
+        const target = document.getElementById("fileStats");
+        if (!target) return;
+        const now = Date.now();
+        const recent = currentFiles.filter(function(file) {
+          const created = new Date(file.created_at || 0).getTime();
+          return created && now - created < 7 * 24 * 60 * 60 * 1000;
+        }).length;
+        const items = [
+          ["Todos", currentFiles.length, '${icon("file")}'],
+          ["Recentes", recent, '${icon("history")}'],
+          ["Favoritos", currentFiles.filter(function(file) { return Number(file.is_favorite) === 1 || file.is_favorite === true; }).length, '${icon("pin")}'],
+          ["Compartilhados", currentFiles.filter(function(file) { return Number(file.is_shared) === 1 || file.is_shared === true; }).length, '${icon("share")}']
+        ];
+        target.innerHTML = items.map(function(item) {
+          return '<article class="card stat-card"><span class="avatar">' + item[2] + '</span><strong>' + item[1] + '</strong><p class="muted">' + escapeHtml(item[0]) + '</p></article>';
+        }).join("");
+      }
+
+      function renderFileList() {
+        renderFileStats();
+        const target = document.getElementById("fileList");
+        if (!target) return;
+        const files = filteredFiles();
+        if (!files.length) {
+          target.innerHTML = '<p class="muted">Nenhum arquivo encontrado.</p>';
+          return;
+        }
+        target.innerHTML = files.map(function(file) {
+          const name = escapeHtml(fileDisplayName(file));
+          const id = escapeHtml(file.id || "");
+          const source = escapeHtml(file.source === "generated" ? "Gerado pela IA" : file.category === "uploaded" || file.source === "upload" ? "Enviado" : file.source || file.category || "Arquivo");
+          return '<article class="list-item"><div class="item-top"><div><strong>' + name + '</strong><p class="muted">' + fileMeta(file) + '</p><span class="status"><span class="dot"></span>' + source + '</span></div><div class="row"><button class="button" data-preview-file="' + id + '" type="button">Visualizar</button><button class="button" data-download-file="' + id + '" data-file-name="' + name + '" type="button">Baixar</button><button class="icon-button danger" data-delete-file="' + id + '" type="button" aria-label="Excluir arquivo">${icon("trash")}</button></div></div></article>';
+        }).join("");
+      }
+
+      async function loadFiles() {
+        const data = await api("/api/files");
+        currentFiles = data.files || [];
+        renderFileList();
+      }
+
+      async function uploadFileFromInput(file) {
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) return showToast("Arquivo muito grande. Limite de 10 MB.");
+        const form = new FormData();
+        form.append("file", file);
+        const status = document.getElementById("fileUploadStatus");
+        if (status) status.innerHTML = '<article class="list-item"><p class="muted">Enviando ' + escapeHtml(file.name) + '...</p></article>';
+        const data = await apiForm("/api/files/upload", form);
+        if (status) status.innerHTML = '<article class="list-item"><strong>' + escapeHtml(fileDisplayName(data.file || {})) + '</strong><p class="muted">Arquivo enviado com sucesso.</p></article>';
+        await loadFiles();
+        await loadDashboard().catch(function() {});
+        showToast("Arquivo enviado com sucesso.");
+      }
+
+      async function exportFileFromControls() {
+        const format = getValue("fileExportFormat") || "pdf";
+        const title = getValue("fileExportTitle").trim() || "arquivo-yara";
+        const content = getValue("fileExportContent").trim();
+        if (!content) return showToast("Informe o conteúdo que deseja exportar.");
+        const data = await api("/api/export/" + format, {
+          method: "POST",
+          body: JSON.stringify({ title: title, content: content })
+        });
+        setValue("fileExportContent", "");
+        await loadFiles();
+        showToast("Arquivo gerado com sucesso.");
+        if (data.file && data.file.id) await previewFile(data.file.id).catch(function() {});
+      }
+
+      async function handleFileListClick(event) {
+        const previewButton = event.target.closest("[data-preview-file]");
+        if (previewButton) {
+          await previewFile(previewButton.dataset.previewFile);
+          return;
+        }
+        const downloadButton = event.target.closest("[data-download-file]");
+        if (downloadButton) {
+          await downloadFile(downloadButton.dataset.downloadFile, downloadButton.dataset.fileName || "arquivo");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-file]");
+        if (!deleteButton) return;
+        if (!window.confirm("Excluir este arquivo?")) return;
+        await api("/api/files/" + deleteButton.dataset.deleteFile, { method: "DELETE" });
+        await loadFiles();
+        await loadDashboard().catch(function() {});
+        showToast("Arquivo removido.");
       }
 
       function imageMeta(image) {
@@ -5887,6 +6146,18 @@ ${logoYaraStyles()}
           return;
         }
 
+        const previewFileButton = event.target.closest("[data-preview-file]");
+        if (previewFileButton) {
+          await previewFile(previewFileButton.dataset.previewFile);
+          return;
+        }
+
+        const downloadFileButton = event.target.closest("[data-download-file]");
+        if (downloadFileButton) {
+          await downloadFile(downloadFileButton.dataset.downloadFile, downloadFileButton.dataset.fileName || "arquivo");
+          return;
+        }
+
         const button = event.target.closest("[data-download-upload]");
         if (!button) return;
         await downloadUpload(button.dataset.downloadUpload, button.dataset.fileName || "arquivo");
@@ -5949,6 +6220,16 @@ ${logoYaraStyles()}
         const downloadButton = event.target.closest("[data-download-upload]");
         if (downloadButton) {
           await downloadUpload(downloadButton.dataset.downloadUpload, downloadButton.dataset.fileName || "arquivo");
+          return;
+        }
+        const previewFileButton = event.target.closest("[data-preview-file]");
+        if (previewFileButton) {
+          await previewFile(previewFileButton.dataset.previewFile);
+          return;
+        }
+        const downloadFileButton = event.target.closest("[data-download-file]");
+        if (downloadFileButton) {
+          await downloadFile(downloadFileButton.dataset.downloadFile, downloadFileButton.dataset.fileName || "arquivo");
           return;
         }
         const imageProjectButton = event.target.closest("[data-link-image-project]");
@@ -6475,6 +6756,37 @@ ${logoYaraStyles()}
         } catch (error) {
           showToast(error.message || "Não foi possível converter.");
         }
+      });
+
+      on("refreshFilesButton", "click", async function() {
+        await loadFiles();
+        showToast("Arquivos atualizados.");
+      });
+      on("fileUploadButton", "click", function() {
+        byId("fileUploadInput")?.click();
+      });
+      on("fileUploadInput", "change", async function(event) {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = "";
+        if (!file) return;
+        try {
+          await uploadFileFromInput(file);
+        } catch (error) {
+          showToast(error.message || "Não foi possível enviar este arquivo.");
+        }
+      });
+      on("fileExportButton", "click", async function() {
+        try {
+          await exportFileFromControls();
+        } catch (error) {
+          showToast(error.message || "Não foi possível gerar este arquivo.");
+        }
+      });
+      on("fileSearch", "input", renderFileList);
+      on("fileTypeFilter", "change", renderFileList);
+      on("fileCategoryFilter", "change", renderFileList);
+      on("fileList", "click", async function(event) {
+        await handleFileListClick(event);
       });
 
       on("refreshImagesButton", "click", async function() {
