@@ -1751,6 +1751,7 @@ ${logoYaraStyles()}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("smartProjects", "Projetos Inteligentes", "brain")}
+            ${navButton("knowledge", "Conhecimento", "sparkles")}
             ${navButton("documents", "Documentos", "file")}
             ${navButton("files", "Arquivos", "paperclip")}
             ${navButton("images", "Imagens", "image")}
@@ -2097,6 +2098,56 @@ ${logoYaraStyles()}
                 </form>
                 <div class="list" id="smartMilestonesList"></div>
                 <div class="list" id="smartTimelineList"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-knowledge" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Conhecimento</h2>
+                <p class="muted">GraphRAG da YARA: relações entre usuário, projetos, decisões, memórias, arquivos, objetivos e conversas.</p>
+              </div>
+              <div class="row">
+                <button class="button" id="refreshGraphButton" type="button">${icon("history")}Atualizar</button>
+                <button class="primary-action" id="rebuildGraphButton" type="button">${icon("sparkles")}Reconstruir grafo</button>
+              </div>
+            </div>
+            <div class="dashboard-grid" id="graphStats"></div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Consultar relações</h2>
+                <form class="form" id="graphQueryForm">
+                  <input class="field" id="graphQueryInput" placeholder="Ex.: O que está relacionado à YARA?" />
+                  <button class="primary-action" type="submit">${icon("search")}Consultar grafo</button>
+                </form>
+                <div class="result-box" id="graphQueryResult">Faça uma pergunta para ver nós, conexões e insights relacionados.</div>
+              </article>
+              <article class="card">
+                <h2>Mapa de relações</h2>
+                <div class="list" id="graphMap"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Nós principais</h2>
+                <div class="list" id="graphNodeList"></div>
+              </article>
+              <article class="card">
+                <h2>Conexões recentes</h2>
+                <div class="list" id="graphEdgeList"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Insights</h2>
+                <div class="list" id="graphInsightList"></div>
+              </article>
+              <article class="card">
+                <h2>Entidades importantes</h2>
+                <div class="list" id="graphImportantList"></div>
               </article>
             </div>
           </div>
@@ -3426,6 +3477,7 @@ ${logoYaraStyles()}
           generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
           smartProjects: { title: "Projetos Inteligentes", subtitle: "Memória de decisões, fases, pendências e commits.", loader: loadSmartProjects },
+          knowledge: { title: "Conhecimento", subtitle: "GraphRAG com relações entre dados da YARA.", loader: loadGraph },
           documents: { title: "Documentos", subtitle: "Gere e baixe documentos protegidos.", loader: loadDocuments },
           files: { title: "Arquivos", subtitle: "Envie, visualize, baixe e exporte arquivos reais.", loader: loadFiles },
           images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
@@ -4719,6 +4771,64 @@ ${logoYaraStyles()}
         return true;
       }
 
+      function renderGraph(graph) {
+        const data = graph || {};
+        const totals = data.totals || {};
+        const topNodes = data.topNodes || data.nodes || [];
+        const edges = data.recentEdges || data.edges || [];
+        const insights = data.insights || [];
+        setHtml("graphStats", [
+          ["Nós", totals.nodes || topNodes.length, '${icon("brain")}'],
+          ["Relações", totals.edges || edges.length, '${icon("share")}'],
+          ["Insights", totals.insights || insights.length, '${icon("sparkles")}'],
+          ["Entidades centrais", topNodes.length, '${icon("pin")}']
+        ].map(function(item) {
+          return '<article class="card stat-card"><span class="avatar">' + item[2] + '</span><strong>' + escapeHtml(item[1]) + '</strong><p class="muted">' + escapeHtml(item[0]) + '</p></article>';
+        }).join(""));
+        setHtml("graphNodeList", topNodes.length ? topNodes.slice(0, 12).map(function(node) {
+          return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(node.label) + '</strong><span class="status">' + escapeHtml(node.type) + '</span></div><p class="muted">' + escapeHtml(node.summary || "Sem resumo") + '</p></article>';
+        }).join("") : '<p class="muted">Nenhum nó criado ainda. Reconstrua o grafo para iniciar.</p>');
+        setHtml("graphImportantList", topNodes.length ? topNodes.slice(0, 8).map(function(node) {
+          return '<article class="list-item"><strong>' + escapeHtml(node.label) + '</strong><p class="muted">Importância ' + Math.round(Number(node.importance || 0) * 100) + '% · ' + escapeHtml(node.type) + '</p></article>';
+        }).join("") : '<p class="muted">Nenhuma entidade importante encontrada.</p>');
+        setHtml("graphEdgeList", edges.length ? edges.slice(0, 14).map(function(edge) {
+          return '<article class="list-item"><strong>' + escapeHtml(edge.sourceLabel || edge.sourceNodeId) + ' → ' + escapeHtml(edge.targetLabel || edge.targetNodeId) + '</strong><p class="muted">' + escapeHtml(edge.relationType || "relacionado") + ' · peso ' + Math.round(Number(edge.weight || 0) * 100) + '%</p></article>';
+        }).join("") : '<p class="muted">Nenhuma relação criada ainda.</p>');
+        setHtml("graphMap", edges.length ? edges.slice(0, 16).map(function(edge) {
+          return '<article class="list-item"><p class="muted">' + escapeHtml(edge.sourceLabel || "Origem") + ' -- ' + escapeHtml(edge.relationType || "relaciona") + ' -- ' + escapeHtml(edge.targetLabel || "Destino") + '</p></article>';
+        }).join("") : '<p class="muted">O mapa aparecerá conforme a YARA conectar entidades.</p>');
+        setHtml("graphInsightList", insights.length ? insights.map(function(insight) {
+          return '<article class="list-item"><strong>' + escapeHtml(insight.title) + '</strong><p class="muted">' + escapeHtml(insight.content) + '</p><p class="muted">Confiança ' + Math.round(Number(insight.confidence || 0) * 100) + '%</p></article>';
+        }).join("") : '<p class="muted">Nenhum insight gerado ainda.</p>');
+      }
+
+      async function loadGraph() {
+        const data = await api("/api/graph");
+        renderGraph(data.graph);
+      }
+
+      async function rebuildGraphFromUi() {
+        const data = await api("/api/graph/rebuild", { method: "POST", body: JSON.stringify({}) });
+        renderGraph(data.graph);
+        showToast("Grafo reconstruído.");
+      }
+
+      async function queryGraphFromUi(event) {
+        event.preventDefault();
+        const query = getValue("graphQueryInput").trim();
+        if (query.length < 2) return showToast("Informe uma consulta para o grafo.");
+        const data = await api("/api/graph/query", {
+          method: "POST",
+          body: JSON.stringify({ query: query })
+        });
+        setHtml("graphQueryResult", [
+          '<strong>Resultado GraphRAG</strong>',
+          data.nodes && data.nodes.length ? '<p class="muted">Nós: ' + data.nodes.slice(0, 8).map(function(node) { return escapeHtml(node.label + " (" + node.type + ")"); }).join(" · ") + '</p>' : '<p class="muted">Nenhum nó encontrado.</p>',
+          data.edges && data.edges.length ? '<p class="muted">Relações: ' + data.edges.slice(0, 8).map(function(edge) { return escapeHtml((edge.sourceLabel || "Origem") + " → " + edge.relationType + " → " + (edge.targetLabel || "Destino")); }).join(" · ") + '</p>' : '<p class="muted">Nenhuma relação direta encontrada.</p>'
+        ].join(""));
+        renderGraph({ nodes: data.nodes || [], edges: data.edges || [], topNodes: data.nodes || [], recentEdges: data.edges || [], insights: data.insights || [], totals: { nodes: (data.nodes || []).length, edges: (data.edges || []).length, insights: (data.insights || []).length } });
+      }
+
       async function loadMemories() {
         const intelligent = await api("/api/memory").catch(function() { return null; });
         if (intelligent && intelligent.dashboard) renderMemoryDashboard(intelligent.dashboard);
@@ -5908,6 +6018,8 @@ ${logoYaraStyles()}
             if (els.messageInput) els.messageInput.focus();
           },
           refreshSmartProjectsButton: loadSmartProjects,
+          refreshGraphButton: loadGraph,
+          rebuildGraphButton: rebuildGraphFromUi,
           refreshProjectFilesButton: loadProjectUploadOptions,
           linkProjectFileButton: async function() {
             if (!selectedProject) return showToast("Selecione um projeto.");
@@ -6250,6 +6362,7 @@ ${logoYaraStyles()}
             smartPendingForm: true,
             smartCommitForm: true,
             smartMilestoneForm: true,
+            graphQueryForm: true,
             documentForm: true,
             documentPageForm: true,
             calendarEventForm: true,
@@ -6363,6 +6476,7 @@ ${logoYaraStyles()}
                 showToast("Marco registrado.");
                 return;
               }
+              if (form.id === "graphQueryForm") return queryGraphFromUi(event);
               if (form.id === "projectTaskForm") {
                 if (!selectedProject) return showToast("Selecione um projeto.");
                 const title = getValue("projectTaskTitle").trim();
@@ -6983,6 +7097,14 @@ ${logoYaraStyles()}
         if (!button) return;
         await selectSmartProject(button.dataset.openSmartProject);
       });
+      on("refreshGraphButton", "click", async function() {
+        await loadGraph();
+        showToast("Conhecimento atualizado.");
+      });
+      on("rebuildGraphButton", "click", async function() {
+        await rebuildGraphFromUi();
+      });
+      on("graphQueryForm", "submit", queryGraphFromUi);
       on("projectTaskList", "click", async function(event) {
         if (!selectedProject) return;
         const toggle = event.target.closest("[data-toggle-task]");

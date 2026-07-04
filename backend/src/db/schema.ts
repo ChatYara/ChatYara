@@ -292,6 +292,73 @@ export function runMigrations() {
       foreign key (project_memory_id) references project_memories(id) on delete set null
     );
 
+    create table if not exists knowledge_nodes (
+      id text primary key,
+      user_id text not null,
+      node_key text not null,
+      type text not null,
+      label text not null,
+      summary text,
+      importance real not null default 0.5,
+      source_table text,
+      source_id text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, node_key),
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists knowledge_edges (
+      id text primary key,
+      user_id text not null,
+      source_node_id text not null,
+      target_node_id text not null,
+      relation_type text not null,
+      weight real not null default 0.5,
+      evidence text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, source_node_id, target_node_id, relation_type),
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (source_node_id) references knowledge_nodes(id) on delete cascade,
+      foreign key (target_node_id) references knowledge_nodes(id) on delete cascade
+    );
+
+    create table if not exists graph_queries (
+      id text primary key,
+      user_id text not null,
+      query text not null,
+      result_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists graph_insights (
+      id text primary key,
+      user_id text not null,
+      title text not null,
+      content text not null,
+      insight_type text not null default 'relationship',
+      confidence real not null default 0.7,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists graph_audit_logs (
+      id text primary key,
+      user_id text not null,
+      action text not null,
+      status text not null default 'success',
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists user_settings (
       user_id text primary key,
       display_name text not null,
@@ -1079,6 +1146,21 @@ export function runMigrations() {
 
     create index if not exists project_memory_audit_user_project
       on project_memory_audit_logs(user_id, project_memory_id, created_at);
+
+    create index if not exists knowledge_nodes_user_type
+      on knowledge_nodes(user_id, type, importance);
+
+    create index if not exists knowledge_edges_user_relation
+      on knowledge_edges(user_id, relation_type, weight);
+
+    create index if not exists graph_queries_user_created
+      on graph_queries(user_id, created_at);
+
+    create index if not exists graph_insights_user_type
+      on graph_insights(user_id, insight_type, confidence);
+
+    create index if not exists graph_audit_user_created
+      on graph_audit_logs(user_id, created_at);
 
     create index if not exists documents_user_created
       on documents(user_id, created_at);

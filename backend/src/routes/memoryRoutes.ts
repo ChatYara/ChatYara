@@ -10,6 +10,7 @@ import {
   searchMemories,
   updateIntelligentMemory
 } from "../services/memoryService";
+import { refreshKnowledgeGraphSoon } from "../services/graphService";
 import { sendError } from "../utils/http";
 
 export const memoryRoutes = Router();
@@ -51,7 +52,9 @@ memoryRoutes.post("/memory", (req, res) => {
   const parsed = memorySchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Memória inválida.");
   try {
-    return res.status(201).json({ memory: createMemory(req.user!.id, parsed.data) });
+    const memory = createMemory(req.user!.id, parsed.data);
+    refreshKnowledgeGraphSoon(req.user!.id);
+    return res.status(201).json({ memory });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível criar memória.");
   }
@@ -74,4 +77,3 @@ memoryRoutes.delete("/memory/:id", (req, res) => {
     return sendError(res, 404, error instanceof Error ? error.message : "Memória não encontrada.");
   }
 });
-

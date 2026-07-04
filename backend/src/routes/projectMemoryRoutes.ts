@@ -15,6 +15,7 @@ import {
   listProjectMemoryChildren,
   updateProjectMemory
 } from "../services/projectMemoryService";
+import { refreshKnowledgeGraphSoon } from "../services/graphService";
 import { sendError } from "../utils/http";
 
 export const projectMemoryRoutes = Router();
@@ -61,6 +62,7 @@ projectMemoryRoutes.post("/projects-memory", (req, res) => {
   try {
     const project = createProjectMemory(req.user!.id, parsed.data);
     audit(req, "create", project.id, "Projeto inteligente criado.");
+    refreshKnowledgeGraphSoon(req.user!.id);
     return res.status(201).json({ project });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível criar projeto inteligente.");
@@ -82,6 +84,7 @@ projectMemoryRoutes.put("/projects-memory/:id", (req, res) => {
   try {
     const project = updateProjectMemory(req.user!.id, req.params.id, parsed.data);
     audit(req, "update", req.params.id, "Projeto inteligente atualizado.");
+    refreshKnowledgeGraphSoon(req.user!.id);
     return res.json({ project });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Projeto inteligente não encontrado.");
@@ -144,6 +147,7 @@ projectMemoryRoutes.post("/projects-memory/:id/decisions", (req, res) => {
   try {
     const decision = addProjectDecision(req.user!.id, req.params.id, parsed.data);
     audit(req, "decision_create", req.params.id, "Decisão registrada.", { decision });
+    refreshKnowledgeGraphSoon(req.user!.id);
     return res.status(201).json({ decision });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Não foi possível registrar decisão.");
@@ -156,6 +160,7 @@ projectMemoryRoutes.post("/projects-memory/:id/milestones", (req, res) => {
   try {
     const milestone = addProjectMilestone(req.user!.id, req.params.id, parsed.data);
     audit(req, "milestone_create", req.params.id, "Marco registrado.", { milestone });
+    refreshKnowledgeGraphSoon(req.user!.id);
     return res.status(201).json({ milestone });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Não foi possível registrar marco.");
@@ -176,6 +181,7 @@ projectMemoryRoutes.post("/projects-memory/:id/pending", (req, res) => {
   try {
     const pending = addProjectPendingItem(req.user!.id, req.params.id, parsed.data);
     audit(req, "pending_create", req.params.id, "Pendência registrada.", { pending });
+    refreshKnowledgeGraphSoon(req.user!.id);
     return res.status(201).json({ pending });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Não foi possível registrar pendência.");
@@ -188,6 +194,7 @@ projectMemoryRoutes.post("/projects-memory/:id/commits", (req, res) => {
   try {
     const commit = addProjectCommit(req.user!.id, req.params.id, parsed.data);
     audit(req, "commit_create", req.params.id, "Commit registrado.", { commit });
+    refreshKnowledgeGraphSoon(req.user!.id);
     return res.status(201).json({ commit });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Não foi possível registrar commit.");

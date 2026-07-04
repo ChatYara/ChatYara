@@ -31,6 +31,7 @@ import {
   updateSettings
 } from "../services/workspaceService";
 import { recordAudit, requestAuditContext } from "../services/auditService";
+import { refreshKnowledgeGraphSoon } from "../services/graphService";
 import { sendError } from "../utils/http";
 
 export const workspaceRoutes = Router();
@@ -119,6 +120,7 @@ workspaceRoutes.post("/projects", (req, res) => {
     message: "Projeto criado.",
     ...requestAuditContext(req)
   });
+  refreshKnowledgeGraphSoon(req.user!.id);
   return res.status(201).json({ project });
 });
 

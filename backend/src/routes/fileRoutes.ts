@@ -12,6 +12,7 @@ import {
 } from "../services/fileService";
 import { parseMultipartUpload } from "../services/uploadService";
 import { recordAudit, requestAuditContext } from "../services/auditService";
+import { refreshKnowledgeGraphSoon } from "../services/graphService";
 import { sendError } from "../utils/http";
 
 export const fileRoutes = Router();
@@ -44,6 +45,7 @@ fileRoutes.post("/files/upload", async (req, res) => {
       metadata: { type: saved.type, size: saved.size },
       ...requestAuditContext(req)
     });
+    refreshKnowledgeGraphSoon(req.user!.id);
     return res.status(201).json({ file: saved });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível enviar este arquivo.");

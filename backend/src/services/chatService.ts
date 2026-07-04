@@ -7,6 +7,7 @@ import { tryCreateCalendarItemFromChat } from "./calendarService";
 import { buildDocumentContextFromUploads } from "./documentService";
 import { attachExportToMessage, detectExportRequest, extractExportContent, generateExportFile } from "./exportService";
 import { toPublicFile } from "./fileService";
+import { answerGraphQuestion, readGraphContext, refreshKnowledgeGraphSoon } from "./graphService";
 import { tryHandleIntegrationChatIntent } from "./integrationService";
 import { learnFromUserMessage, readLearningContext } from "./learningService";
 import {
@@ -371,6 +372,7 @@ function readUserContext(userId: string, query = "", conversationId?: string) {
     readMemory(userId) ? `Memórias manuais:\n${readMemory(userId)}` : "",
     intelligentMemory,
     readProjectMemoryContext(userId, query),
+    readGraphContext(userId, query),
     readLearningContext(userId) ? `Aprendizados automáticos seguros:\n${readLearningContext(userId)}` : ""
   ]
     .filter(Boolean)
@@ -639,12 +641,14 @@ export async function sendMessage(
   learnFromUserMessage(userId, storedMessage);
   captureEpisodicMemoryFromMessage(userId, conversationId, storedMessage);
   extractCognitiveFactsFromMessage(userId, conversationId, storedMessage);
+  refreshKnowledgeGraphSoon(userId);
   const calendarAction = tryCreateCalendarItemFromChat(userId, storedMessage);
   const integrationAction = calendarAction ? null : await tryHandleIntegrationChatIntent(userId, storedMessage);
 
   const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
   const projectMemoryAnswer = answerProjectMemoryQuestion(userId, storedMessage);
+  const graphAnswer = answerGraphQuestion(userId, storedMessage);
   const search = searchNeeded ? await runSearch(userId, storedMessage) : null;
   const exportFormat = detectExportRequest(storedMessage);
   let exportedFile: ReturnType<typeof toPublicFile> | null = null;
@@ -686,6 +690,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "project-memory",
       response: projectMemoryAnswer
+    };
+  } else if (graphAnswer && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "knowledge-graph",
+      response: graphAnswer
     };
   } else if (direct && !searchNeeded) {
     ai = {
