@@ -20,6 +20,7 @@ import { productionRoutes } from "./routes/productionRoutes";
 import { projectMemoryRoutes } from "./routes/projectMemoryRoutes";
 import { searchRoutes } from "./routes/searchRoutes";
 import { systemRoutes } from "./routes/systemRoutes";
+import { systemsRoutes } from "./routes/systemsRoutes";
 import { uploadRoutes } from "./routes/uploadRoutes";
 import { userRoutes } from "./routes/userRoutes";
 import { workspaceRoutes } from "./routes/workspaceRoutes";
@@ -109,6 +110,7 @@ export function createApp() {
   app.use("/api", calendarRoutes);
   app.use("/api", chatRoutes);
   app.use("/api", searchRoutes);
+  app.use("/api", systemsRoutes);
   app.use("/api", workspaceRoutes);
 
   app.use((req, res) => {

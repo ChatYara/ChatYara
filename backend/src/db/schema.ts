@@ -359,6 +359,73 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists systems (
+      id text primary key,
+      user_id text not null,
+      name text not null,
+      prompt text not null,
+      type text not null,
+      complexity text not null,
+      scalability text not null,
+      architecture text not null,
+      frontend text,
+      backend text,
+      database_choice text,
+      needs_auth integer not null default 1,
+      needs_database integer not null default 1,
+      needs_mobile integer not null default 0,
+      needs_admin integer not null default 1,
+      objective text not null,
+      scope_json text not null default '{}',
+      stack_json text not null default '{}',
+      folder_structure_json text not null default '[]',
+      development_plan_json text not null default '[]',
+      status text not null default 'ready',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists system_generations (
+      id text primary key,
+      user_id text not null,
+      system_id text not null,
+      prompt text not null,
+      analysis_json text not null default '{}',
+      output_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (system_id) references systems(id) on delete cascade
+    );
+
+    create table if not exists system_files (
+      id text primary key,
+      user_id text not null,
+      system_id text not null,
+      name text not null,
+      type text not null,
+      content text not null,
+      file_id text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (system_id) references systems(id) on delete cascade,
+      foreign key (file_id) references files(id) on delete set null
+    );
+
+    create table if not exists system_audit_logs (
+      id text primary key,
+      user_id text not null,
+      system_id text,
+      action text not null,
+      status text not null default 'success',
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (system_id) references systems(id) on delete set null
+    );
+
     create table if not exists user_settings (
       user_id text primary key,
       display_name text not null,
@@ -992,6 +1059,17 @@ export function runMigrations() {
   ensureColumn("search_history", "results_json", "text not null default '[]'");
   ensureColumn("search_history", "provider", "text not null default 'none'");
   ensureColumn("search_history", "sources_json", "text not null default '[]'");
+  ensureColumn("systems", "frontend", "text");
+  ensureColumn("systems", "backend", "text");
+  ensureColumn("systems", "database_choice", "text");
+  ensureColumn("systems", "scope_json", "text not null default '{}'");
+  ensureColumn("systems", "stack_json", "text not null default '{}'");
+  ensureColumn("systems", "folder_structure_json", "text not null default '[]'");
+  ensureColumn("systems", "development_plan_json", "text not null default '[]'");
+  ensureColumn("systems", "status", "text not null default 'ready'");
+  ensureColumn("systems", "updated_at", "text");
+  ensureColumn("system_files", "file_id", "text");
+  ensureColumn("system_files", "updated_at", "text");
 
   db.exec(`
     update users set updated_at = current_timestamp where updated_at is null;
@@ -1025,6 +1103,13 @@ export function runMigrations() {
     update user_settings set response_length = 'medium' where response_length is null;
     update user_settings set voice_language = 'pt-BR' where voice_language is null;
     update user_settings set voice_gender = 'auto' where voice_gender is null;
+    update systems set scope_json = '{}' where scope_json is null;
+    update systems set stack_json = '{}' where stack_json is null;
+    update systems set folder_structure_json = '[]' where folder_structure_json is null;
+    update systems set development_plan_json = '[]' where development_plan_json is null;
+    update systems set status = 'ready' where status is null;
+    update systems set updated_at = created_at where updated_at is null;
+    update system_files set updated_at = created_at where updated_at is null;
 
     create unique index if not exists users_phone_unique
       on users(phone)
@@ -1161,6 +1246,18 @@ export function runMigrations() {
 
     create index if not exists graph_audit_user_created
       on graph_audit_logs(user_id, created_at);
+
+    create index if not exists systems_user_created
+      on systems(user_id, created_at);
+
+    create index if not exists system_generations_user_system
+      on system_generations(user_id, system_id, created_at);
+
+    create index if not exists system_files_user_system
+      on system_files(user_id, system_id, created_at);
+
+    create index if not exists system_audit_user_system
+      on system_audit_logs(user_id, system_id, created_at);
 
     create index if not exists documents_user_created
       on documents(user_id, created_at);

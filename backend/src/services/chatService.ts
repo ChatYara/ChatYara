@@ -18,6 +18,7 @@ import {
 import { extractCognitiveFactsFromMessage, readCognitiveProfileContext } from "./profileService";
 import { answerProjectMemoryQuestion, readProjectMemoryContext } from "./projectMemoryService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
+import { answerSystemGeneration, detectSystemGenerationRequest } from "./systemGeneratorService";
 import { toPublicUpload } from "./uploadService";
 
 type ConversationRow = {
@@ -649,6 +650,9 @@ export async function sendMessage(
   const direct = directAnswer(storedMessage);
   const projectMemoryAnswer = answerProjectMemoryQuestion(userId, storedMessage);
   const graphAnswer = answerGraphQuestion(userId, storedMessage);
+  const systemGenerationAnswer = !searchNeeded && detectSystemGenerationRequest(storedMessage)
+    ? answerSystemGeneration(userId, storedMessage)
+    : null;
   const search = searchNeeded ? await runSearch(userId, storedMessage) : null;
   const exportFormat = detectExportRequest(storedMessage);
   let exportedFile: ReturnType<typeof toPublicFile> | null = null;
@@ -684,6 +688,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "integration-action",
       response: integrationAction.text || "Integração processada pela YARA AI."
+    };
+  } else if (systemGenerationAnswer && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "system-generator",
+      response: systemGenerationAnswer
     };
   } else if (projectMemoryAnswer && !searchNeeded) {
     ai = {

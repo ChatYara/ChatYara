@@ -1749,6 +1749,7 @@ ${logoYaraStyles()}
           <nav class="nav" aria-label="Navegação">
             ${navButton("chat", "Chat", "chat", true)}
             ${navButton("generator", "Gerador de Sistemas", "code")}
+            ${navButton("systems", "Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("smartProjects", "Projetos Inteligentes", "brain")}
             ${navButton("knowledge", "Conhecimento", "sparkles")}
@@ -1936,6 +1937,36 @@ ${logoYaraStyles()}
                 <button class="button" id="openGeneratedProject" type="button">${icon("folder")}Abrir projeto</button>
                 <button class="button" id="continueGeneratedChat" type="button">${icon("chat")}Continuar com a YARA</button>
               </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-systems" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Sistemas</h2>
+                <p class="muted">Descreva o sistema em linguagem natural. A YARA escolhe a arquitetura, stack, banco, escopo e plano automaticamente.</p>
+              </div>
+              <button class="button" id="refreshSystemsButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="layout-grid">
+              <form class="card" id="systemGenerateForm">
+                <h2>Novo sistema inteligente</h2>
+                <p class="muted">Não escolha tecnologia. Informe apenas o problema, público e objetivo. A YARA decide o restante.</p>
+                <textarea class="field" id="systemPromptInput" rows="8" maxlength="4000" placeholder="Exemplo: Crie um sistema de estoque para minha empresa com login, produtos, alertas e painel administrativo."></textarea>
+                <button class="primary-action" type="submit">${icon("sparkles")}Gerar sistema</button>
+              </form>
+              <article class="card">
+                <div class="item-top">
+                  <h2>Histórico</h2>
+                  <span class="status"><span class="dot"></span><span id="systemsCount">0 sistemas</span></span>
+                </div>
+                <div class="list" id="systemsList"></div>
+              </article>
+            </div>
+            <article class="card" id="systemDetail">
+              <p class="muted">Selecione ou gere um sistema para visualizar arquitetura, arquivos e plano.</p>
             </article>
           </div>
         </section>
@@ -3071,6 +3102,8 @@ ${logoYaraStyles()}
       let conversations = [];
       let projects = [];
       let smartProjects = [];
+      let systems = [];
+      let selectedSystem = null;
       let selectedSmartProjectId = null;
       let selectedProject = null;
       let generatedProject = null;
@@ -3475,6 +3508,7 @@ ${logoYaraStyles()}
           chat: { title: "YARA AI", subtitle: "Chat geral com a YARA." },
           dashboard: { title: "Dashboard", subtitle: "Resumo da sua atividade.", loader: loadDashboard },
           generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
+          systems: { title: "Sistemas", subtitle: "Histórico, arquitetura e exportação dos sistemas criados pela YARA.", loader: loadSystems },
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
           smartProjects: { title: "Projetos Inteligentes", subtitle: "Memória de decisões, fases, pendências e commits.", loader: loadSmartProjects },
           knowledge: { title: "Conhecimento", subtitle: "GraphRAG com relações entre dados da YARA.", loader: loadGraph },
@@ -4827,6 +4861,90 @@ ${logoYaraStyles()}
           data.edges && data.edges.length ? '<p class="muted">Relações: ' + data.edges.slice(0, 8).map(function(edge) { return escapeHtml((edge.sourceLabel || "Origem") + " → " + edge.relationType + " → " + (edge.targetLabel || "Destino")); }).join(" · ") + '</p>' : '<p class="muted">Nenhuma relação direta encontrada.</p>'
         ].join(""));
         renderGraph({ nodes: data.nodes || [], edges: data.edges || [], topNodes: data.nodes || [], recentEdges: data.edges || [], insights: data.insights || [], totals: { nodes: (data.nodes || []).length, edges: (data.edges || []).length, insights: (data.insights || []).length } });
+      }
+
+      function renderSystemList() {
+        setText("systemsCount", systems.length + " sistema" + (systems.length === 1 ? "" : "s"));
+        const target = document.getElementById("systemsList");
+        if (!target) return;
+        if (!systems.length) {
+          target.innerHTML = '<p class="muted">Nenhum sistema gerado ainda.</p>';
+          return;
+        }
+        target.innerHTML = systems.map(function(system) {
+          const active = selectedSystem && selectedSystem.id === system.id ? " active" : "";
+          return '<button class="conversation-item' + active + '" data-open-system="' + escapeHtml(system.id) + '" type="button"><strong>' + escapeHtml(system.name) + '</strong><span>' + escapeHtml(system.architecture || "Arquitetura") + ' · ' + escapeHtml(system.type || "Sistema") + '</span></button>';
+        }).join("");
+      }
+
+      function renderSystemDetail(system) {
+        const target = document.getElementById("systemDetail");
+        if (!target) return;
+        if (!system) {
+          target.innerHTML = '<p class="muted">Selecione ou gere um sistema para visualizar arquitetura, arquivos e plano.</p>';
+          return;
+        }
+        const scope = system.scope || {};
+        const stack = system.stack || {};
+        const list = function(items) {
+          return (items || []).length ? '<ul class="clean-list">' + items.map(function(item) { return '<li>' + escapeHtml(item) + '</li>'; }).join("") + '</ul>' : '<p class="muted">Nada registrado.</p>';
+        };
+        const files = (system.files || []).length
+          ? system.files.map(function(file) {
+              return '<details class="list-item"><summary><strong>' + escapeHtml(file.name) + '</strong><span class="muted"> · ' + escapeHtml(file.type) + '</span></summary><pre class="code-block">' + escapeHtml(file.content || "") + '</pre></details>';
+            }).join("")
+          : '<p class="muted">Nenhum arquivo-base criado.</p>';
+        target.innerHTML = [
+          '<div class="item-top"><div><h2>' + escapeHtml(system.name) + '</h2><p class="muted">' + escapeHtml(system.objective || "") + '</p></div><div class="row"><button class="button" data-export-system="txt" type="button">TXT</button><button class="button" data-export-system="pdf" type="button">PDF</button><button class="button" data-export-system="docx" type="button">DOCX</button><button class="icon-button danger" data-delete-system="' + escapeHtml(system.id) + '" type="button" aria-label="Excluir sistema">${icon("trash")}</button></div></div>',
+          '<div class="dashboard-grid"><article class="metric-card"><span class="metric-label">Tipo</span><strong>' + escapeHtml(system.type) + '</strong></article><article class="metric-card"><span class="metric-label">Complexidade</span><strong>' + escapeHtml(system.complexity) + '</strong></article><article class="metric-card"><span class="metric-label">Arquitetura</span><strong>' + escapeHtml(system.architecture) + '</strong></article><article class="metric-card"><span class="metric-label">Banco</span><strong>' + escapeHtml(system.database || "Definido pela YARA") + '</strong></article></div>',
+          '<div class="layout-grid"><article class="card"><h2>Stack escolhida</h2><p class="muted"><strong>Frontend:</strong> ' + escapeHtml(system.frontend || "") + '</p><p class="muted"><strong>Backend:</strong> ' + escapeHtml(system.backend || "") + '</p><p class="muted"><strong>Banco:</strong> ' + escapeHtml(system.database || "") + '</p><p class="muted">' + escapeHtml(stack.reason || "") + '</p></article><article class="card"><h2>Funcionalidades</h2>' + list(scope.features) + '</article></div>',
+          '<div class="layout-grid"><article class="card"><h2>Telas</h2>' + list(scope.screens) + '</article><article class="card"><h2>APIs</h2>' + list(scope.apis) + '</article></div>',
+          '<div class="layout-grid"><article class="card"><h2>Banco de dados</h2>' + list(scope.database) + '</article><article class="card"><h2>Plano de desenvolvimento</h2>' + list(system.developmentPlan) + '</article></div>',
+          '<article class="card"><h2>Estrutura de pastas</h2>' + list(system.folderStructure) + '</article>',
+          '<article class="card"><h2>Arquivos-base</h2><div class="list">' + files + '</div></article>'
+        ].join("");
+      }
+
+      async function loadSystems() {
+        const data = await api("/api/systems");
+        systems = data.systems || [];
+        renderSystemList();
+        if (selectedSystem && !systems.some(function(system) { return system.id === selectedSystem.id; })) selectedSystem = null;
+        if (!selectedSystem && systems.length) await selectSystem(systems[0].id);
+        else renderSystemDetail(selectedSystem);
+      }
+
+      async function selectSystem(systemId) {
+        if (!systemId) return;
+        const data = await api("/api/systems/" + systemId);
+        selectedSystem = data.system;
+        renderSystemList();
+        renderSystemDetail(selectedSystem);
+      }
+
+      async function generateSystemFromUi() {
+        const prompt = getValue("systemPromptInput").trim();
+        if (prompt.length < 8) return showToast("Descreva melhor o sistema que deseja criar.");
+        setHtml("systemDetail", '<p class="muted">A YARA está analisando o pedido, escolhendo tecnologias e montando o plano...</p>');
+        const data = await api("/api/systems/generate", {
+          method: "POST",
+          body: JSON.stringify({ prompt: prompt })
+        });
+        selectedSystem = data.system;
+        setValue("systemPromptInput", "");
+        await loadSystems();
+        await selectSystem(selectedSystem.id);
+        showToast("Sistema gerado com arquitetura definida pela YARA.");
+      }
+
+      async function exportSelectedSystem(format) {
+        if (!selectedSystem) return showToast("Selecione um sistema primeiro.");
+        const data = await api("/api/systems/" + selectedSystem.id + "/export", {
+          method: "POST",
+          body: JSON.stringify({ format: format })
+        });
+        showToast("Sistema exportado em " + String(format).toUpperCase() + ".");
+        if (data.file && data.file.id) await downloadProtectedPath("/api/files/" + data.file.id + "/download", data.file.name || selectedSystem.name);
       }
 
       async function loadMemories() {
@@ -6354,6 +6472,7 @@ ${logoYaraStyles()}
           const handledForms = {
             chatForm: true,
             generatorForm: true,
+            systemGenerateForm: true,
             projectCreateForm: true,
             projectTaskForm: true,
             projectNoteForm: true,
@@ -6388,6 +6507,7 @@ ${logoYaraStyles()}
             .then(async function() {
               if (form.id === "chatForm") return sendMessage(event);
               if (form.id === "generatorForm") return submitGeneratorForm();
+              if (form.id === "systemGenerateForm") return generateSystemFromUi();
               if (form.id === "projectCreateForm") {
                 const name = getValue("projectCreateName").trim();
                 const description = getValue("projectCreateDescription").trim();
@@ -7081,6 +7201,30 @@ ${logoYaraStyles()}
         await newConversation();
         setValue(els.messageInput, "Vamos continuar o projeto " + generatedProject.name + ".");
         if (els.messageInput) els.messageInput.focus();
+      });
+
+      on("refreshSystemsButton", "click", async function() {
+        await loadSystems();
+        showToast("Sistemas atualizados.");
+      });
+      on("systemsList", "click", async function(event) {
+        const button = event.target.closest("[data-open-system]");
+        if (!button) return;
+        await selectSystem(button.dataset.openSystem);
+      });
+      on("systemDetail", "click", async function(event) {
+        const exportButton = event.target.closest("[data-export-system]");
+        if (exportButton) {
+          await exportSelectedSystem(exportButton.dataset.exportSystem);
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-system]");
+        if (!deleteButton) return;
+        if (!window.confirm("Excluir este sistema?")) return;
+        await api("/api/systems/" + deleteButton.dataset.deleteSystem, { method: "DELETE" });
+        selectedSystem = null;
+        await loadSystems();
+        showToast("Sistema excluído.");
       });
 
       on("projectSearch", "input", renderProjects);
