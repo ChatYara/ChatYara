@@ -10,6 +10,13 @@ import {
   searchMemories,
   updateIntelligentMemory
 } from "../services/memoryService";
+import {
+  consolidateMemory,
+  getMemoryConsolidation,
+  listMemoryConflicts,
+  listMemoryConsolidations,
+  resolveMemoryConflict
+} from "../services/memoryConsolidationService";
 import { refreshKnowledgeGraphSoon } from "../services/graphService";
 import { sendError } from "../utils/http";
 
@@ -26,6 +33,11 @@ const memorySchema = z.object({
   conversationId: z.string().min(1).nullable().optional(),
   pinned: z.boolean().optional(),
   metadata: z.record(z.unknown()).optional()
+});
+
+const resolveConflictSchema = z.object({
+  resolution: z.string().min(2).max(1200),
+  status: z.enum(["resolved", "ignored"]).optional()
 });
 
 memoryRoutes.get("/memory", (req, res) => {
@@ -46,6 +58,45 @@ memoryRoutes.get("/memory/search", (req, res) => {
 
 memoryRoutes.get("/memory/status", (req, res) => {
   return res.json({ status: getMemorySystemStatus() });
+});
+
+memoryRoutes.post("/memory/consolidate", (req, res) => {
+  try {
+    return res.status(201).json(consolidateMemory(req.user!.id));
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível consolidar a memória.");
+  }
+});
+
+memoryRoutes.get("/memory/consolidations", (req, res) => {
+  try {
+    return res.json(listMemoryConsolidations(req.user!.id));
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível listar consolidações.");
+  }
+});
+
+memoryRoutes.get("/memory/consolidations/:id", (req, res) => {
+  try {
+    return res.json(getMemoryConsolidation(req.user!.id, req.params.id));
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Consolidação não encontrada.");
+  }
+});
+
+memoryRoutes.get("/memory/conflicts", (req, res) => {
+  const status = typeof req.query.status === "string" ? req.query.status : "pending";
+  return res.json(listMemoryConflicts(req.user!.id, status));
+});
+
+memoryRoutes.post("/memory/conflicts/:id/resolve", (req, res) => {
+  const parsed = resolveConflictSchema.safeParse(req.body);
+  if (!parsed.success) return sendError(res, 400, "Informe uma resolução válida para o conflito.");
+  try {
+    return res.json(resolveMemoryConflict(req.user!.id, req.params.id, parsed.data));
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Conflito não encontrado.");
+  }
 });
 
 memoryRoutes.post("/memory", (req, res) => {

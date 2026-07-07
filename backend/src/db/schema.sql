@@ -177,6 +177,101 @@ create index if not exists memory_summaries_user_conversation
 create index if not exists memory_audit_user_created
   on memory_audit_logs(user_id, created_at);
 
+create table if not exists memory_consolidations (
+  id text primary key,
+  user_id text not null,
+  status text not null default 'completed',
+  summary text not null,
+  source_count integer not null default 0,
+  duplicate_count integer not null default 0,
+  conflict_count integer not null default 0,
+  stale_count integer not null default 0,
+  quality_score real not null default 0,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists consolidated_memory_items (
+  id text primary key,
+  user_id text not null,
+  consolidation_id text not null,
+  category text not null default 'general',
+  title text not null,
+  content text not null,
+  source_types_json text not null default '[]',
+  source_refs_json text not null default '[]',
+  confidence_score real not null default 0.5,
+  freshness_score real not null default 0.5,
+  quality_score real not null default 0.5,
+  status text not null default 'active',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (consolidation_id) references memory_consolidations(id) on delete cascade
+);
+
+create table if not exists memory_conflicts (
+  id text primary key,
+  user_id text not null,
+  consolidation_id text,
+  title text not null,
+  description text not null,
+  source_a_json text not null default '{}',
+  source_b_json text not null default '{}',
+  severity text not null default 'medium',
+  status text not null default 'pending',
+  resolution text,
+  resolved_at text,
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (consolidation_id) references memory_consolidations(id) on delete set null
+);
+
+create table if not exists memory_quality_scores (
+  id text primary key,
+  user_id text not null,
+  source_type text not null,
+  source_id text not null,
+  quality_score real not null default 0.5,
+  freshness_score real not null default 0.5,
+  confidence_score real not null default 0.5,
+  duplicate_score real not null default 0,
+  conflict_score real not null default 0,
+  metadata_json text not null default '{}',
+  updated_at text not null default current_timestamp,
+  unique (user_id, source_type, source_id),
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists memory_consolidation_audit_logs (
+  id text primary key,
+  user_id text not null,
+  consolidation_id text,
+  action text not null,
+  status text not null default 'success',
+  message text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (consolidation_id) references memory_consolidations(id) on delete set null
+);
+
+create index if not exists memory_consolidations_user_created
+  on memory_consolidations(user_id, created_at);
+
+create index if not exists consolidated_memory_items_user_consolidation
+  on consolidated_memory_items(user_id, consolidation_id, quality_score);
+
+create index if not exists memory_conflicts_user_status
+  on memory_conflicts(user_id, status, created_at);
+
+create index if not exists memory_quality_scores_user_source
+  on memory_quality_scores(user_id, source_type, source_id);
+
+create index if not exists memory_consolidation_audit_user_created
+  on memory_consolidation_audit_logs(user_id, created_at);
+
 create table if not exists projects (
   id text primary key,
   user_id text not null,

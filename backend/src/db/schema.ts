@@ -158,6 +158,86 @@ export function runMigrations() {
       foreign key (memory_id) references memories(id) on delete set null
     );
 
+    create table if not exists memory_consolidations (
+      id text primary key,
+      user_id text not null,
+      status text not null default 'completed',
+      summary text not null,
+      source_count integer not null default 0,
+      duplicate_count integer not null default 0,
+      conflict_count integer not null default 0,
+      stale_count integer not null default 0,
+      quality_score real not null default 0,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists consolidated_memory_items (
+      id text primary key,
+      user_id text not null,
+      consolidation_id text not null,
+      category text not null default 'general',
+      title text not null,
+      content text not null,
+      source_types_json text not null default '[]',
+      source_refs_json text not null default '[]',
+      confidence_score real not null default 0.5,
+      freshness_score real not null default 0.5,
+      quality_score real not null default 0.5,
+      status text not null default 'active',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (consolidation_id) references memory_consolidations(id) on delete cascade
+    );
+
+    create table if not exists memory_conflicts (
+      id text primary key,
+      user_id text not null,
+      consolidation_id text,
+      title text not null,
+      description text not null,
+      source_a_json text not null default '{}',
+      source_b_json text not null default '{}',
+      severity text not null default 'medium',
+      status text not null default 'pending',
+      resolution text,
+      resolved_at text,
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (consolidation_id) references memory_consolidations(id) on delete set null
+    );
+
+    create table if not exists memory_quality_scores (
+      id text primary key,
+      user_id text not null,
+      source_type text not null,
+      source_id text not null,
+      quality_score real not null default 0.5,
+      freshness_score real not null default 0.5,
+      confidence_score real not null default 0.5,
+      duplicate_score real not null default 0,
+      conflict_score real not null default 0,
+      metadata_json text not null default '{}',
+      updated_at text not null default current_timestamp,
+      unique (user_id, source_type, source_id),
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists memory_consolidation_audit_logs (
+      id text primary key,
+      user_id text not null,
+      consolidation_id text,
+      action text not null,
+      status text not null default 'success',
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (consolidation_id) references memory_consolidations(id) on delete set null
+    );
+
     create table if not exists projects (
       id text primary key,
       user_id text not null,
@@ -1107,6 +1187,21 @@ export function runMigrations() {
   ensureColumn("semantic_search_history", "results_json", "text not null default '[]'");
   ensureColumn("semantic_search_history", "top_score", "real not null default 0");
   ensureColumn("vector_search_audit_logs", "metadata_json", "text not null default '{}'");
+  ensureColumn("memory_consolidations", "status", "text not null default 'completed'");
+  ensureColumn("memory_consolidations", "metadata_json", "text not null default '{}'");
+  ensureColumn("consolidated_memory_items", "source_types_json", "text not null default '[]'");
+  ensureColumn("consolidated_memory_items", "source_refs_json", "text not null default '[]'");
+  ensureColumn("consolidated_memory_items", "status", "text not null default 'active'");
+  ensureColumn("memory_conflicts", "source_a_json", "text not null default '{}'");
+  ensureColumn("memory_conflicts", "source_b_json", "text not null default '{}'");
+  ensureColumn("memory_conflicts", "severity", "text not null default 'medium'");
+  ensureColumn("memory_conflicts", "status", "text not null default 'pending'");
+  ensureColumn("memory_conflicts", "resolution", "text");
+  ensureColumn("memory_conflicts", "resolved_at", "text");
+  ensureColumn("memory_quality_scores", "duplicate_score", "real not null default 0");
+  ensureColumn("memory_quality_scores", "conflict_score", "real not null default 0");
+  ensureColumn("memory_quality_scores", "metadata_json", "text not null default '{}'");
+  ensureColumn("memory_consolidation_audit_logs", "metadata_json", "text not null default '{}'");
   ensureColumn("systems", "frontend", "text");
   ensureColumn("systems", "backend", "text");
   ensureColumn("systems", "database_choice", "text");
@@ -1158,6 +1253,17 @@ export function runMigrations() {
     update semantic_search_history set status = 'completed' where status is null;
     update semantic_search_history set results_json = '[]' where results_json is null;
     update vector_search_audit_logs set metadata_json = '{}' where metadata_json is null;
+    update memory_consolidations set status = 'completed' where status is null;
+    update memory_consolidations set metadata_json = '{}' where metadata_json is null;
+    update consolidated_memory_items set source_types_json = '[]' where source_types_json is null;
+    update consolidated_memory_items set source_refs_json = '[]' where source_refs_json is null;
+    update consolidated_memory_items set status = 'active' where status is null;
+    update memory_conflicts set source_a_json = '{}' where source_a_json is null;
+    update memory_conflicts set source_b_json = '{}' where source_b_json is null;
+    update memory_conflicts set severity = 'medium' where severity is null;
+    update memory_conflicts set status = 'pending' where status is null;
+    update memory_quality_scores set metadata_json = '{}' where metadata_json is null;
+    update memory_consolidation_audit_logs set metadata_json = '{}' where metadata_json is null;
     update systems set scope_json = '{}' where scope_json is null;
     update systems set stack_json = '{}' where stack_json is null;
     update systems set folder_structure_json = '[]' where folder_structure_json is null;
@@ -1244,6 +1350,21 @@ export function runMigrations() {
 
     create index if not exists memory_audit_user_created
       on memory_audit_logs(user_id, created_at);
+
+    create index if not exists memory_consolidations_user_created
+      on memory_consolidations(user_id, created_at);
+
+    create index if not exists consolidated_memory_items_user_consolidation
+      on consolidated_memory_items(user_id, consolidation_id, quality_score);
+
+    create index if not exists memory_conflicts_user_status
+      on memory_conflicts(user_id, status, created_at);
+
+    create index if not exists memory_quality_scores_user_source
+      on memory_quality_scores(user_id, source_type, source_id);
+
+    create index if not exists memory_consolidation_audit_user_created
+      on memory_consolidation_audit_logs(user_id, created_at);
 
     create index if not exists search_history_user_created
       on search_history(user_id, created_at);

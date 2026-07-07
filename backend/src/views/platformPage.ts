@@ -1754,6 +1754,7 @@ ${logoYaraStyles()}
             ${navButton("smartProjects", "Projetos Inteligentes", "brain")}
             ${navButton("knowledge", "Conhecimento", "sparkles")}
             ${navButton("smartSearch", "Busca Inteligente", "search")}
+            ${navButton("consolidatedMemory", "Memória Consolidada", "brain")}
             ${navButton("documents", "Documentos", "file")}
             ${navButton("files", "Arquivos", "paperclip")}
             ${navButton("images", "Imagens", "image")}
@@ -2225,6 +2226,42 @@ ${logoYaraStyles()}
               <article class="card">
                 <h2>Itens indexados recentemente</h2>
                 <div class="list" id="smartSearchIndexed"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-consolidatedMemory" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Memória Consolidada</h2>
+                <p class="muted">Unifica memórias, perfil, projetos, decisões, GraphRAG, busca vetorial, arquivos, documentos, sistemas e conversas em uma visão confiável.</p>
+              </div>
+              <div class="row">
+                <button class="button" id="refreshConsolidatedMemoryButton" type="button">${icon("history")}Atualizar</button>
+                <button class="primary-action" id="runMemoryConsolidationButton" type="button">${icon("sparkles")}Consolidar agora</button>
+              </div>
+            </div>
+            <div class="dashboard-grid" id="consolidatedMemoryStats"></div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Últimas consolidações</h2>
+                <div class="list" id="memoryConsolidationList"></div>
+              </article>
+              <article class="card">
+                <h2>Qualidade por categoria</h2>
+                <div class="list" id="memoryQualityList"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Itens consolidados</h2>
+                <div class="list" id="consolidatedMemoryItems"></div>
+              </article>
+              <article class="card">
+                <h2>Conflitos pendentes</h2>
+                <div class="list" id="memoryConflictsList"></div>
               </article>
             </div>
           </div>
@@ -3559,6 +3596,7 @@ ${logoYaraStyles()}
           smartProjects: { title: "Projetos Inteligentes", subtitle: "Memória de decisões, fases, pendências e commits.", loader: loadSmartProjects },
           knowledge: { title: "Conhecimento", subtitle: "GraphRAG com relações entre dados da YARA.", loader: loadGraph },
           smartSearch: { title: "Busca Inteligente", subtitle: "Busca vetorial, híbrida e contextual em todo o workspace.", loader: loadSmartSearch },
+          consolidatedMemory: { title: "Memória Consolidada", subtitle: "Consolidação, conflitos e qualidade da memória da YARA.", loader: loadConsolidatedMemory },
           documents: { title: "Documentos", subtitle: "Gere e baixe documentos protegidos.", loader: loadDocuments },
           files: { title: "Arquivos", subtitle: "Envie, visualize, baixe e exporte arquivos reais.", loader: loadFiles },
           images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
@@ -4977,6 +5015,85 @@ ${logoYaraStyles()}
         await loadSmartSearch().catch(function() {});
       }
 
+      function renderConsolidatedMemoryDashboard(data) {
+        data = data || {};
+        const dashboard = data.dashboard || {};
+        const latest = dashboard.latest || null;
+        const totals = dashboard.totals || {};
+        const consolidations = data.consolidations || [];
+        const items = data.items || dashboard.latestItems || [];
+        const conflicts = data.conflicts || dashboard.pendingConflicts || [];
+        const categories = dashboard.categories || [];
+        setHtml("consolidatedMemoryStats", [
+          '<article class="metric-card"><span class="metric-label">Memórias consolidadas</span><strong>' + escapeHtml(String(totals.consolidatedItems || items.length || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Duplicidades</span><strong>' + escapeHtml(String(latest ? latest.duplicateCount : 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Conflitos pendentes</span><strong>' + escapeHtml(String(totals.pendingConflicts || conflicts.length || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Qualidade</span><strong>' + escapeHtml(String(latest ? Math.round(Number(latest.qualityScore || 0) * 100) + "%" : "0%")) + '</strong><p class="muted">' + escapeHtml(latest ? latest.status : "sem consolidação") + '</p></article>'
+        ].join(""));
+        setHtml("memoryConsolidationList", consolidations.length
+          ? consolidations.map(function(item) {
+              return '<button class="conversation-item" data-open-consolidation="' + escapeHtml(item.id) + '" type="button"><strong>' + escapeHtml(item.summary || "Consolidação") + '</strong><span>' + escapeHtml(String(item.sourceCount || 0)) + ' fontes · ' + escapeHtml(String(item.conflictCount || 0)) + ' conflitos · ' + escapeHtml(item.createdAt || "") + '</span></button>';
+            }).join("")
+          : '<p class="muted">Nenhuma consolidação criada ainda. Clique em Consolidar agora.</p>');
+        setHtml("memoryQualityList", categories.length
+          ? categories.map(function(item) {
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.category || "memória") + '</strong><span class="status"><span class="dot"></span>' + escapeHtml(String(item.total || 0)) + '</span></div><p class="muted">Qualidade média ' + Math.round(Number(item.quality || 0) * 100) + '%</p></article>';
+            }).join("")
+          : '<p class="muted">As categorias aparecerão após a consolidação.</p>');
+        setHtml("consolidatedMemoryItems", items.length
+          ? items.slice(0, 14).map(function(item) {
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.title || "Memória") + '</strong><span class="status">' + escapeHtml(item.status || "active") + '</span></div><p class="muted">' + escapeHtml(item.category || "geral") + ' · qualidade ' + Math.round(Number(item.qualityScore || 0) * 100) + '% · confiança ' + Math.round(Number(item.confidenceScore || 0) * 100) + '%</p><p class="muted">' + escapeHtml(item.content || "") + '</p></article>';
+            }).join("")
+          : '<p class="muted">Nenhum item consolidado para exibir.</p>');
+        setHtml("memoryConflictsList", conflicts.length
+          ? conflicts.map(function(conflict) {
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(conflict.title || "Conflito") + '</strong><span class="status">' + escapeHtml(conflict.severity || "medium") + '</span></div><p class="muted">' + escapeHtml(conflict.description || "") + '</p><p class="muted">Fonte A: ' + escapeHtml((conflict.sourceA && conflict.sourceA.title) || "") + '</p><p class="muted">Fonte B: ' + escapeHtml((conflict.sourceB && conflict.sourceB.title) || "") + '</p><button class="button small" data-resolve-conflict="' + escapeHtml(conflict.id) + '" type="button">${icon("save")}Resolver</button></article>';
+            }).join("")
+          : '<p class="muted">Nenhum conflito pendente. A memória está coerente neste momento.</p>');
+      }
+
+      async function loadConsolidatedMemory() {
+        const data = await api("/api/memory/consolidations");
+        renderConsolidatedMemoryDashboard(data);
+      }
+
+      async function runMemoryConsolidationFromUi() {
+        setHtml("consolidatedMemoryItems", '<p class="muted">Consolidando memórias, perfil, projetos, arquivos, documentos, sistemas e conversas...</p>');
+        const data = await api("/api/memory/consolidate", { method: "POST", body: JSON.stringify({}) });
+        renderConsolidatedMemoryDashboard({
+          dashboard: data.dashboard,
+          items: data.items || [],
+          conflicts: data.conflicts || [],
+          consolidations: data.consolidation ? [data.consolidation] : []
+        });
+        showToast("Memória consolidada.");
+      }
+
+      async function openConsolidationDetail(consolidationId) {
+        if (!consolidationId) return;
+        const data = await api("/api/memory/consolidations/" + consolidationId);
+        renderConsolidatedMemoryDashboard({
+          dashboard: data.dashboard,
+          items: data.items || [],
+          conflicts: data.conflicts || [],
+          consolidations: data.consolidation ? [data.consolidation] : []
+        });
+      }
+
+      async function resolveMemoryConflictFromUi(conflictId) {
+        if (!conflictId) return;
+        const resolution = window.prompt("Como este conflito deve ser resolvido?", "Manter a informação mais recente e confiável.");
+        if (resolution === null) return;
+        if (resolution.trim().length < 2) return showToast("Informe uma resolução válida.");
+        const data = await api("/api/memory/conflicts/" + conflictId + "/resolve", {
+          method: "POST",
+          body: JSON.stringify({ resolution: resolution.trim(), status: "resolved" })
+        });
+        renderConsolidatedMemoryDashboard({ dashboard: data.dashboard });
+        await loadConsolidatedMemory().catch(function() {});
+        showToast("Conflito resolvido.");
+      }
+
       function renderSystemList() {
         setText("systemsCount", systems.length + " sistema" + (systems.length === 1 ? "" : "s"));
         const target = document.getElementById("systemsList");
@@ -6254,6 +6371,8 @@ ${logoYaraStyles()}
           rebuildGraphButton: rebuildGraphFromUi,
           refreshSmartSearchButton: loadSmartSearch,
           reindexSmartSearchButton: reindexSmartSearchFromUi,
+          refreshConsolidatedMemoryButton: loadConsolidatedMemory,
+          runMemoryConsolidationButton: runMemoryConsolidationFromUi,
           refreshProjectFilesButton: loadProjectUploadOptions,
           linkProjectFileButton: async function() {
             if (!selectedProject) return showToast("Selecione um projeto.");
@@ -6532,6 +6651,20 @@ ${logoYaraStyles()}
               if (action) {
                 return runCapturedAction("button:" + coreButton.id, event, coreButton, action);
               }
+            }
+
+            const consolidationButton = target.closest("[data-open-consolidation]");
+            if (consolidationButton) {
+              return runCapturedAction("open-consolidation", event, consolidationButton, function() {
+                return openConsolidationDetail(consolidationButton.dataset.openConsolidation);
+              });
+            }
+
+            const resolveConflictButton = target.closest("[data-resolve-conflict]");
+            if (resolveConflictButton) {
+              return runCapturedAction("resolve-memory-conflict", event, resolveConflictButton, function() {
+                return resolveMemoryConflictFromUi(resolveConflictButton.dataset.resolveConflict);
+              });
             }
 
             const chatAction = target.closest("#chatActionMenu [data-action]");

@@ -15,6 +15,7 @@ import {
   readIntelligentMemoryContext,
   updateConversationMemorySession
 } from "./memoryService";
+import { answerConsolidatedMemoryQuestion, readConsolidatedMemoryContext } from "./memoryConsolidationService";
 import { extractCognitiveFactsFromMessage, readCognitiveProfileContext } from "./profileService";
 import { answerProjectMemoryQuestion, readProjectMemoryContext } from "./projectMemoryService";
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
@@ -373,6 +374,7 @@ function readUserContext(userId: string, query = "", conversationId?: string) {
     readCognitiveProfileContext(userId),
     readMemory(userId) ? `Memórias manuais:\n${readMemory(userId)}` : "",
     intelligentMemory,
+    query ? readConsolidatedMemoryContext(userId, query) : "",
     query ? readSemanticSearchContext(userId, query) : "",
     readProjectMemoryContext(userId, query),
     readGraphContext(userId, query),
@@ -659,6 +661,7 @@ export async function sendMessage(
   const projectMemoryAnswer = answerProjectMemoryQuestion(userId, storedMessage);
   const graphAnswer = answerGraphQuestion(userId, storedMessage);
   const semanticAnswer = answerSemanticSearchQuestion(userId, storedMessage);
+  const consolidatedMemoryAnswer = answerConsolidatedMemoryQuestion(userId, storedMessage);
   const systemGenerationAnswer = !searchNeeded && detectSystemGenerationRequest(storedMessage)
     ? answerSystemGeneration(userId, storedMessage)
     : null;
@@ -709,6 +712,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "semantic-search",
       response: semanticAnswer
+    };
+  } else if (consolidatedMemoryAnswer && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "memory-consolidation",
+      response: consolidatedMemoryAnswer
     };
   } else if (projectMemoryAnswer && !searchNeeded) {
     ai = {
