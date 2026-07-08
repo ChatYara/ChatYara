@@ -3,21 +3,28 @@ import os from "node:os";
 import path from "node:path";
 import { v4 as uuid } from "uuid";
 import { env } from "../config/env";
-import { getDatabase } from "../db/connection";
+import { getDatabase, getDatabaseInfo } from "../db/connection";
 import { recordAudit } from "./auditService";
 import { structuredLog } from "./loggerService";
+import { isPersistentSqlitePath } from "./persistenceService";
 
 let backupSchedulerStarted = false;
 
 function backupDir() {
   const configured = process.env.BACKUP_DIR?.trim();
-  return configured ? path.resolve(configured) : path.resolve(__dirname, "..", "..", "backups");
+  if (configured) return path.resolve(configured);
+
+  const info = getDatabaseInfo();
+  if (info.type === "sqlite" && info.absolutePath && isPersistentSqlitePath(info.absolutePath)) {
+    return path.join(path.dirname(info.absolutePath), "backups");
+  }
+
+  return path.resolve(__dirname, "..", "..", "backups");
 }
 
 function sqlitePath() {
-  if (!env.databaseUrl.startsWith("sqlite:")) return null;
-  const value = env.databaseUrl.replace(/^sqlite:/, "");
-  return path.resolve(__dirname, "..", "..", value);
+  const info = getDatabaseInfo();
+  return info.type === "sqlite" ? info.absolutePath : null;
 }
 
 function directorySize(target: string): number {

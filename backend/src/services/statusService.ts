@@ -3,6 +3,7 @@ import path from "node:path";
 import { env } from "../config/env";
 import { getDatabase } from "../db/connection";
 import { getIntegrationStatus } from "./integrationService";
+import { getPersistenceHealth } from "./persistenceService";
 
 function count(sql: string) {
   try {
@@ -40,6 +41,7 @@ export function systemStatus(userId?: string) {
     }
   })();
   const integrations = userId ? getIntegrationStatus(userId) : null;
+  const persistence = getPersistenceHealth();
   const pendingAutomations = userId
     ? count(`select count(*) as total from automations where user_id = '${userId.replace(/'/g, "''")}' and status = 'active'`)
     : count("select count(*) as total from automations where status = 'active'");
@@ -47,6 +49,7 @@ export function systemStatus(userId?: string) {
     ok: true,
     api: true,
     database,
+    persistence,
     storage: storageStatus(),
     integrations,
     automations: {

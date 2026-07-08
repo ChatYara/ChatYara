@@ -94,6 +94,13 @@ VAPID_PRIVATE_KEY=
 
 Preencha esses valores somente no servidor. Para SQLite local, `DATABASE_URL` pode apontar para `sqlite:./data/yara.sqlite`.
 
+Em produção Render, não use `sqlite:./data/yara.sqlite`, porque esse caminho fica no filesystem efêmero do deploy. Use uma das opções:
+
+- Recomendado agora: Persistent Disk montado em `/data` com `DATABASE_URL=sqlite:/data/yara.sqlite`.
+- Futuro PostgreSQL: usar `DATABASE_URL` do PostgreSQL depois que o adapter PostgreSQL estiver ativo no backend.
+
+Mantenha `JWT_SECRET` fixo no Render. Se ele mudar, sessões e tokens anteriores deixam de validar.
+
 ## Integracoes externas
 
 A Fase 7 adiciona um painel protegido em `/app` para Google Calendar, Gmail, Telegram, WhatsApp e notificacoes.
@@ -110,6 +117,7 @@ A Fase 7 adiciona um painel protegido em `/app` para Google Calendar, Gmail, Tel
 A Fase 8.1 adiciona memória persistente e contextual sem remover a compatibilidade com SQLite.
 
 - SQLite continua sendo o banco ativo padrão em `DATABASE_URL`.
+- No Render, SQLite precisa estar em Persistent Disk: `DATABASE_URL=sqlite:/data/yara.sqlite`.
 - `POSTGRES_URL` prepara a migração para PostgreSQL/pgvector sem quebrar o ambiente atual.
 - `REDIS_URL` prepara cache distribuído; sem Redis, a YARA usa cache local em memória.
 - `MEMORY_EMBEDDING_PROVIDER=local` gera embeddings determinísticos no backend, sem expor chaves e sem chamar APIs externas.

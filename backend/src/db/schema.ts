@@ -1,6 +1,8 @@
 import { getDatabase } from "./connection";
+import { createPreMigrationSnapshot, registerPreMigrationSnapshot } from "../services/persistenceService";
 
 export function runMigrations() {
+  const snapshot = createPreMigrationSnapshot();
   const db = getDatabase();
 
   db.exec(`
@@ -1732,6 +1734,8 @@ export function runMigrations() {
     create index if not exists push_subscriptions_user_status
       on push_subscriptions(user_id, status);
   `);
+
+  registerPreMigrationSnapshot(snapshot);
 }
 
 function ensureColumn(table: string, column: string, definition: string) {

@@ -5,6 +5,7 @@ import { authRequired } from "../middleware/auth";
 import { listAuditEvents, recordAudit, requestAuditContext } from "../services/auditService";
 import { createBackup, getBackupForDownload, listBackups, cleanupTemporaryData } from "../services/backupService";
 import { listApplicationLogs } from "../services/loggerService";
+import { getPersistenceHealth } from "../services/persistenceService";
 import { systemStatus } from "../services/statusService";
 import { sendError } from "../utils/http";
 
@@ -21,6 +22,11 @@ productionRoutes.get("/status", (_req, res) => {
     ok: status.ok,
     api: status.api,
     database: status.database,
+    persistence: {
+      type: status.persistence.database.type,
+      status: status.persistence.database.status,
+      persistent: status.persistence.database.persistent
+    },
     storage: { sizeBytes: status.storage.sizeBytes },
     automations: status.automations,
     counts: status.counts,
@@ -32,6 +38,10 @@ productionRoutes.use(authRequired);
 
 productionRoutes.get("/status/details", (req, res) => {
   return res.json({ status: systemStatus(req.user!.id) });
+});
+
+productionRoutes.get("/status/persistence", (_req, res) => {
+  return res.json({ persistence: getPersistenceHealth() });
 });
 
 productionRoutes.get("/audit", (req, res) => {

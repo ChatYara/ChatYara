@@ -29,12 +29,13 @@ Configure as variaveis de ambiente no painel do Render:
 AI_PROVIDER=gemini
 GEMINI_API_KEY=
 OPENAI_API_KEY=
-DATABASE_URL=sqlite:./data/yara.sqlite
+DATABASE_URL=sqlite:/data/yara.sqlite
 POSTGRES_URL=
 REDIS_URL=
 MEMORY_EMBEDDING_PROVIDER=local
 MEMORY_EMBEDDING_DIMENSIONS=96
 JWT_SECRET=
+BACKUP_DIR=/data/backups
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=
@@ -48,6 +49,15 @@ VAPID_PRIVATE_KEY=
 ```
 
 O backend bloqueia a inicializacao se `JWT_SECRET` ou a chave do provedor ativo estiverem ausentes.
+
+Persistencia no Render:
+
+- Crie um Persistent Disk no Render e monte em `/data`.
+- Configure `DATABASE_URL=sqlite:/data/yara.sqlite`.
+- Configure `BACKUP_DIR=/data/backups`.
+- Nao use `sqlite:./data/yara.sqlite` em producao Render; esse caminho fica efemero e perde usuarios/logins em redeploy.
+- Mantenha `JWT_SECRET` fixo e forte. Se ele for alterado, tokens JWT antigos deixam de validar.
+- O backend agora falha na inicializacao se detectar SQLite efemero no Render.
 
 Para Gemini, use:
 
@@ -73,8 +83,8 @@ Integracoes externas:
 
 Memoria inteligente:
 
-- Mantenha `DATABASE_URL=sqlite:./data/yara.sqlite` enquanto a instancia Render atual usar SQLite.
-- Configure `POSTGRES_URL` somente quando o banco PostgreSQL estiver provisionado e pronto para migração.
+- Mantenha `DATABASE_URL=sqlite:/data/yara.sqlite` enquanto a instancia Render atual usar SQLite.
+- Configure PostgreSQL somente quando o adapter PostgreSQL estiver ativo no backend; o build atual continua usando SQLite sincrono.
 - Ative pgvector no PostgreSQL antes de migrar embeddings para vetor nativo.
 - Configure `REDIS_URL` quando houver Redis gerenciado; sem Redis, o backend usa cache local em memória.
 - `MEMORY_EMBEDDING_PROVIDER=local` e `MEMORY_EMBEDDING_DIMENSIONS=96` funcionam sem credenciais externas.
