@@ -406,6 +406,141 @@ create table if not exists project_memory_audit_logs (
   foreign key (project_memory_id) references project_memories(id) on delete set null
 );
 
+create table if not exists technical_projects (
+  id text primary key,
+  user_id text not null,
+  title text not null,
+  project_type text not null default 'inspecao_tecnica',
+  discipline text not null default 'multidisciplinar',
+  description text not null default '',
+  location text,
+  status text not null default 'draft',
+  risk_level text not null default 'indefinido',
+  summary text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create table if not exists technical_project_inputs (
+  id text primary key,
+  user_id text not null,
+  project_id text not null,
+  input_type text not null,
+  content text not null default '',
+  file_id text,
+  upload_id text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete cascade
+);
+
+create table if not exists technical_project_outputs (
+  id text primary key,
+  user_id text not null,
+  project_id text not null,
+  output_type text not null,
+  title text not null,
+  content text not null,
+  file_id text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete cascade
+);
+
+create table if not exists technical_project_inspections (
+  id text primary key,
+  user_id text not null,
+  project_id text not null,
+  title text not null,
+  diagnosis text not null,
+  risk_level text not null default 'medio',
+  findings_json text not null default '[]',
+  recommendations_json text not null default '[]',
+  action_plan_json text not null default '[]',
+  status text not null default 'open',
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete cascade
+);
+
+create table if not exists technical_project_files (
+  id text primary key,
+  user_id text not null,
+  project_id text not null,
+  file_id text,
+  upload_id text,
+  original_name text not null,
+  file_type text not null,
+  file_size integer not null default 0,
+  role text not null default 'input',
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete cascade
+);
+
+create table if not exists technical_project_chat_sessions (
+  id text primary key,
+  user_id text not null,
+  project_id text,
+  title text not null default 'Chat Técnico',
+  status text not null default 'active',
+  context_summary text,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete set null
+);
+
+create table if not exists technical_project_messages (
+  id text primary key,
+  user_id text not null,
+  session_id text not null,
+  project_id text,
+  role text not null check (role in ('user', 'assistant', 'system')),
+  content text not null,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (session_id) references technical_project_chat_sessions(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete set null
+);
+
+create table if not exists technical_project_chat_memory (
+  id text primary key,
+  user_id text not null,
+  project_id text,
+  session_id text,
+  key text not null,
+  content text not null,
+  importance integer not null default 3,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete cascade,
+  foreign key (session_id) references technical_project_chat_sessions(id) on delete cascade
+);
+
+create table if not exists technical_project_audit_logs (
+  id text primary key,
+  user_id text not null,
+  project_id text,
+  action text not null,
+  status text not null default 'success',
+  message text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete set null
+);
+
 create table if not exists knowledge_nodes (
   id text primary key,
   user_id text not null,
@@ -496,6 +631,33 @@ create index if not exists project_timeline_user_project
 
 create index if not exists project_memory_audit_user_project
   on project_memory_audit_logs(user_id, project_memory_id, created_at);
+
+create index if not exists technical_projects_user_status
+  on technical_projects(user_id, status, updated_at);
+
+create index if not exists technical_project_inputs_user_project
+  on technical_project_inputs(user_id, project_id, created_at);
+
+create index if not exists technical_project_outputs_user_project
+  on technical_project_outputs(user_id, project_id, created_at);
+
+create index if not exists technical_project_inspections_user_project
+  on technical_project_inspections(user_id, project_id, risk_level, created_at);
+
+create index if not exists technical_project_files_user_project
+  on technical_project_files(user_id, project_id, created_at);
+
+create index if not exists technical_project_sessions_user_project
+  on technical_project_chat_sessions(user_id, project_id, updated_at);
+
+create index if not exists technical_project_messages_user_session
+  on technical_project_messages(user_id, session_id, created_at);
+
+create index if not exists technical_project_memory_user_project
+  on technical_project_chat_memory(user_id, project_id, key, updated_at);
+
+create index if not exists technical_project_audit_user_project
+  on technical_project_audit_logs(user_id, project_id, created_at);
 
 create index if not exists knowledge_nodes_user_type
   on knowledge_nodes(user_id, type, importance);

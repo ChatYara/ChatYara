@@ -1751,6 +1751,7 @@ ${logoYaraStyles()}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("systems", "Sistemas", "code")}
             ${navButton("projects", "Projetos", "folder")}
+            ${navButton("technicalProjects", "Projetos Técnicos", "code")}
             ${navButton("smartProjects", "Projetos Inteligentes", "brain")}
             ${navButton("knowledge", "Conhecimento", "sparkles")}
             ${navButton("smartSearch", "Busca Inteligente", "search")}
@@ -2048,6 +2049,88 @@ ${logoYaraStyles()}
                   <button class="button" id="archiveProjectButton" type="button">${icon("archive")}Arquivar</button>
                   <button class="button danger" id="deleteProjectButton" type="button">${icon("trash")}Excluir projeto</button>
                 </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-technicalProjects" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Projetos Técnicos</h2>
+                <p class="muted">Área independente para engenharia, arquitetura, inspeção, manutenção, obras, layouts industriais e relatórios técnicos.</p>
+              </div>
+              <div class="row">
+                <button class="button" id="refreshTechnicalProjectsButton" type="button">${icon("history")}Atualizar</button>
+                <button class="primary-action" id="newTechnicalProjectButton" type="button">${icon("code")}Novo projeto</button>
+              </div>
+            </div>
+            <div class="dashboard-grid" id="technicalStats"></div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Chat Técnico</h2>
+                <p class="muted">Histórico e contexto separados do chat principal, com memória técnica própria.</p>
+                <form class="form" id="technicalChatForm">
+                  <select class="select" id="technicalChatProjectSelect"></select>
+                  <textarea class="field" id="technicalChatMessage" rows="5" placeholder="Ex.: faça uma inspeção desta obra, gere um layout industrial ou calcule materiais preliminares"></textarea>
+                  <button class="primary-action" type="submit">${icon("chat")}Enviar ao Chat Técnico</button>
+                </form>
+                <div class="list" id="technicalChatMessages"></div>
+              </article>
+              <article class="card">
+                <h2>Criar projeto técnico</h2>
+                <form class="form" id="technicalProjectForm">
+                  <input class="field" id="technicalProjectTitle" placeholder="Título do projeto" />
+                  <select class="select" id="technicalProjectType">
+                    <option value="">YARA decide o tipo automaticamente</option>
+                    <option value="planta_baixa_inicial">Planta baixa inicial</option>
+                    <option value="layout_industrial">Layout industrial</option>
+                    <option value="projeto_eletrico_basico">Projeto elétrico básico</option>
+                    <option value="projeto_hidraulico_basico">Projeto hidráulico básico</option>
+                    <option value="projeto_iluminacao_basico">Projeto de iluminação básico</option>
+                    <option value="fechamento_gradil">Fechamento com gradil</option>
+                    <option value="inspecao_tecnica">Inspeção técnica</option>
+                  </select>
+                  <input class="field" id="technicalProjectLocation" placeholder="Local ou setor" />
+                  <textarea class="field" id="technicalProjectDescription" rows="7" placeholder="Descreva medidas, fotos enviadas, observações, finalidade, problemas encontrados ou premissas"></textarea>
+                  <button class="primary-action" type="submit">${icon("save")}Criar projeto técnico</button>
+                </form>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Projetos</h2>
+                <div class="list" id="technicalProjectsList"></div>
+              </article>
+              <article class="card">
+                <h2>Projeto selecionado</h2>
+                <div id="technicalProjectDetail" class="result-box">Selecione um projeto técnico para visualizar escopo, inspeções, arquivos e relatórios.</div>
+                <div class="row">
+                  <button class="button" id="technicalExportTxtButton" type="button">TXT</button>
+                  <button class="button" id="technicalExportPdfButton" type="button">PDF</button>
+                  <button class="button" id="technicalExportDocxButton" type="button">DOCX</button>
+                  <button class="button danger" id="deleteTechnicalProjectButton" type="button">${icon("trash")}Excluir</button>
+                </div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Inspeção inteligente</h2>
+                <form class="form" id="technicalInspectionForm">
+                  <input class="field" id="technicalInspectionTitle" placeholder="Título da inspeção" />
+                  <textarea class="field" id="technicalInspectionObservations" rows="6" placeholder="Descreva trincas, infiltrações, corrosão, falhas de manutenção, riscos ou não conformidades"></textarea>
+                  <button class="primary-action" type="submit">${icon("sparkles")}Gerar diagnóstico</button>
+                </form>
+                <div class="list" id="technicalInspectionsList"></div>
+              </article>
+              <article class="card">
+                <h2>Arquivos técnicos</h2>
+                <form class="form" id="technicalFileForm">
+                  <input class="field" id="technicalFileInput" type="file" accept=".pdf,.docx,.xlsx,.txt,.csv,.png,.jpg,.jpeg,image/png,image/jpeg,application/pdf" />
+                  <button class="primary-action" type="submit">${icon("paperclip")}Anexar ao projeto</button>
+                </form>
+                <div class="list" id="technicalFilesList"></div>
               </article>
             </div>
           </div>
@@ -3189,6 +3272,9 @@ ${logoYaraStyles()}
       let selectedSystem = null;
       let selectedSmartProjectId = null;
       let selectedProject = null;
+      let technicalProjects = [];
+      let selectedTechnicalProject = null;
+      let technicalChatSessionId = null;
       let generatedProject = null;
       let pendingAttachment = null;
       let currentProjectDetails = null;
@@ -3593,6 +3679,7 @@ ${logoYaraStyles()}
           generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
           systems: { title: "Sistemas", subtitle: "Histórico, arquitetura e exportação dos sistemas criados pela YARA.", loader: loadSystems },
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
+          technicalProjects: { title: "Projetos Técnicos", subtitle: "Chat técnico, inspeções, arquivos e relatórios de engenharia.", loader: loadTechnicalProjects },
           smartProjects: { title: "Projetos Inteligentes", subtitle: "Memória de decisões, fases, pendências e commits.", loader: loadSmartProjects },
           knowledge: { title: "Conhecimento", subtitle: "GraphRAG com relações entre dados da YARA.", loader: loadGraph },
           smartSearch: { title: "Busca Inteligente", subtitle: "Busca vetorial, híbrida e contextual em todo o workspace.", loader: loadSmartSearch },
@@ -4810,6 +4897,189 @@ ${logoYaraStyles()}
         const data = await api("/api/projects/" + selectedProject.id + "/details");
         renderProjectDetails(data);
         await loadProjectUploadOptions();
+      }
+
+      function renderTechnicalStats(dashboard) {
+        dashboard = dashboard || {};
+        const totals = dashboard.totals || {};
+        setHtml("technicalStats", [
+          '<article class="metric-card"><span class="metric-label">Projetos</span><strong>' + escapeHtml(String(totals.projects || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Inspeções</span><strong>' + escapeHtml(String(totals.inspections || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Arquivos</span><strong>' + escapeHtml(String(totals.files || 0)) + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Relatórios</span><strong>' + escapeHtml(String(totals.reports || 0)) + '</strong></article>'
+        ].join(""));
+      }
+
+      function renderTechnicalProjectOptions() {
+        const options = ['<option value="">Chat Técnico sem projeto selecionado</option>'].concat(technicalProjects.map(function(project) {
+          return '<option value="' + escapeHtml(project.id) + '"' + (selectedTechnicalProject && selectedTechnicalProject.id === project.id ? " selected" : "") + '>' + escapeHtml(project.title) + '</option>';
+        }));
+        setHtml("technicalChatProjectSelect", options.join(""));
+      }
+
+      function renderTechnicalProjectsList() {
+        setHtml("technicalProjectsList", technicalProjects.length
+          ? technicalProjects.map(function(project) {
+              const active = selectedTechnicalProject && selectedTechnicalProject.id === project.id ? " active" : "";
+              return '<button class="conversation-item' + active + '" data-open-technical-project="' + escapeHtml(project.id) + '" type="button"><strong>' + escapeHtml(project.title) + '</strong><span>' + escapeHtml(project.projectType || "técnico") + ' · risco ' + escapeHtml(project.riskLevel || "indefinido") + ' · ' + escapeHtml(project.status || "active") + '</span></button>';
+            }).join("")
+          : '<p class="muted">Nenhum projeto técnico criado ainda.</p>');
+        renderTechnicalProjectOptions();
+      }
+
+      function renderTechnicalDetail(data) {
+        if (!data || !data.project) {
+          selectedTechnicalProject = null;
+          setHtml("technicalProjectDetail", "Selecione um projeto técnico para visualizar escopo, inspeções, arquivos e relatórios.");
+          setHtml("technicalInspectionsList", '<p class="muted">Nenhuma inspeção selecionada.</p>');
+          setHtml("technicalFilesList", '<p class="muted">Nenhum arquivo técnico vinculado.</p>');
+          renderTechnicalProjectOptions();
+          return;
+        }
+        selectedTechnicalProject = data.project;
+        const outputs = data.outputs || [];
+        const inspections = data.inspections || [];
+        const files = data.files || [];
+        const lastOutput = outputs[0];
+        setHtml("technicalProjectDetail", [
+          '<strong>' + escapeHtml(data.project.title) + '</strong>',
+          '<p class="muted">' + escapeHtml(data.project.projectType || "") + ' · ' + escapeHtml(data.project.discipline || "") + ' · risco ' + escapeHtml(data.project.riskLevel || "indefinido") + '</p>',
+          '<p class="muted">' + escapeHtml(data.project.description || "") + '</p>',
+          lastOutput ? '<pre class="code-block">' + escapeHtml(lastOutput.content || "") + '</pre>' : '<p class="muted">Nenhuma saída técnica gerada ainda.</p>'
+        ].join(""));
+        setHtml("technicalInspectionsList", inspections.length
+          ? inspections.map(function(item) {
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.title) + '</strong><span class="status">' + escapeHtml(item.riskLevel || "médio") + '</span></div><p class="muted">' + escapeHtml(item.diagnosis || "") + '</p><p class="muted">Ações: ' + escapeHtml((item.actionPlan || []).join(" · ")) + '</p></article>';
+            }).join("")
+          : '<p class="muted">Nenhuma inspeção registrada.</p>');
+        setHtml("technicalFilesList", files.length
+          ? files.map(function(item) {
+              const url = item.file && item.file.url ? item.file.url : "";
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.originalName || "Arquivo") + '</strong><span class="status">' + escapeHtml(item.role || "input") + '</span></div><p class="muted">' + escapeHtml(item.fileType || "") + ' · ' + escapeHtml(String(item.fileSize || 0)) + ' bytes</p>' + (url ? '<button class="button small" data-download-technical-file="' + escapeHtml(url) + '" data-file-name="' + escapeHtml(item.originalName || "arquivo") + '" type="button">Baixar</button>' : '') + '</article>';
+            }).join("")
+          : '<p class="muted">Nenhum arquivo técnico vinculado.</p>');
+        renderTechnicalProjectOptions();
+        renderTechnicalProjectsList();
+      }
+
+      async function loadTechnicalProjects() {
+        const data = await api("/api/technical-projects");
+        technicalProjects = data.projects || [];
+        renderTechnicalStats(data.dashboard || {});
+        renderTechnicalProjectsList();
+        if (selectedTechnicalProject) {
+          const exists = technicalProjects.some(function(project) { return project.id === selectedTechnicalProject.id; });
+          if (exists) await selectTechnicalProject(selectedTechnicalProject.id);
+          else renderTechnicalDetail(null);
+        }
+      }
+
+      async function selectTechnicalProject(projectId) {
+        const data = await api("/api/technical-projects/" + projectId);
+        renderTechnicalDetail(data);
+      }
+
+      async function createTechnicalProjectFromForm(event) {
+        event.preventDefault();
+        const description = getValue("technicalProjectDescription").trim();
+        if (description.length < 2) return showToast("Descreva o projeto técnico.");
+        const data = await api("/api/technical-projects", {
+          method: "POST",
+          body: JSON.stringify({
+            title: getValue("technicalProjectTitle").trim() || undefined,
+            description: description,
+            projectType: getValue("technicalProjectType") || undefined,
+            location: getValue("technicalProjectLocation").trim() || null
+          })
+        });
+        technicalProjects.unshift(data.project);
+        setValue("technicalProjectTitle", "");
+        setValue("technicalProjectDescription", "");
+        setValue("technicalProjectLocation", "");
+        setValue("technicalProjectType", "");
+        renderTechnicalStats((await api("/api/technical-projects/dashboard")).dashboard || {});
+        renderTechnicalProjectsList();
+        renderTechnicalDetail(data);
+        showToast("Projeto técnico criado.");
+      }
+
+      async function sendTechnicalChatFromForm(event) {
+        event.preventDefault();
+        const message = getValue("technicalChatMessage").trim();
+        if (message.length < 1) return showToast("Digite uma mensagem técnica.");
+        const projectId = getValue("technicalChatProjectSelect") || (selectedTechnicalProject && selectedTechnicalProject.id) || null;
+        const data = await api("/api/technical-projects/chat", {
+          method: "POST",
+          body: JSON.stringify({ message: message, sessionId: technicalChatSessionId || undefined, projectId: projectId })
+        });
+        technicalChatSessionId = data.session && data.session.id;
+        setValue("technicalChatMessage", "");
+        if (data.project) selectedTechnicalProject = data.project;
+        setHtml("technicalChatMessages", (data.messages || []).map(function(messageItem) {
+          return '<article class="list-item"><strong>' + (messageItem.role === "user" ? "Você" : "YARA Técnica") + '</strong><p class="muted">' + escapeHtml(messageItem.content || "") + '</p></article>';
+        }).join(""));
+        await loadTechnicalProjects();
+        showToast("Chat Técnico atualizado.");
+      }
+
+      async function inspectTechnicalProjectFromForm(event) {
+        event.preventDefault();
+        if (!selectedTechnicalProject) return showToast("Selecione um projeto técnico.");
+        const observations = getValue("technicalInspectionObservations").trim();
+        if (observations.length < 2) return showToast("Informe observações para a inspeção.");
+        const data = await api("/api/technical-projects/" + selectedTechnicalProject.id + "/inspect", {
+          method: "POST",
+          body: JSON.stringify({
+            title: getValue("technicalInspectionTitle").trim() || undefined,
+            observations: observations
+          })
+        });
+        setValue("technicalInspectionTitle", "");
+        setValue("technicalInspectionObservations", "");
+        await selectTechnicalProject(data.project.id);
+        await loadTechnicalProjects();
+        showToast("Inspeção técnica registrada.");
+      }
+
+      async function exportSelectedTechnicalProject(format) {
+        if (!selectedTechnicalProject) return showToast("Selecione um projeto técnico.");
+        const data = await api("/api/technical-projects/" + selectedTechnicalProject.id + "/export", {
+          method: "POST",
+          body: JSON.stringify({ format: format })
+        });
+        await selectTechnicalProject(selectedTechnicalProject.id);
+        showToast("Exportação criada: " + (data.file && data.file.name ? data.file.name : format.toUpperCase()));
+      }
+
+      async function uploadTechnicalFileFromForm(event) {
+        event.preventDefault();
+        if (!selectedTechnicalProject) return showToast("Selecione um projeto técnico.");
+        const input = document.getElementById("technicalFileInput");
+        const file = input && input.files && input.files[0];
+        if (!file) return showToast("Escolha um arquivo técnico.");
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("role", "input");
+        const response = await fetch("/api/technical-projects/" + selectedTechnicalProject.id + "/files", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: formData
+        });
+        const data = await response.json().catch(function() { return {}; });
+        if (!response.ok) throw new Error((data.error && data.error.message) || "Não foi possível anexar arquivo técnico.");
+        if (input) input.value = "";
+        await selectTechnicalProject(selectedTechnicalProject.id);
+        showToast("Arquivo técnico anexado.");
+      }
+
+      async function deleteSelectedTechnicalProject() {
+        if (!selectedTechnicalProject) return showToast("Selecione um projeto técnico.");
+        if (!window.confirm("Excluir este projeto técnico?")) return;
+        await api("/api/technical-projects/" + selectedTechnicalProject.id, { method: "DELETE" });
+        selectedTechnicalProject = null;
+        await loadTechnicalProjects();
+        renderTechnicalDetail(null);
+        showToast("Projeto técnico excluído.");
       }
 
       async function loadSmartProjects() {
@@ -6392,6 +6662,15 @@ ${logoYaraStyles()}
             setValue(els.messageInput, "Quero continuar o projeto " + selectedProject.name + ".");
             if (els.messageInput) els.messageInput.focus();
           },
+          refreshTechnicalProjectsButton: loadTechnicalProjects,
+          newTechnicalProjectButton: function() {
+            const input = document.getElementById("technicalProjectDescription");
+            if (input) input.focus();
+          },
+          technicalExportTxtButton: function() { return exportSelectedTechnicalProject("txt"); },
+          technicalExportPdfButton: function() { return exportSelectedTechnicalProject("pdf"); },
+          technicalExportDocxButton: function() { return exportSelectedTechnicalProject("docx"); },
+          deleteTechnicalProjectButton: deleteSelectedTechnicalProject,
           editProjectButton: async function() {
             if (!selectedProject) return showToast("Selecione um projeto.");
             const name = window.prompt("Nome do projeto", selectedProject.name || "");
@@ -6664,6 +6943,20 @@ ${logoYaraStyles()}
             if (resolveConflictButton) {
               return runCapturedAction("resolve-memory-conflict", event, resolveConflictButton, function() {
                 return resolveMemoryConflictFromUi(resolveConflictButton.dataset.resolveConflict);
+              });
+            }
+
+            const technicalProjectButton = target.closest("[data-open-technical-project]");
+            if (technicalProjectButton) {
+              return runCapturedAction("open-technical-project", event, technicalProjectButton, function() {
+                return selectTechnicalProject(technicalProjectButton.dataset.openTechnicalProject);
+              });
+            }
+
+            const technicalDownloadButton = target.closest("[data-download-technical-file]");
+            if (technicalDownloadButton) {
+              return runCapturedAction("download-technical-file", event, technicalDownloadButton, function() {
+                return downloadProtectedPath(technicalDownloadButton.dataset.downloadTechnicalFile, technicalDownloadButton.dataset.fileName || "arquivo-tecnico");
               });
             }
 
@@ -8019,6 +8312,17 @@ ${logoYaraStyles()}
           await handleImageListClick(event);
         } catch (error) {
           showToast(error.message || "Não foi possível concluir a ação.");
+        }
+      });
+
+      on("technicalProjectForm", "submit", createTechnicalProjectFromForm);
+      on("technicalChatForm", "submit", sendTechnicalChatFromForm);
+      on("technicalInspectionForm", "submit", inspectTechnicalProjectFromForm);
+      on("technicalFileForm", "submit", async function(event) {
+        try {
+          await uploadTechnicalFileFromForm(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível anexar arquivo técnico.");
         }
       });
 

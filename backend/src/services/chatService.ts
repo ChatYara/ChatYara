@@ -21,6 +21,7 @@ import { answerProjectMemoryQuestion, readProjectMemoryContext } from "./project
 import { buildSearchContext, formatAnswerWithSources, runSearch, shouldUseOnlineSearch } from "./searchService";
 import { answerSemanticSearchQuestion, indexConversationMessageForSearch, readSemanticSearchContext } from "./semanticSearchService";
 import { answerSystemGeneration, detectSystemGenerationRequest } from "./systemGeneratorService";
+import { answerTechnicalIntentFromMainChat } from "./technicalProjectService";
 import { toPublicUpload } from "./uploadService";
 
 type ConversationRow = {
@@ -662,6 +663,9 @@ export async function sendMessage(
   const graphAnswer = answerGraphQuestion(userId, storedMessage);
   const semanticAnswer = answerSemanticSearchQuestion(userId, storedMessage);
   const consolidatedMemoryAnswer = answerConsolidatedMemoryQuestion(userId, storedMessage);
+  const technicalAnswer = !searchNeeded && !semanticAnswer && !consolidatedMemoryAnswer && !projectMemoryAnswer && !graphAnswer
+    ? await answerTechnicalIntentFromMainChat(userId, storedMessage)
+    : null;
   const systemGenerationAnswer = !searchNeeded && detectSystemGenerationRequest(storedMessage)
     ? answerSystemGeneration(userId, storedMessage)
     : null;
@@ -706,6 +710,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "system-generator",
       response: systemGenerationAnswer
+    };
+  } else if (technicalAnswer && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "technical-projects",
+      response: technicalAnswer
     };
   } else if (semanticAnswer && !searchNeeded) {
     ai = {
