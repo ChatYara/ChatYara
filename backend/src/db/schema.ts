@@ -417,6 +417,23 @@ export function runMigrations() {
       foreign key (project_id) references technical_projects(id) on delete cascade
     );
 
+    create table if not exists technical_project_exports (
+      id text primary key,
+      user_id text not null,
+      project_id text not null,
+      export_type text not null default 'technical',
+      requested_format text not null,
+      generated_format text,
+      status text not null default 'completed',
+      file_id text,
+      storage_path text,
+      technical_error text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references technical_projects(id) on delete cascade
+    );
+
     create table if not exists technical_project_inspections (
       id text primary key,
       user_id text not null,
@@ -1362,6 +1379,14 @@ export function runMigrations() {
   ensureColumn("technical_project_inputs", "metadata_json", "text not null default '{}'");
   ensureColumn("technical_project_outputs", "file_id", "text");
   ensureColumn("technical_project_outputs", "metadata_json", "text not null default '{}'");
+  ensureColumn("technical_project_exports", "export_type", "text not null default 'technical'");
+  ensureColumn("technical_project_exports", "requested_format", "text");
+  ensureColumn("technical_project_exports", "generated_format", "text");
+  ensureColumn("technical_project_exports", "status", "text not null default 'completed'");
+  ensureColumn("technical_project_exports", "file_id", "text");
+  ensureColumn("technical_project_exports", "storage_path", "text");
+  ensureColumn("technical_project_exports", "technical_error", "text");
+  ensureColumn("technical_project_exports", "metadata_json", "text not null default '{}'");
   ensureColumn("technical_project_inspections", "findings_json", "text not null default '[]'");
   ensureColumn("technical_project_inspections", "recommendations_json", "text not null default '[]'");
   ensureColumn("technical_project_inspections", "action_plan_json", "text not null default '[]'");
@@ -1445,6 +1470,9 @@ export function runMigrations() {
     update technical_projects set updated_at = created_at where updated_at is null;
     update technical_project_inputs set metadata_json = '{}' where metadata_json is null;
     update technical_project_outputs set metadata_json = '{}' where metadata_json is null;
+    update technical_project_exports set export_type = 'technical' where export_type is null;
+    update technical_project_exports set status = 'completed' where status is null;
+    update technical_project_exports set metadata_json = '{}' where metadata_json is null;
     update technical_project_inspections set findings_json = '[]' where findings_json is null;
     update technical_project_inspections set recommendations_json = '[]' where recommendations_json is null;
     update technical_project_inspections set action_plan_json = '[]' where action_plan_json is null;
@@ -1612,6 +1640,9 @@ export function runMigrations() {
 
     create index if not exists technical_project_outputs_user_project
       on technical_project_outputs(user_id, project_id, created_at);
+
+    create index if not exists technical_project_exports_user_project
+      on technical_project_exports(user_id, project_id, requested_format, created_at);
 
     create index if not exists technical_project_inspections_user_project
       on technical_project_inspections(user_id, project_id, risk_level, created_at);

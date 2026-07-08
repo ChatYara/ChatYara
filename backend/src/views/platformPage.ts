@@ -2110,8 +2110,12 @@ ${logoYaraStyles()}
                   <button class="button" id="technicalExportTxtButton" type="button">TXT</button>
                   <button class="button" id="technicalExportPdfButton" type="button">PDF</button>
                   <button class="button" id="technicalExportDocxButton" type="button">DOCX</button>
+                  <button class="button" id="technicalExportDxfButton" type="button">DXF</button>
+                  <button class="button" id="technicalExportDwgButton" type="button">DWG</button>
+                  <button class="button" id="technicalExportIfcButton" type="button">IFC</button>
                   <button class="button danger" id="deleteTechnicalProjectButton" type="button">${icon("trash")}Excluir</button>
                 </div>
+                <div class="list" id="technicalExportsList"></div>
               </article>
             </div>
             <div class="documents-layout">
@@ -4933,6 +4937,7 @@ ${logoYaraStyles()}
           setHtml("technicalProjectDetail", "Selecione um projeto técnico para visualizar escopo, inspeções, arquivos e relatórios.");
           setHtml("technicalInspectionsList", '<p class="muted">Nenhuma inspeção selecionada.</p>');
           setHtml("technicalFilesList", '<p class="muted">Nenhum arquivo técnico vinculado.</p>');
+          setHtml("technicalExportsList", '<p class="muted">Nenhuma exportação técnica criada.</p>');
           renderTechnicalProjectOptions();
           return;
         }
@@ -4940,6 +4945,7 @@ ${logoYaraStyles()}
         const outputs = data.outputs || [];
         const inspections = data.inspections || [];
         const files = data.files || [];
+        const exports = data.exports || [];
         const lastOutput = outputs[0];
         setHtml("technicalProjectDetail", [
           '<strong>' + escapeHtml(data.project.title) + '</strong>',
@@ -4958,6 +4964,13 @@ ${logoYaraStyles()}
               return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.originalName || "Arquivo") + '</strong><span class="status">' + escapeHtml(item.role || "input") + '</span></div><p class="muted">' + escapeHtml(item.fileType || "") + ' · ' + escapeHtml(String(item.fileSize || 0)) + ' bytes</p>' + (url ? '<button class="button small" data-download-technical-file="' + escapeHtml(url) + '" data-file-name="' + escapeHtml(item.originalName || "arquivo") + '" type="button">Baixar</button>' : '') + '</article>';
             }).join("")
           : '<p class="muted">Nenhum arquivo técnico vinculado.</p>');
+        setHtml("technicalExportsList", exports.length
+          ? exports.map(function(item) {
+              const file = item.file || {};
+              const status = item.status === "fallback" ? "fallback DXF" : item.status;
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(String(item.requestedFormat || "").toUpperCase()) + '</strong><span class="status">' + escapeHtml(status || "completed") + '</span></div><p class="muted">Gerado: ' + escapeHtml(String(item.generatedFormat || item.requestedFormat || "").toUpperCase()) + (item.technicalError ? ' · ' + escapeHtml(item.technicalError) : '') + '</p>' + (file.url ? '<button class="button small" data-download-technical-file="' + escapeHtml(file.url) + '" data-file-name="' + escapeHtml(file.name || "exportacao-tecnica") + '" type="button">Baixar</button>' : '') + '</article>';
+            }).join("")
+          : '<p class="muted">Nenhuma exportação técnica criada.</p>');
         renderTechnicalProjectOptions();
         renderTechnicalProjectsList();
       }
@@ -6670,6 +6683,9 @@ ${logoYaraStyles()}
           technicalExportTxtButton: function() { return exportSelectedTechnicalProject("txt"); },
           technicalExportPdfButton: function() { return exportSelectedTechnicalProject("pdf"); },
           technicalExportDocxButton: function() { return exportSelectedTechnicalProject("docx"); },
+          technicalExportDxfButton: function() { return exportSelectedTechnicalProject("dxf"); },
+          technicalExportDwgButton: function() { return exportSelectedTechnicalProject("dwg"); },
+          technicalExportIfcButton: function() { return exportSelectedTechnicalProject("ifc"); },
           deleteTechnicalProjectButton: deleteSelectedTechnicalProject,
           editProjectButton: async function() {
             if (!selectedProject) return showToast("Selecione um projeto.");

@@ -43,10 +43,14 @@ const allowedTypes = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/plain",
   "text/csv",
+  "application/dxf",
+  "application/ifc",
+  "application/acad",
+  "application/x-dwg",
   "image/png",
   "image/jpeg"
 ]);
-const allowedExtensions = new Set([".pdf", ".docx", ".xlsx", ".txt", ".csv", ".png", ".jpg", ".jpeg"]);
+const allowedExtensions = new Set([".pdf", ".docx", ".xlsx", ".txt", ".csv", ".dxf", ".dwg", ".ifc", ".png", ".jpg", ".jpeg"]);
 const blockedExtensions = new Set([".exe", ".bat", ".cmd", ".sh", ".js", ".ts", ".html", ".htm", ".php", ".ps1", ".vbs", ".msi", ".apk"]);
 
 export function getFilesDir() {

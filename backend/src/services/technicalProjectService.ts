@@ -5,8 +5,9 @@ import { getFile, toPublicFile } from "./fileService";
 import { readGraphContext } from "./graphService";
 import { readIntelligentMemoryContext } from "./memoryService";
 import { readSemanticSearchContext } from "./semanticSearchService";
+import { generateCadBimExport } from "./technicalCadExportService";
 
-type ExportFormat = "pdf" | "docx" | "txt";
+type ExportFormat = "pdf" | "docx" | "txt" | "dxf" | "dwg" | "ifc";
 
 type TechnicalProjectRow = {
   id: string;
@@ -50,6 +51,21 @@ type TechnicalFileRow = {
   file_type: string;
   file_size: number;
   role: string;
+  metadata_json: string;
+  created_at: string;
+};
+
+type TechnicalExportRow = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  export_type: string;
+  requested_format: string;
+  generated_format: string | null;
+  status: string;
+  file_id: string | null;
+  storage_path: string | null;
+  technical_error: string | null;
   metadata_json: string;
   created_at: string;
 };
@@ -336,6 +352,30 @@ function publicTechnicalFile(row: TechnicalFileRow) {
   };
 }
 
+function publicTechnicalExport(row: TechnicalExportRow) {
+  let file: ReturnType<typeof getFile> | null = null;
+  if (row.file_id) {
+    try {
+      file = getFile(row.user_id, row.file_id);
+    } catch {
+      file = null;
+    }
+  }
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    exportType: row.export_type,
+    requestedFormat: row.requested_format,
+    generatedFormat: row.generated_format,
+    status: row.status,
+    fileId: row.file_id,
+    technicalError: row.technical_error,
+    metadata: parseJson<Record<string, unknown>>(row.metadata_json, {}),
+    file,
+    createdAt: row.created_at
+  };
+}
+
 function publicMessage(row: TechnicalMessageRow) {
   return {
     id: row.id,
@@ -429,12 +469,14 @@ export function getTechnicalProject(userId: string, projectId: string) {
   const project = getProjectRow(userId, projectId);
   const inputs = db.prepare("select * from technical_project_inputs where user_id = ? and project_id = ? order by datetime(created_at) desc").all(userId, projectId);
   const outputs = db.prepare("select * from technical_project_outputs where user_id = ? and project_id = ? order by datetime(created_at) desc").all(userId, projectId) as any[];
+  const exports = db.prepare("select * from technical_project_exports where user_id = ? and project_id = ? order by datetime(created_at) desc").all(userId, projectId) as TechnicalExportRow[];
   const inspections = db.prepare("select * from technical_project_inspections where user_id = ? and project_id = ? order by datetime(created_at) desc").all(userId, projectId) as TechnicalInspectionRow[];
   const files = db.prepare("select * from technical_project_files where user_id = ? and project_id = ? order by datetime(created_at) desc").all(userId, projectId) as TechnicalFileRow[];
   return {
     project: publicProject(project),
     inputs: inputs.map((row: any) => ({ id: row.id, inputType: row.input_type, content: row.content, fileId: row.file_id, uploadId: row.upload_id, metadata: parseJson(row.metadata_json, {}), createdAt: row.created_at })),
     outputs: outputs.map((row) => ({ id: row.id, outputType: row.output_type, title: row.title, content: row.content, fileId: row.file_id, metadata: parseJson(row.metadata_json, {}), createdAt: row.created_at })),
+    exports: exports.map(publicTechnicalExport),
     inspections: inspections.map(publicInspection),
     files: files.map(publicTechnicalFile)
   };
@@ -468,6 +510,40 @@ export function deleteTechnicalProject(userId: string, projectId: string) {
 
 export async function exportTechnicalProject(userId: string, projectId: string, format: ExportFormat) {
   const details = getTechnicalProject(userId, projectId);
+  const project = details.project;
+  if (["dxf", "dwg", "ifc"].includes(format)) {
+    const result = await generateCadBimExport(userId, {
+      id: project.id,
+      title: project.title,
+      projectType: project.projectType,
+      discipline: project.discipline,
+      description: project.description,
+      location: project.location,
+      riskLevel: project.riskLevel
+    }, format as "dxf" | "dwg" | "ifc");
+    const exportId = uuid();
+    getDatabase()
+      .prepare(
+        `insert into technical_project_exports (
+           id, user_id, project_id, export_type, requested_format, generated_format, status, file_id, storage_path, technical_error, metadata_json
+         ) values (?, ?, ?, 'cad_bim', ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        exportId,
+        userId,
+        projectId,
+        result.requestedFormat,
+        result.generatedFormat,
+        result.status,
+        result.file.id,
+        null,
+        result.technicalError || null,
+        JSON.stringify({ source: "technical-cad-export", fallback: result.status === "fallback" })
+      );
+    insertOutput(userId, projectId, `export_${result.requestedFormat}`, `Exportação ${result.requestedFormat.toUpperCase()}`, result.technicalError || `Arquivo ${result.generatedFormat.toUpperCase()} gerado.`, result.file.id);
+    audit(userId, projectId, "export_project", "Exportação CAD/BIM criada.", { requestedFormat: result.requestedFormat, generatedFormat: result.generatedFormat, status: result.status, fileId: result.file.id });
+    return { file: result.file, project, export: publicTechnicalExport(getDatabase().prepare("select * from technical_project_exports where id = ? and user_id = ?").get(exportId, userId) as TechnicalExportRow) };
+  }
   const content = [
     technicalSections({
       title: details.project.title,
@@ -483,13 +559,21 @@ export async function exportTechnicalProject(userId: string, projectId: string, 
       : "- Nenhuma inspeção registrada."
   ].join("\n");
   const file = await generateExportFile(userId, {
-    format,
+    format: format as "pdf" | "docx" | "txt",
     title: `${details.project.title}.${format}`,
     content
   });
+  const exportId = uuid();
+  getDatabase()
+    .prepare(
+      `insert into technical_project_exports (
+         id, user_id, project_id, export_type, requested_format, generated_format, status, file_id, metadata_json
+       ) values (?, ?, ?, 'document', ?, ?, 'completed', ?, ?)`
+    )
+    .run(exportId, userId, projectId, format, format, file.id, JSON.stringify({ source: "technical-document-export" }));
   insertOutput(userId, projectId, `export_${format}`, `Exportação ${format.toUpperCase()}`, content, file.id);
   audit(userId, projectId, "export_project", "Projeto técnico exportado.", { format, fileId: file.id });
-  return { file, project: getTechnicalProject(userId, projectId).project };
+  return { file, project: getTechnicalProject(userId, projectId).project, export: publicTechnicalExport(getDatabase().prepare("select * from technical_project_exports where id = ? and user_id = ?").get(exportId, userId) as TechnicalExportRow) };
 }
 
 export function inspectTechnicalProject(userId: string, projectId: string, input: { title?: string; observations: string; fileIds?: string[] }) {
@@ -592,6 +676,17 @@ function buildTechnicalChatResponse(userId: string, message: string, projectId: 
   ].join("\n");
 }
 
+function detectTechnicalExportFormat(message: string): ExportFormat | null {
+  const value = normalize(message);
+  if (/\bdwg\b/.test(value)) return "dwg";
+  if (/\bdxf\b|cad|planta em cad/.test(value)) return "dxf";
+  if (/\bifc\b|bim/.test(value)) return "ifc";
+  if (/\bpdf\b/.test(value)) return "pdf";
+  if (/\bdocx\b|word/.test(value)) return "docx";
+  if (/\btxt\b|texto/.test(value)) return "txt";
+  return null;
+}
+
 export async function sendTechnicalChatMessage(userId: string, input: { message: string; sessionId?: string; projectId?: string | null; fileIds?: string[] }) {
   const message = truncate(input.message, 8000);
   if (!message && !(input.fileIds || []).length) throw new Error("Digite uma mensagem técnica.");
@@ -617,7 +712,16 @@ export async function sendTechnicalChatMessage(userId: string, input: { message:
     }
   }
 
-  const assistantContent = buildTechnicalChatResponse(userId, message, projectId);
+  const requestedExport = projectId ? detectTechnicalExportFormat(message) : null;
+  let assistantContent = buildTechnicalChatResponse(userId, message, projectId);
+  if (projectId && requestedExport && /\b(exporte|exportar|gere|gerar|baixar|arquivo|cad|bim|planta)\b/i.test(message)) {
+    const exported = await exportTechnicalProject(userId, projectId, requestedExport);
+    assistantContent = [
+      `Exportação técnica solicitada: ${requestedExport.toUpperCase()}.`,
+      exported.export?.status === "fallback" ? exported.export.technicalError : `Arquivo ${String(exported.export?.generatedFormat || requestedExport).toUpperCase()} gerado.`,
+      `Baixar: ${exported.file.url}`
+    ].filter(Boolean).join("\n");
+  }
   const assistantMessageId = uuid();
   db.prepare(
     `insert into technical_project_messages (id, user_id, session_id, project_id, role, content, metadata_json)
@@ -690,4 +794,12 @@ export function getTechnicalProjectFiles(userId: string, projectId: string) {
     .prepare("select * from technical_project_files where user_id = ? and project_id = ? order by datetime(created_at) desc")
     .all(userId, projectId) as TechnicalFileRow[];
   return rows.map(publicTechnicalFile);
+}
+
+export function listTechnicalProjectExports(userId: string, projectId: string) {
+  getProjectRow(userId, projectId);
+  const rows = getDatabase()
+    .prepare("select * from technical_project_exports where user_id = ? and project_id = ? order by datetime(created_at) desc")
+    .all(userId, projectId) as TechnicalExportRow[];
+  return rows.map(publicTechnicalExport);
 }

@@ -13,6 +13,7 @@ import {
   getTechnicalProjectFiles,
   inspectTechnicalProject,
   linkTechnicalProjectFile,
+  listTechnicalProjectExports,
   listTechnicalChatHistory,
   listTechnicalProjects,
   sendTechnicalChatMessage,
@@ -45,7 +46,7 @@ const inspectSchema = z.object({
 });
 
 const exportSchema = z.object({
-  format: z.enum(["txt", "pdf", "docx"]).default("txt")
+  format: z.enum(["txt", "pdf", "docx", "dxf", "dwg", "ifc"]).default("txt")
 });
 
 const chatSchema = z.object({
@@ -153,6 +154,14 @@ technicalProjectRoutes.post("/technical-projects/:id/export", async (req, res) =
     return res.status(201).json(data);
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível exportar projeto técnico.");
+  }
+});
+
+technicalProjectRoutes.get("/technical-projects/:id/exports", (req, res) => {
+  try {
+    return res.json({ exports: listTechnicalProjectExports(req.user!.id, req.params.id) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Projeto técnico não encontrado.");
   }
 });
 

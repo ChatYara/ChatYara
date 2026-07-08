@@ -451,6 +451,23 @@ create table if not exists technical_project_outputs (
   foreign key (project_id) references technical_projects(id) on delete cascade
 );
 
+create table if not exists technical_project_exports (
+  id text primary key,
+  user_id text not null,
+  project_id text not null,
+  export_type text not null default 'technical',
+  requested_format text not null,
+  generated_format text,
+  status text not null default 'completed',
+  file_id text,
+  storage_path text,
+  technical_error text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (project_id) references technical_projects(id) on delete cascade
+);
+
 create table if not exists technical_project_inspections (
   id text primary key,
   user_id text not null,
@@ -640,6 +657,9 @@ create index if not exists technical_project_inputs_user_project
 
 create index if not exists technical_project_outputs_user_project
   on technical_project_outputs(user_id, project_id, created_at);
+
+create index if not exists technical_project_exports_user_project
+  on technical_project_exports(user_id, project_id, requested_format, created_at);
 
 create index if not exists technical_project_inspections_user_project
   on technical_project_inspections(user_id, project_id, risk_level, created_at);
