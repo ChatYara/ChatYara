@@ -9,8 +9,15 @@ function isPostgresUrl(url: string) {
   return url.startsWith("postgres://") || url.startsWith("postgresql://");
 }
 
+function effectiveDatabaseUrl() {
+  const runtimeUrl = process.env.DATABASE_URL?.trim();
+  if (runtimeUrl) return runtimeUrl;
+  if (process.env.RENDER || process.env.NODE_ENV === "production") return "";
+  return env.databaseUrl;
+}
+
 export function getDatabaseInfo() {
-  const url = env.databaseUrl;
+  const url = effectiveDatabaseUrl();
 
   if (!url) {
     return {
@@ -31,7 +38,7 @@ export function getDatabaseInfo() {
   }
 
   if (url.startsWith("sqlite:")) {
-    const sqlitePath = url.replace("sqlite:", "");
+    const sqlitePath = url.slice("sqlite:".length);
     return {
       type: "sqlite" as const,
       url,

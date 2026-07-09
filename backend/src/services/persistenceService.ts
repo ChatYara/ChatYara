@@ -31,6 +31,10 @@ function renderPersistentRoots() {
     .map((item) => path.resolve(item));
 }
 
+function isExplicitRenderPersistentSqliteUrl(url: string) {
+  return url.startsWith("sqlite:/data/") || url === "sqlite:/data";
+}
+
 function isPathInside(target: string, root: string) {
   const relative = path.relative(path.resolve(root), path.resolve(target));
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
@@ -48,7 +52,14 @@ export function isPersistentSqlitePath(absolutePath: string) {
 export function validatePersistenceConfiguration() {
   const info = getDatabaseInfo();
   const errors: string[] = [];
+  const roots = renderPersistentRoots();
+  const explicitPersistentSqlite = info.type === "sqlite" && isExplicitRenderPersistentSqliteUrl(info.url);
+  console.log(`Persistence check: DATABASE_URL original=${databaseUrlForLog(process.env.DATABASE_URL?.trim() || "")}`);
   console.log(`Persistence check: using DATABASE_URL=${databaseUrlForLog(info.url)}`);
+  console.log(`Persistence check: sqlitePath=${info.sqlitePath || "(none)"}`);
+  console.log(`Persistence check: resolvedPath=${info.absolutePath || "(none)"}`);
+  console.log(`Persistence check: mountPaths=${roots.join(",") || "(none)"}`);
+  console.log(`Persistence check: env=${JSON.stringify({ render: Boolean(process.env.RENDER), nodeEnv: process.env.NODE_ENV || "", cwd: process.cwd() })}`);
 
   if (info.type === "missing") {
     errors.push("DATABASE_URL não foi configurado. No Render configure DATABASE_URL=sqlite:/data/yara.sqlite.");
@@ -64,7 +75,13 @@ export function validatePersistenceConfiguration() {
     );
   }
 
-  if (info.type === "sqlite" && info.absolutePath && process.env.RENDER && !isPersistentSqlitePath(info.absolutePath)) {
+  if (
+    info.type === "sqlite" &&
+    info.absolutePath &&
+    process.env.RENDER &&
+    !explicitPersistentSqlite &&
+    !isPersistentSqlitePath(info.absolutePath)
+  ) {
     errors.push(
       `SQLite em caminho efêmero detectado no Render (${info.absolutePath}). Configure um Persistent Disk montado em /data e use DATABASE_URL=sqlite:/data/yara.sqlite.`
     );
