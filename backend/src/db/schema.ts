@@ -1234,8 +1234,10 @@ export function runMigrations() {
       id text primary key,
       user_id text not null,
       name text not null,
+      description text not null default '',
       type text not null,
       trigger_type text not null default 'scheduled',
+      trigger_config_json text not null default '{}',
       schedule_expression text,
       next_run_at text,
       action_json text not null default '{}',
@@ -1256,6 +1258,87 @@ export function runMigrations() {
       started_at text not null default current_timestamp,
       finished_at text,
       foreign key (automation_id) references automations(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automation_flows (
+      id text primary key,
+      user_id text not null,
+      name text not null,
+      description text not null default '',
+      status text not null default 'active',
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automation_triggers (
+      id text primary key,
+      user_id text not null,
+      automation_id text not null,
+      trigger_type text not null,
+      trigger_config_json text not null default '{}',
+      status text not null default 'active',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (automation_id) references automations(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automation_actions (
+      id text primary key,
+      user_id text not null,
+      automation_id text not null,
+      action_type text not null,
+      action_config_json text not null default '{}',
+      sort_order integer not null default 0,
+      status text not null default 'active',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (automation_id) references automations(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automation_runs (
+      id text primary key,
+      user_id text not null,
+      automation_id text not null,
+      status text not null,
+      start_time text not null default current_timestamp,
+      end_time text,
+      duration_ms integer,
+      result_json text not null default '{}',
+      logs_json text not null default '[]',
+      created_at text not null default current_timestamp,
+      foreign key (automation_id) references automations(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automation_logs (
+      id text primary key,
+      user_id text not null,
+      automation_id text,
+      run_id text,
+      level text not null default 'info',
+      message text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (automation_id) references automations(id) on delete cascade,
+      foreign key (run_id) references automation_runs(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists automation_audit_logs (
+      id text primary key,
+      user_id text not null,
+      automation_id text,
+      action text not null,
+      status text not null default 'success',
+      message text not null default '',
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (automation_id) references automations(id) on delete set null,
       foreign key (user_id) references users(id) on delete cascade
     );
 
@@ -1425,7 +1508,9 @@ export function runMigrations() {
   ensureColumn("drive_files_cache", "modified_at", "text");
   ensureColumn("drive_files_cache", "metadata_json", "text not null default '{}'");
   ensureColumn("drive_files_cache", "updated_at", "text");
+  ensureColumn("automations", "description", "text not null default ''");
   ensureColumn("automations", "trigger_type", "text not null default 'scheduled'");
+  ensureColumn("automations", "trigger_config_json", "text not null default '{}'");
   ensureColumn("automations", "schedule_expression", "text");
   ensureColumn("automations", "next_run_at", "text");
   ensureColumn("automations", "action_json", "text not null default '{}'");
@@ -1435,6 +1520,10 @@ export function runMigrations() {
   ensureColumn("automation_executions", "result_json", "text not null default '{}'");
   ensureColumn("automation_executions", "error", "text");
   ensureColumn("automation_executions", "finished_at", "text");
+  ensureColumn("automation_runs", "logs_json", "text not null default '[]'");
+  ensureColumn("automation_runs", "duration_ms", "integer");
+  ensureColumn("automation_logs", "metadata_json", "text not null default '{}'");
+  ensureColumn("automation_audit_logs", "metadata_json", "text not null default '{}'");
   ensureColumn("backups", "metadata_json", "text not null default '{}'");
   ensureColumn("backups", "file_size", "integer not null default 0");
   ensureColumn("notifications", "scheduled_for", "text");
@@ -1535,11 +1624,20 @@ export function runMigrations() {
     update integrations set updated_at = created_at where updated_at is null;
     update drive_files_cache set metadata_json = '{}' where metadata_json is null;
     update drive_files_cache set updated_at = created_at where updated_at is null;
+    update automations set description = '' where description is null;
     update automations set trigger_type = 'scheduled' where trigger_type is null;
+    update automations set trigger_config_json = '{}' where trigger_config_json is null;
     update automations set action_json = '{}' where action_json is null;
     update automations set status = 'active' where status is null;
     update automations set updated_at = created_at where updated_at is null;
     update automation_executions set result_json = '{}' where result_json is null;
+    update automation_flows set metadata_json = '{}' where metadata_json is null;
+    update automation_triggers set trigger_config_json = '{}' where trigger_config_json is null;
+    update automation_actions set action_config_json = '{}' where action_config_json is null;
+    update automation_runs set result_json = '{}' where result_json is null;
+    update automation_runs set logs_json = '[]' where logs_json is null;
+    update automation_logs set metadata_json = '{}' where metadata_json is null;
+    update automation_audit_logs set metadata_json = '{}' where metadata_json is null;
     update audit_events set metadata_json = '{}' where metadata_json is null;
     update application_logs set context_json = '{}' where context_json is null;
     update backups set metadata_json = '{}' where metadata_json is null;
@@ -1653,6 +1751,24 @@ export function runMigrations() {
 
     create index if not exists automation_executions_user_started
       on automation_executions(user_id, started_at);
+
+    create index if not exists automation_flows_user_status
+      on automation_flows(user_id, status, updated_at);
+
+    create index if not exists automation_triggers_user_automation
+      on automation_triggers(user_id, automation_id, trigger_type);
+
+    create index if not exists automation_actions_user_automation
+      on automation_actions(user_id, automation_id, sort_order);
+
+    create index if not exists automation_runs_user_created
+      on automation_runs(user_id, created_at);
+
+    create index if not exists automation_logs_user_created
+      on automation_logs(user_id, created_at);
+
+    create index if not exists automation_audit_logs_user_created
+      on automation_audit_logs(user_id, created_at);
 
     create index if not exists backups_created
       on backups(created_at);

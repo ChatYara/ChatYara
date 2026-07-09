@@ -1453,8 +1453,10 @@ create table if not exists automations (
   id text primary key,
   user_id text not null,
   name text not null,
+  description text not null default '',
   type text not null,
   trigger_type text not null default 'scheduled',
+  trigger_config_json text not null default '{}',
   schedule_expression text,
   next_run_at text,
   action_json text not null default '{}',
@@ -1483,6 +1485,105 @@ create table if not exists automation_executions (
 
 create index if not exists automation_executions_user_started
   on automation_executions(user_id, started_at);
+
+create table if not exists automation_flows (
+  id text primary key,
+  user_id text not null,
+  name text not null,
+  description text not null default '',
+  status text not null default 'active',
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automation_flows_user_status
+  on automation_flows(user_id, status, updated_at);
+
+create table if not exists automation_triggers (
+  id text primary key,
+  user_id text not null,
+  automation_id text not null,
+  trigger_type text not null,
+  trigger_config_json text not null default '{}',
+  status text not null default 'active',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (automation_id) references automations(id) on delete cascade,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automation_triggers_user_automation
+  on automation_triggers(user_id, automation_id, trigger_type);
+
+create table if not exists automation_actions (
+  id text primary key,
+  user_id text not null,
+  automation_id text not null,
+  action_type text not null,
+  action_config_json text not null default '{}',
+  sort_order integer not null default 0,
+  status text not null default 'active',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (automation_id) references automations(id) on delete cascade,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automation_actions_user_automation
+  on automation_actions(user_id, automation_id, sort_order);
+
+create table if not exists automation_runs (
+  id text primary key,
+  user_id text not null,
+  automation_id text not null,
+  status text not null,
+  start_time text not null default current_timestamp,
+  end_time text,
+  duration_ms integer,
+  result_json text not null default '{}',
+  logs_json text not null default '[]',
+  created_at text not null default current_timestamp,
+  foreign key (automation_id) references automations(id) on delete cascade,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automation_runs_user_created
+  on automation_runs(user_id, created_at);
+
+create table if not exists automation_logs (
+  id text primary key,
+  user_id text not null,
+  automation_id text,
+  run_id text,
+  level text not null default 'info',
+  message text not null,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (automation_id) references automations(id) on delete cascade,
+  foreign key (run_id) references automation_runs(id) on delete cascade,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automation_logs_user_created
+  on automation_logs(user_id, created_at);
+
+create table if not exists automation_audit_logs (
+  id text primary key,
+  user_id text not null,
+  automation_id text,
+  action text not null,
+  status text not null default 'success',
+  message text not null default '',
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (automation_id) references automations(id) on delete set null,
+  foreign key (user_id) references users(id) on delete cascade
+);
+
+create index if not exists automation_audit_logs_user_created
+  on automation_audit_logs(user_id, created_at);
 
 create table if not exists backups (
   id text primary key,

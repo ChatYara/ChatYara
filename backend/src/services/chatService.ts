@@ -4,6 +4,7 @@ import { getDatabase } from "../db/connection";
 import { answerAgentIntent } from "./agentService";
 import { classifyAIProviderError } from "./ai/AIProvider";
 import { askYara } from "./ai/aiService";
+import { createAutomationFromChat } from "./automationService";
 import { tryCreateCalendarItemFromChat } from "./calendarService";
 import { buildDocumentContextFromUploads } from "./documentService";
 import { attachExportToMessage, detectExportRequest, extractExportContent, generateExportFile } from "./exportService";
@@ -79,6 +80,16 @@ type FileRow = {
 function conversationTitle(message: string) {
   const clean = message.replace(/\s+/g, " ").trim();
   return clean.length > 42 ? `${clean.slice(0, 42)}...` : clean || "Nova conversa";
+}
+
+function detectAutomationRequest(message: string) {
+  const text = message.toLowerCase();
+  if (/automação|automacao|automatize|crie um fluxo|fluxo de trabalho|workflow/.test(text)) return true;
+  if (/^quando eu .+/.test(text) && /(gere|crie|envie|registre|indexe|execute|notifique)/.test(text)) return true;
+  if (/todo dia|diariamente|toda semana|semanalmente|mensalmente/.test(text) && /(resumo|relatório|relatorio|notifique|envie)/.test(text)) {
+    return true;
+  }
+  return false;
 }
 
 function publicUploadSelect() {
@@ -656,7 +667,11 @@ export async function sendMessage(
   extractCognitiveFactsFromMessage(userId, conversationId, storedMessage);
   refreshKnowledgeGraphSoon(userId);
   const calendarAction = tryCreateCalendarItemFromChat(userId, storedMessage);
-  const integrationAction = calendarAction ? null : await tryHandleIntegrationChatIntent(userId, storedMessage);
+  const automationAction =
+    calendarAction || !detectAutomationRequest(storedMessage)
+      ? null
+      : createAutomationFromChat(userId, storedMessage);
+  const integrationAction = calendarAction || automationAction ? null : await tryHandleIntegrationChatIntent(userId, storedMessage);
 
   const searchNeeded = shouldUseOnlineSearch(storedMessage, Boolean(input.useWebSearch));
   const direct = directAnswer(storedMessage);
@@ -678,7 +693,7 @@ export async function sendMessage(
   let exportedFile: ReturnType<typeof toPublicFile> | null = null;
   let ai: Awaited<ReturnType<typeof askYara>> | { provider: "gemini" | "openai"; model: string; response: string };
 
-  if (exportFormat && !searchNeeded) {
+  if (exportFormat && !searchNeeded && !automationAction) {
     const exportContent = extractExportContent(
       storedMessage,
       [documentContext, readLatestExportSource(conversationId, userMessageId)].filter(Boolean).join("\n\n")
@@ -708,6 +723,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "integration-action",
       response: integrationAction.text || "Integração processada pela YARA AI."
+    };
+  } else if (automationAction && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "automation-action",
+      response: automationAction.reply || "Automação criada e registrada no workspace."
     };
   } else if (systemGenerationAnswer && !searchNeeded) {
     ai = {

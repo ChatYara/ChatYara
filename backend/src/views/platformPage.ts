@@ -1762,6 +1762,7 @@ ${logoYaraStyles()}
             ${navButton("images", "Imagens", "image")}
             ${navButton("calendar", "Agenda", "history")}
             ${navButton("integrations", "Integrações", "share")}
+            ${navButton("automations", "Automações", "sparkles")}
             ${navButton("audit", "Auditoria", "shield")}
             ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
@@ -2886,6 +2887,106 @@ ${logoYaraStyles()}
           </div>
         </section>
 
+        <section class="view" id="view-automations" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Automações</h2>
+                <p class="muted">Crie, execute e monitore fluxos entre chat, sistemas, projetos técnicos, agentes, arquivos, agenda e memória.</p>
+              </div>
+              <button class="button" id="refreshAutomationWorkspaceButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="stats-grid" id="automationDashboardGrid">
+              ${statCard("Automações", "0", "Total criado")}
+              ${statCard("Ativas", "0", "Prontas para execução")}
+              ${statCard("Execuções hoje", "0", "Histórico do dia")}
+              ${statCard("Falhas", "0", "Exigem revisão")}
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Chat de Automações</h2>
+                <p class="muted">Descreva o fluxo em linguagem natural. A YARA converte em gatilho, ações e histórico auditável.</p>
+                <div class="chat-feed compact" id="automationChatMessages">
+                  <div class="message assistant"><div class="message-content">Exemplo: “Quando eu criar um projeto técnico, gere DXF e registre na memória.”</div></div>
+                </div>
+                <form class="composer" id="automationChatForm">
+                  <textarea id="automationChatInput" rows="2" placeholder="Descreva a automação..."></textarea>
+                  <button class="send-button" type="submit" aria-label="Criar automação">${icon("arrowUp")}</button>
+                </form>
+              </article>
+              <article class="card">
+                <h2>Novo fluxo</h2>
+                <p class="muted">Criação manual rápida para fluxos simples e recorrentes.</p>
+                <form class="form" id="automationFlowForm">
+                  <input class="field" id="automationFlowName" placeholder="Nome do fluxo" />
+                  <textarea class="field" id="automationFlowDescription" rows="2" placeholder="Descrição do fluxo"></textarea>
+                  <div class="split">
+                    <select class="select" id="automationFlowTrigger">
+                      <option value="scheduled">Horário</option>
+                      <option value="event">Evento</option>
+                      <option value="creation">Criação</option>
+                      <option value="update">Atualização</option>
+                      <option value="upload">Upload</option>
+                      <option value="agent">Agente</option>
+                      <option value="system">Sistema</option>
+                      <option value="technical_project">Projeto técnico</option>
+                      <option value="file">Arquivo</option>
+                      <option value="memory">Memória</option>
+                    </select>
+                    <select class="select" id="automationFlowAction">
+                      <option value="generate_pdf">Gerar PDF</option>
+                      <option value="generate_docx">Gerar DOCX</option>
+                      <option value="generate_xlsx">Gerar XLSX</option>
+                      <option value="export_dxf">Exportar DXF</option>
+                      <option value="export_ifc">Exportar IFC</option>
+                      <option value="send_to_agent">Enviar para agente</option>
+                      <option value="index_memory">Indexar memória</option>
+                      <option value="create_task">Criar tarefa</option>
+                      <option value="create_project">Criar projeto</option>
+                      <option value="generate_report">Gerar relatório</option>
+                    </select>
+                  </div>
+                  <select class="select" id="automationFlowSchedule">
+                    <option value="manual">Manual</option>
+                    <option value="once">Uma vez</option>
+                    <option value="daily">Diária</option>
+                    <option value="weekly">Semanal</option>
+                    <option value="monthly">Mensal</option>
+                  </select>
+                  <button class="primary-action" type="submit">${icon("plus")}Criar fluxo</button>
+                </form>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <div class="item-top">
+                  <h2>Fluxos</h2>
+                  <span class="status">JWT obrigatório</span>
+                </div>
+                <div class="list" id="automationFlowList"></div>
+              </article>
+              <article class="card">
+                <h2>Execuções e histórico</h2>
+                <div class="list" id="automationRunList"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Logs</h2>
+                <div class="list" id="automationLogList"></div>
+              </article>
+              <article class="card">
+                <h2>Configurações</h2>
+                <div class="list">
+                  <article class="list-item"><strong>Isolamento por usuário</strong><p class="muted">Cada automação, execução e log é filtrado pelo JWT do usuário autenticado.</p></article>
+                  <article class="list-item"><strong>Execução segura</strong><p class="muted">Fluxos registram auditoria e não expõem segredos de integrações.</p></article>
+                  <article class="list-item"><strong>Persistência Render</strong><p class="muted">Banco e backups continuam usando as variáveis DATABASE_URL e BACKUP_DIR configuradas.</p></article>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <section class="view" id="view-audit" hidden>
           <div class="panel">
             <div class="settings-hero">
@@ -3773,6 +3874,7 @@ ${logoYaraStyles()}
           images: { title: "Imagens", subtitle: "OCR, análise e edição inicial de imagens.", loader: loadImages },
           calendar: { title: "Agenda", subtitle: "Eventos, lembretes e notificações.", loader: loadCalendar },
           integrations: { title: "Integrações", subtitle: "Google, Gmail, Telegram, WhatsApp e notificações.", loader: loadIntegrations },
+          automations: { title: "Automações", subtitle: "Fluxos inteligentes entre módulos, agentes e arquivos.", loader: loadAutomationWorkspace },
           audit: { title: "Auditoria", subtitle: "Segurança, logs, backups e saúde da produção.", loader: loadAudit },
           settings: { title: "Configurações", subtitle: "Preferências, conta e memória da YARA.", loader: loadSettings }
         };
@@ -6578,6 +6680,151 @@ ${logoYaraStyles()}
         renderAutomations(data.automations || [], executions.executions || []);
       }
 
+      function renderAutomationWorkspaceDashboard(dashboard) {
+        const target = document.getElementById("automationDashboardGrid");
+        if (!target) return;
+        const data = dashboard || {};
+        target.innerHTML = [
+          automationStatCard("Automações", String(data.total || 0), "Total criado"),
+          automationStatCard("Ativas", String(data.active || 0), "Prontas para execução"),
+          automationStatCard("Execuções hoje", String(data.runsToday || 0), "Histórico do dia"),
+          automationStatCard("Falhas", String(data.failures || 0), "Exigem revisão")
+        ].join("");
+      }
+
+      function automationStatCard(label, value, detail) {
+        return '<article class="card stat-card"><span class="avatar">' + escapeHtml(value) + '</span><strong>' + escapeHtml(label) + '</strong><p class="muted">' + escapeHtml(detail || "") + '</p></article>';
+      }
+
+      function renderAutomationWorkspaceList(automations) {
+        const target = document.getElementById("automationFlowList");
+        if (!target) return;
+        target.innerHTML = (automations || []).length
+          ? automations.map(function(item) {
+              const action = item.action && item.action.type ? item.action.type : "notify";
+              return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(item.name) + '</strong><p class="muted">' + escapeHtml(item.description || "Fluxo YARA") + '</p><p class="muted">' + escapeHtml(item.triggerType || "scheduled") + ' · ' + escapeHtml(action) + ' · ' + escapeHtml(item.status || "active") + '</p></div><div class="row"><button class="button" data-test-automation="' + escapeHtml(item.id) + '" type="button">Testar</button><button class="button" data-run-automation-workspace="' + escapeHtml(item.id) + '" type="button">Executar</button><button class="button" data-toggle-automation="' + escapeHtml(item.id) + '" data-status="' + escapeHtml(item.status || "active") + '" type="button">' + (item.status === "active" ? "Desabilitar" : "Habilitar") + '</button><button class="icon-button danger" data-delete-automation-workspace="' + escapeHtml(item.id) + '" type="button" aria-label="Excluir automação">${icon("trash")}</button></div></div></article>';
+            }).join("")
+          : '<p class="muted">Nenhum fluxo criado ainda. Use o chat ou o formulário para criar uma automação.</p>';
+      }
+
+      function renderAutomationWorkspaceHistory(history) {
+        const target = document.getElementById("automationRunList");
+        if (!target) return;
+        target.innerHTML = (history || []).length
+          ? history.map(function(item) {
+              const result = item.result ? safeJsonPreview(item.result) : "";
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.status || "running") + '</strong><span class="status">' + escapeHtml(String(item.duration || 0)) + ' ms</span></div><p class="muted">' + escapeHtml(item.createdAt || item.startTime || "") + '</p>' + (result ? '<p class="muted">' + result + '</p>' : "") + '</article>';
+            }).join("")
+          : '<p class="muted">Nenhuma execução registrada.</p>';
+      }
+
+      function renderAutomationWorkspaceLogs(logs) {
+        const target = document.getElementById("automationLogList");
+        if (!target) return;
+        target.innerHTML = (logs || []).length
+          ? logs.map(function(item) {
+              return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml((item.level || "info").toUpperCase()) + '</strong><span class="status">' + escapeHtml(item.createdAt || "") + '</span></div><p>' + escapeHtml(item.message || "Log de automação.") + '</p></article>';
+            }).join("")
+          : '<p class="muted">Nenhum log de automação registrado.</p>';
+      }
+
+      async function loadAutomationWorkspace() {
+        const data = await api("/api/automations/workspace");
+        renderAutomationWorkspaceDashboard(data.dashboard || {});
+        renderAutomationWorkspaceList(data.automations || []);
+        renderAutomationWorkspaceHistory(data.history || []);
+        renderAutomationWorkspaceLogs(data.logs || []);
+      }
+
+      async function createAutomationFlowFromUi() {
+        const name = getValue("automationFlowName").trim();
+        const description = getValue("automationFlowDescription").trim();
+        const triggerType = getValue("automationFlowTrigger") || "scheduled";
+        const actionType = getValue("automationFlowAction") || "generate_pdf";
+        const scheduleExpression = getValue("automationFlowSchedule") || "manual";
+        if (!name) return showToast("Informe o nome do fluxo.");
+        await api("/api/automations", {
+          method: "POST",
+          body: JSON.stringify({
+            name: name,
+            description: description,
+            type: actionType === "create_task" ? "recurring_task" : "auto_report",
+            triggerType: triggerType,
+            triggerConfig: { source: "workspace" },
+            scheduleExpression: scheduleExpression,
+            action: { type: actionType, title: name, message: description || name },
+            actions: [{ type: actionType, config: { instruction: description || name } }]
+          })
+        });
+        const form = document.getElementById("automationFlowForm");
+        if (form && "reset" in form) form.reset();
+        await loadAutomationWorkspace();
+        await loadAutomations();
+        showToast("Fluxo de automação criado.");
+      }
+
+      function appendAutomationChat(role, text) {
+        const target = document.getElementById("automationChatMessages");
+        if (!target) return;
+        target.insertAdjacentHTML("beforeend", '<div class="message ' + escapeHtml(role) + '"><div class="message-content">' + escapeHtml(text) + '</div></div>');
+        target.scrollTop = target.scrollHeight;
+      }
+
+      async function sendAutomationChatFromUi() {
+        const input = document.getElementById("automationChatInput");
+        const message = getValue("automationChatInput").trim();
+        if (!message) return showToast("Descreva a automação.");
+        appendAutomationChat("user", message);
+        if (input && "value" in input) input.value = "";
+        const data = await api("/api/automations/chat", {
+          method: "POST",
+          body: JSON.stringify({ message: message })
+        });
+        appendAutomationChat("assistant", data.reply || "Automação criada.");
+        await loadAutomationWorkspace();
+        await loadAutomations();
+      }
+
+      async function handleAutomationWorkspaceClick(event) {
+        const testButton = event.target.closest("[data-test-automation]");
+        if (testButton) {
+          await api("/api/automations/test", {
+            method: "POST",
+            body: JSON.stringify({ automationId: testButton.dataset.testAutomation })
+          });
+          await loadAutomationWorkspace();
+          showToast("Teste da automação concluído.");
+          return;
+        }
+        const runButton = event.target.closest("[data-run-automation-workspace]");
+        if (runButton) {
+          await api("/api/automations/run", {
+            method: "POST",
+            body: JSON.stringify({ automationId: runButton.dataset.runAutomationWorkspace })
+          });
+          await loadAutomationWorkspace();
+          showToast("Automação executada.");
+          return;
+        }
+        const toggleButton = event.target.closest("[data-toggle-automation]");
+        if (toggleButton) {
+          await api(toggleButton.dataset.status === "active" ? "/api/automations/disable" : "/api/automations/enable", {
+            method: "POST",
+            body: JSON.stringify({ automationId: toggleButton.dataset.toggleAutomation })
+          });
+          await loadAutomationWorkspace();
+          showToast("Status da automação atualizado.");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-automation-workspace]");
+        if (!deleteButton) return;
+        if (!window.confirm("Excluir esta automação?")) return;
+        await api("/api/automations/" + deleteButton.dataset.deleteAutomationWorkspace, { method: "DELETE" });
+        await loadAutomationWorkspace();
+        await loadAutomations();
+        showToast("Automação excluída.");
+      }
+
       function statusBadge(label, state, detail) {
         return '<article class="card stat-card"><span class="avatar">' + (state ? "OK" : "!") + '</span><strong>' + escapeHtml(label) + '</strong><p class="muted">' + escapeHtml(detail || (state ? "Operacional" : "Atenção necessária")) + '</p></article>';
       }
@@ -7037,6 +7284,7 @@ ${logoYaraStyles()}
             });
           },
           refreshAutomationsButton: loadAutomations,
+          refreshAutomationWorkspaceButton: loadAutomationWorkspace,
           integrationCalendarSync: function() { return callIntegration("/api/integrations/google/calendar/sync", "integrationCalendarResult", { method: "POST" }); },
           integrationCalendarList: function() { return callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult"); },
           integrationGmailRecent: function() { return callIntegration("/api/integrations/gmail/messages?maxResults=5", "integrationGmailResult"); },
@@ -7311,6 +7559,8 @@ ${logoYaraStyles()}
             integrationCalendarForm: true,
             integrationGmailForm: true,
             automationForm: true,
+            automationChatForm: true,
+            automationFlowForm: true,
             integrationTelegramForm: true,
             integrationWhatsappForm: true,
             quickSettingsForm: true,
@@ -7497,6 +7747,8 @@ ${logoYaraStyles()}
               if (form.id === "automationForm") {
                 return createAutomationFromForm(event);
               }
+              if (form.id === "automationChatForm") return sendAutomationChatFromUi();
+              if (form.id === "automationFlowForm") return createAutomationFlowFromUi();
               if (form.id === "integrationTelegramForm") {
                 return callIntegration("/api/integrations/telegram/send", "integrationTelegramResult", {
                   method: "POST",
@@ -8782,6 +9034,22 @@ ${logoYaraStyles()}
       });
       on("automationForm", "submit", createAutomationFromForm);
       on("refreshAutomationsButton", "click", loadAutomations);
+      on("automationChatForm", "submit", function(event) {
+        event.preventDefault();
+        sendAutomationChatFromUi();
+      });
+      on("automationFlowForm", "submit", function(event) {
+        event.preventDefault();
+        createAutomationFlowFromUi();
+      });
+      on("refreshAutomationWorkspaceButton", "click", loadAutomationWorkspace);
+      on("automationFlowList", "click", async function(event) {
+        try {
+          await handleAutomationWorkspaceClick(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível atualizar a automação.");
+        }
+      });
       on("automationList", "click", async function(event) {
         try {
           await handleAutomationListClick(event);
@@ -8914,6 +9182,10 @@ function menuButton(action: string, label: string, iconName: IconName, danger = 
 
 function settingsInfoCard(title: string, description: string, iconName: IconName) {
   return `<article class="card"><div class="item-top"><h2>${title}</h2><span class="avatar">${icon(iconName)}</span></div><p class="muted">${description}</p></article>`;
+}
+
+function statCard(title: string, value: string, description: string) {
+  return `<article class="card stat-card"><span class="avatar">${value}</span><strong>${title}</strong><p class="muted">${description}</p></article>`;
 }
 
 function toggleRow(title: string, description: string, active: boolean) {
