@@ -75,6 +75,27 @@ type SystemFileRow = {
   updated_at: string;
 };
 
+type SystemChatSessionRow = {
+  id: string;
+  user_id: string;
+  system_id: string | null;
+  title: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type SystemChatMessageRow = {
+  id: string;
+  user_id: string;
+  session_id: string;
+  system_id: string | null;
+  role: "user" | "assistant" | "system";
+  content: string;
+  metadata_json: string;
+  created_at: string;
+};
+
 const MAX_PROMPT_LENGTH = 4000;
 
 function normalize(value: string) {
@@ -416,6 +437,161 @@ function auditSystem(userId: string, systemId: string | null, action: string, me
     .run(uuid(), userId, systemId, action, message, JSON.stringify(metadata));
 }
 
+function publicSystemChatSession(row: SystemChatSessionRow) {
+  return {
+    id: row.id,
+    systemId: row.system_id,
+    title: row.title,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function publicSystemChatMessage(row: SystemChatMessageRow) {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    systemId: row.system_id,
+    role: row.role,
+    content: row.content,
+    metadata: jsonParse<Record<string, unknown>>(row.metadata_json, {}),
+    createdAt: row.created_at
+  };
+}
+
+function getSystemChatSession(userId: string, sessionId: string) {
+  return getDatabase()
+    .prepare("select * from system_chat_sessions where id = ? and user_id = ?")
+    .get(sessionId, userId) as SystemChatSessionRow | undefined;
+}
+
+function createSystemChatSession(userId: string, systemId?: string | null) {
+  const id = uuid();
+  let title = "Chat de Sistemas";
+  if (systemId) {
+    try {
+      title = getSystemDetails(userId, systemId).name;
+    } catch {
+      throw new Error("Sistema não encontrado.");
+    }
+  }
+
+  getDatabase()
+    .prepare("insert into system_chat_sessions (id, user_id, system_id, title) values (?, ?, ?, ?)")
+    .run(id, userId, systemId || null, title);
+
+  return getSystemChatSession(userId, id)!;
+}
+
+function resolveSystemChatSession(userId: string, input: { sessionId?: string; systemId?: string | null }) {
+  if (input.sessionId) {
+    const session = getSystemChatSession(userId, input.sessionId);
+    if (!session) throw new Error("Conversa de sistemas não encontrada.");
+    if (input.systemId && input.systemId !== session.system_id) {
+      getSystemDetails(userId, input.systemId);
+      getDatabase()
+        .prepare("update system_chat_sessions set system_id = ?, updated_at = current_timestamp where id = ? and user_id = ?")
+        .run(input.systemId, session.id, userId);
+      return getSystemChatSession(userId, session.id)!;
+    }
+    return session;
+  }
+
+  return createSystemChatSession(userId, input.systemId || null);
+}
+
+function insertSystemChatMessage(
+  userId: string,
+  sessionId: string,
+  systemId: string | null,
+  role: "user" | "assistant" | "system",
+  content: string,
+  metadata: Record<string, unknown> = {}
+) {
+  const id = uuid();
+  getDatabase()
+    .prepare(
+      `insert into system_chat_messages (id, user_id, session_id, system_id, role, content, metadata_json)
+       values (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(id, userId, sessionId, systemId, role, content, JSON.stringify(metadata));
+  return id;
+}
+
+function detectSystemExportFormat(message: string): "txt" | "pdf" | "docx" | null {
+  const text = normalize(message);
+  if (!/\b(exporte|exportar|gere|gerar|baixar|coloque|arquivo)\b/.test(text)) return null;
+  if (/\bpdf\b/.test(text)) return "pdf";
+  if (/\bdocx|word\b/.test(text)) return "docx";
+  if (/\btxt|texto\b/.test(text)) return "txt";
+  return null;
+}
+
+function updateSystemFromPrompt(userId: string, systemId: string, rawPrompt: string) {
+  const current = getSystemDetails(userId, systemId);
+  const prompt = cleanPrompt([current.prompt, `Alteração solicitada: ${rawPrompt}`].join("\n"));
+  const analysis = analyzeSystemPrompt(prompt);
+  const stack = chooseStack(analysis, prompt);
+  const scope = generateScope(prompt, analysis, stack);
+  const folders = folderStructure(stack);
+  const plan = developmentPlan(analysis);
+  const files = generateFiles(scope, stack, analysis, folders, plan);
+  const output = systemOutput(scope, stack, analysis, folders, plan);
+  const db = getDatabase();
+  const now = new Date().toISOString();
+
+  db.prepare(
+    `update systems
+     set name = ?, prompt = ?, type = ?, complexity = ?, scalability = ?, architecture = ?,
+         frontend = ?, backend = ?, database_choice = ?, needs_auth = ?, needs_database = ?,
+         needs_mobile = ?, needs_admin = ?, objective = ?, scope_json = ?, stack_json = ?,
+         folder_structure_json = ?, development_plan_json = ?, updated_at = ?
+     where id = ? and user_id = ?`
+  ).run(
+    scope.name,
+    prompt,
+    analysis.type,
+    analysis.complexity,
+    analysis.scalability,
+    stack.architecture,
+    stack.frontend,
+    stack.backend,
+    stack.database,
+    analysis.needsAuth ? 1 : 0,
+    analysis.needsDatabase ? 1 : 0,
+    analysis.needsMobile ? 1 : 0,
+    analysis.needsAdmin ? 1 : 0,
+    scope.objective,
+    JSON.stringify(scope),
+    JSON.stringify(stack),
+    JSON.stringify(folders),
+    JSON.stringify(plan),
+    now,
+    systemId,
+    userId
+  );
+
+  db.prepare("delete from system_files where system_id = ? and user_id = ?").run(systemId, userId);
+  const insertFile = db.prepare(
+    `insert into system_files (id, user_id, system_id, name, type, content, created_at, updated_at)
+     values (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  for (const file of files) {
+    insertFile.run(uuid(), userId, systemId, file.name, file.type, file.content, now, now);
+  }
+
+  db.prepare(
+    `insert into system_generations (id, user_id, system_id, prompt, analysis_json, output_json)
+     values (?, ?, ?, ?, ?, ?)`
+  ).run(uuid(), userId, systemId, rawPrompt, JSON.stringify(analysis), JSON.stringify(output));
+
+  auditSystem(userId, systemId, "chat_update", "Sistema atualizado pelo Chat de Sistemas.", { type: analysis.type, architecture: stack.architecture });
+  refreshKnowledgeGraphSoon(userId);
+
+  return getSystemDetails(userId, systemId);
+}
+
 function systemOutput(scope: SystemScope, stack: SystemStack, analysis: SystemAnalysis, folders: string[], plan: string[]) {
   return { analysis, stack, scope, folderStructure: folders, developmentPlan: plan };
 }
@@ -579,4 +755,103 @@ export function systemChatResponse(system: ReturnType<typeof getSystemDetails>) 
 export function answerSystemGeneration(userId: string, prompt: string) {
   const system = generateSystemFromPrompt(userId, prompt);
   return systemChatResponse(system);
+}
+
+export function listSystemChatHistory(userId: string) {
+  const sessions = getDatabase()
+    .prepare(
+      `select * from system_chat_sessions
+       where user_id = ?
+       order by datetime(updated_at) desc
+       limit 20`
+    )
+    .all(userId) as SystemChatSessionRow[];
+
+  if (sessions.length === 0) {
+    return { sessions: [], messages: [] };
+  }
+
+  const messages = getDatabase()
+    .prepare(
+      `select * from system_chat_messages
+       where user_id = ? and session_id = ?
+       order by datetime(created_at) asc`
+    )
+    .all(userId, sessions[0].id) as SystemChatMessageRow[];
+
+  return {
+    sessions: sessions.map(publicSystemChatSession),
+    messages: messages.map(publicSystemChatMessage)
+  };
+}
+
+export async function sendSystemChatMessage(
+  userId: string,
+  input: { message: string; sessionId?: string; systemId?: string | null }
+) {
+  const message = String(input.message || "").replace(/\s+/g, " ").trim();
+  if (message.length < 2) throw new Error("Descreva o que deseja criar ou alterar.");
+  if (message.length > MAX_PROMPT_LENGTH) throw new Error("Mensagem muito longa. Envie até 4000 caracteres.");
+
+  let session = resolveSystemChatSession(userId, input);
+  let systemId = input.systemId || session.system_id || null;
+  insertSystemChatMessage(userId, session.id, systemId, "user", message);
+
+  const exportFormat = detectSystemExportFormat(message);
+  let system = systemId ? getSystemDetails(userId, systemId) : null;
+  let file: Awaited<ReturnType<typeof exportSystem>>["file"] | null = null;
+  let response = "";
+  let action: "created" | "updated" | "exported";
+
+  if (exportFormat && systemId) {
+    const exported = await exportSystem(userId, systemId, exportFormat);
+    file = exported.file;
+    action = "exported";
+    response = `Arquivo ${exportFormat.toUpperCase()} gerado: ${file.name}\nBaixar: ${file.url}`;
+  } else if (systemId) {
+    system = updateSystemFromPrompt(userId, systemId, message);
+    action = "updated";
+    response = [
+      `Atualizei o sistema: ${system.name}`,
+      "",
+      `Arquitetura: ${system.architecture}`,
+      `Stack: ${system.frontend} + ${system.backend} + ${system.database}`,
+      "",
+      "Novos pontos principais:",
+      ...system.scope.features.slice(0, 6).map((feature: string) => `- ${feature}`)
+    ].join("\n");
+  } else {
+    system = generateSystemFromPrompt(userId, message);
+    systemId = system.id;
+    action = "created";
+    response = systemChatResponse(system);
+  }
+
+  getDatabase()
+    .prepare("update system_chat_sessions set system_id = ?, title = ?, updated_at = current_timestamp where id = ? and user_id = ?")
+    .run(systemId, system?.name || session.title, session.id, userId);
+  session = getSystemChatSession(userId, session.id)!;
+
+  insertSystemChatMessage(userId, session.id, systemId, "assistant", response, {
+    action,
+    systemId,
+    fileId: file?.id || null
+  });
+
+  auditSystem(userId, systemId, `chat_${action}`, "Chat de Sistemas processado.", { sessionId: session.id, fileId: file?.id || null });
+
+  const messages = getDatabase()
+    .prepare(
+      `select * from system_chat_messages
+       where user_id = ? and session_id = ?
+       order by datetime(created_at) asc`
+    )
+    .all(userId, session.id) as SystemChatMessageRow[];
+
+  return {
+    session: publicSystemChatSession(session),
+    messages: messages.map(publicSystemChatMessage),
+    system,
+    file
+  };
 }

@@ -7,7 +7,9 @@ import {
   exportSystem,
   generateSystemFromPrompt,
   getSystemDetails,
-  listSystems
+  listSystemChatHistory,
+  listSystems,
+  sendSystemChatMessage
 } from "../services/systemGeneratorService";
 import { sendError } from "../utils/http";
 
@@ -39,6 +41,38 @@ systemsRoutes.post("/systems/generate", (req, res) => {
 
 systemsRoutes.get("/systems", (req, res) => {
   return res.json({ systems: listSystems(req.user!.id) });
+});
+
+systemsRoutes.get("/systems/chat/history", (req, res) => {
+  return res.json(listSystemChatHistory(req.user!.id));
+});
+
+systemsRoutes.post("/systems/chat", async (req, res) => {
+  const parsed = z
+    .object({
+      message: z.string().min(2).max(4000),
+      sessionId: z.string().min(1).optional(),
+      systemId: z.string().min(1).nullable().optional()
+    })
+    .safeParse(req.body);
+  if (!parsed.success) return sendError(res, 400, "Mensagem inválida para o Chat de Sistemas.");
+
+  try {
+    const result = await sendSystemChatMessage(req.user!.id, parsed.data);
+    recordAudit({
+      userId: req.user!.id,
+      category: "systems",
+      action: "chat",
+      entityType: "system",
+      entityId: result.system?.id || parsed.data.systemId || null,
+      message: "Chat de Sistemas processado.",
+      metadata: { sessionId: result.session.id, fileId: result.file?.id || null },
+      ...requestAuditContext(req)
+    });
+    return res.json(result);
+  } catch (error) {
+    return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível processar o Chat de Sistemas.");
+  }
 });
 
 systemsRoutes.get("/systems/:id", (req, res) => {

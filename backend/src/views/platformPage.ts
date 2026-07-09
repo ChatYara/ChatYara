@@ -1949,17 +1949,27 @@ ${logoYaraStyles()}
             <div class="settings-hero">
               <div>
                 <h2>Sistemas</h2>
-                <p class="muted">Descreva o sistema em linguagem natural. A YARA escolhe a arquitetura, stack, banco, escopo e plano automaticamente.</p>
+                <p class="muted">Converse com a YARA para criar, melhorar, exportar e organizar sistemas completos.</p>
               </div>
               <button class="button" id="refreshSystemsButton" type="button">${icon("history")}Atualizar</button>
             </div>
             <div class="layout-grid">
-              <form class="card" id="systemGenerateForm">
-                <h2>Novo sistema inteligente</h2>
-                <p class="muted">Não escolha tecnologia. Informe apenas o problema, público e objetivo. A YARA decide o restante.</p>
-                <textarea class="field" id="systemPromptInput" rows="8" maxlength="4000" placeholder="Exemplo: Crie um sistema de estoque para minha empresa com login, produtos, alertas e painel administrativo."></textarea>
-                <button class="primary-action" type="submit">${icon("sparkles")}Gerar sistema</button>
-              </form>
+              <article class="card">
+                <div class="item-top">
+                  <div>
+                    <h2>Chat de Sistemas</h2>
+                    <p class="muted">Descreva o que quer criar. A YARA decide arquitetura, stack, banco, telas, APIs e arquivos-base.</p>
+                  </div>
+                  <span class="status"><span class="dot"></span><span id="systemChatStatus">Pronto</span></span>
+                </div>
+                <div class="messages system-chat-messages" id="systemChatMessages">
+                  <div class="empty-chat"><h2>Que sistema vamos criar?</h2></div>
+                </div>
+                <form class="composer system-composer" id="systemChatForm">
+                  <textarea id="systemChatInput" rows="2" maxlength="4000" placeholder="Ex.: Crie um sistema de estoque com login, produtos, alertas e painel administrativo."></textarea>
+                  <button class="primary-action" id="systemChatSendButton" type="submit">${icon("send")}Enviar</button>
+                </form>
+              </article>
               <article class="card">
                 <div class="item-top">
                   <h2>Histórico</h2>
@@ -1969,7 +1979,7 @@ ${logoYaraStyles()}
               </article>
             </div>
             <article class="card" id="systemDetail">
-              <p class="muted">Selecione ou gere um sistema para visualizar arquitetura, arquivos e plano.</p>
+              <p class="muted">Gere ou selecione um sistema para ver arquitetura, arquivos e exportações.</p>
             </article>
           </div>
         </section>
@@ -3274,6 +3284,8 @@ ${logoYaraStyles()}
       let smartProjects = [];
       let systems = [];
       let selectedSystem = null;
+      let systemChatSessionId = null;
+      let systemChatMessages = [];
       let selectedSmartProjectId = null;
       let selectedProject = null;
       let technicalProjects = [];
@@ -5391,6 +5403,20 @@ ${logoYaraStyles()}
         }).join("");
       }
 
+      function renderSystemChatMessages() {
+        const target = document.getElementById("systemChatMessages");
+        if (!target) return;
+        if (!systemChatMessages.length) {
+          target.innerHTML = '<div class="empty-chat"><h2>Que sistema vamos criar?</h2></div>';
+          return;
+        }
+        target.innerHTML = systemChatMessages.map(function(message) {
+          const isUser = message.role === "user";
+          return '<article class="message ' + (isUser ? "user" : "assistant") + '"><div class="message-avatar">' + (isUser ? initials(currentUser && currentUser.name) : "YA") + '</div><div class="message-content">' + renderMarkdown(message.content || "") + '</div></article>';
+        }).join("");
+        target.scrollTop = target.scrollHeight;
+      }
+
       function renderSystemDetail(system) {
         const target = document.getElementById("systemDetail");
         if (!target) return;
@@ -5426,6 +5452,16 @@ ${logoYaraStyles()}
         if (selectedSystem && !systems.some(function(system) { return system.id === selectedSystem.id; })) selectedSystem = null;
         if (!selectedSystem && systems.length) await selectSystem(systems[0].id);
         else renderSystemDetail(selectedSystem);
+        await loadSystemChatHistory();
+      }
+
+      async function loadSystemChatHistory() {
+        const history = await api("/api/systems/chat/history").catch(function() {
+          return { sessions: [], messages: [] };
+        });
+        systemChatSessionId = history.sessions && history.sessions[0] ? history.sessions[0].id : systemChatSessionId;
+        systemChatMessages = history.messages || [];
+        renderSystemChatMessages();
       }
 
       async function selectSystem(systemId) {
@@ -5437,18 +5473,43 @@ ${logoYaraStyles()}
       }
 
       async function generateSystemFromUi() {
-        const prompt = getValue("systemPromptInput").trim();
-        if (prompt.length < 8) return showToast("Descreva melhor o sistema que deseja criar.");
-        setHtml("systemDetail", '<p class="muted">A YARA está analisando o pedido, escolhendo tecnologias e montando o plano...</p>');
-        const data = await api("/api/systems/generate", {
-          method: "POST",
-          body: JSON.stringify({ prompt: prompt })
-        });
-        selectedSystem = data.system;
-        setValue("systemPromptInput", "");
-        await loadSystems();
-        await selectSystem(selectedSystem.id);
-        showToast("Sistema gerado com arquitetura definida pela YARA.");
+        return sendSystemChatFromUi();
+      }
+
+      async function sendSystemChatFromUi() {
+        const prompt = getValue("systemChatInput").trim();
+        if (prompt.length < 2) return showToast("Digite o que deseja criar ou alterar.");
+        const button = document.getElementById("systemChatSendButton");
+        setText("systemChatStatus", "Processando...");
+        if (button) button.disabled = true;
+        systemChatMessages = systemChatMessages.concat([{ role: "user", content: prompt }]);
+        renderSystemChatMessages();
+        setValue("systemChatInput", "");
+        try {
+          const data = await api("/api/systems/chat", {
+            method: "POST",
+            body: JSON.stringify({
+              message: prompt,
+              sessionId: systemChatSessionId,
+              systemId: selectedSystem ? selectedSystem.id : null
+            })
+          });
+          systemChatSessionId = data.session ? data.session.id : systemChatSessionId;
+          systemChatMessages = data.messages || systemChatMessages;
+          renderSystemChatMessages();
+          if (data.system && data.system.id) {
+            selectedSystem = data.system;
+            await loadSystems();
+            await selectSystem(data.system.id);
+          }
+          if (data.file && data.file.id) {
+            await downloadProtectedPath("/api/files/" + data.file.id + "/download", data.file.name || "sistema");
+          }
+          showToast(data.file ? "Arquivo gerado." : "Chat de Sistemas atualizado.");
+        } finally {
+          setText("systemChatStatus", "Pronto");
+          if (button) button.disabled = false;
+        }
       }
 
       async function exportSelectedSystem(format) {
@@ -7030,6 +7091,7 @@ ${logoYaraStyles()}
           const handledForms = {
             chatForm: true,
             generatorForm: true,
+            systemChatForm: true,
             systemGenerateForm: true,
             projectCreateForm: true,
             projectTaskForm: true,
@@ -7066,6 +7128,7 @@ ${logoYaraStyles()}
             .then(async function() {
               if (form.id === "chatForm") return sendMessage(event);
               if (form.id === "generatorForm") return submitGeneratorForm();
+              if (form.id === "systemChatForm") return sendSystemChatFromUi();
               if (form.id === "systemGenerateForm") return generateSystemFromUi();
               if (form.id === "semanticSearchForm") return runSemanticSearchFromUi(event);
               if (form.id === "projectCreateForm") {

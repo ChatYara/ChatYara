@@ -647,6 +647,32 @@ export function runMigrations() {
       foreign key (file_id) references files(id) on delete set null
     );
 
+    create table if not exists system_chat_sessions (
+      id text primary key,
+      user_id text not null,
+      system_id text,
+      title text not null default 'Chat de Sistemas',
+      status text not null default 'active',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (system_id) references systems(id) on delete set null
+    );
+
+    create table if not exists system_chat_messages (
+      id text primary key,
+      user_id text not null,
+      session_id text not null,
+      system_id text,
+      role text not null check (role in ('user', 'assistant', 'system')),
+      content text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (session_id) references system_chat_sessions(id) on delete cascade,
+      foreign key (system_id) references systems(id) on delete set null
+    );
+
     create table if not exists system_audit_logs (
       id text primary key,
       user_id text not null,
@@ -1687,6 +1713,12 @@ export function runMigrations() {
 
     create index if not exists system_files_user_system
       on system_files(user_id, system_id, created_at);
+
+    create index if not exists system_chat_sessions_user_updated
+      on system_chat_sessions(user_id, updated_at);
+
+    create index if not exists system_chat_messages_user_session
+      on system_chat_messages(user_id, session_id, created_at);
 
     create index if not exists system_audit_user_system
       on system_audit_logs(user_id, system_id, created_at);
