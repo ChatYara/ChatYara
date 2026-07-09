@@ -48,6 +48,11 @@ export function isPersistentSqlitePath(absolutePath: string) {
 export function validatePersistenceConfiguration() {
   const info = getDatabaseInfo();
   const errors: string[] = [];
+  console.log(`Persistence check: using DATABASE_URL=${databaseUrlForLog(info.url)}`);
+
+  if (info.type === "missing") {
+    errors.push("DATABASE_URL não foi configurado. No Render configure DATABASE_URL=sqlite:/data/yara.sqlite.");
+  }
 
   if (info.type === "invalid") {
     errors.push("DATABASE_URL inválido. Use sqlite:/data/yara.sqlite no Render ou sqlite:./data/yara.sqlite localmente.");
@@ -72,6 +77,22 @@ export function validatePersistenceConfiguration() {
   if (errors.length) {
     throw new Error(["Persistência insegura da YARA AI detectada.", ...errors].join("\n"));
   }
+}
+
+function databaseUrlForLog(url: string) {
+  if (!url) return "(missing)";
+
+  try {
+    if (url.startsWith("postgres://") || url.startsWith("postgresql://")) {
+      const parsed = new URL(url);
+      if (parsed.password) parsed.password = "***";
+      return parsed.toString();
+    }
+  } catch {
+    return "(invalid)";
+  }
+
+  return url;
 }
 
 function fileSize(target: string) {

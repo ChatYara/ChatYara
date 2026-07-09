@@ -12,6 +12,15 @@ function isPostgresUrl(url: string) {
 export function getDatabaseInfo() {
   const url = env.databaseUrl;
 
+  if (!url) {
+    return {
+      type: "missing" as const,
+      url,
+      sqlitePath: null as string | null,
+      absolutePath: null as string | null
+    };
+  }
+
   if (isPostgresUrl(url)) {
     return {
       type: "postgres" as const,
@@ -59,6 +68,10 @@ export function getDatabase() {
     throw new Error(
       "DATABASE_URL PostgreSQL detectado. Este build da YARA ainda usa o adaptador SQLite síncrono. Use DATABASE_URL=sqlite:/data/yara.sqlite com Persistent Disk no Render até a migração de adapter PostgreSQL ser concluída."
     );
+  }
+
+  if (info.type === "missing") {
+    throw new Error("DATABASE_URL não foi configurado. No Render use DATABASE_URL=sqlite:/data/yara.sqlite com Persistent Disk.");
   }
 
   if (info.type !== "sqlite" || !info.absolutePath) {

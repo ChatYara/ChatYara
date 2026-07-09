@@ -22,6 +22,19 @@ function readAIProvider(): AIProviderName {
 
 const aiProvider = readAIProvider();
 
+function readDatabaseUrl() {
+  const configured = process.env.DATABASE_URL?.trim();
+  if (configured) {
+    return configured;
+  }
+
+  if (process.env.RENDER || process.env.NODE_ENV === "production") {
+    return "";
+  }
+
+  return "sqlite:./data/yara.sqlite";
+}
+
 function readSearchProvider(): SearchProviderName {
   const provider = process.env.SEARCH_PROVIDER?.trim().toLowerCase() || "tavily";
 
@@ -62,7 +75,7 @@ export function validateEnvironment() {
 export const env = {
   apiPort: Number(process.env.PORT ?? 3333),
   aiProvider,
-  databaseUrl: process.env.DATABASE_URL?.trim() || "sqlite:./data/yara.sqlite",
+  databaseUrl: readDatabaseUrl(),
   postgresUrl: process.env.POSTGRES_URL?.trim() || process.env.POSTGRES_DATABASE_URL?.trim() || "",
   redisUrl: process.env.REDIS_URL?.trim() || "",
   memoryEmbeddingProvider: process.env.MEMORY_EMBEDDING_PROVIDER?.trim() || "local",
