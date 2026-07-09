@@ -5,6 +5,7 @@ import path from "node:path";
 import { env } from "./config/env";
 import { csrfProtection, rateLimit, securityHeaders } from "./middleware/security";
 import { authRoutes } from "./routes/authRoutes";
+import { agentRoutes } from "./routes/agentRoutes";
 import { aiRoutes } from "./routes/aiRoutes";
 import { automationRoutes } from "./routes/automationRoutes";
 import { calendarRoutes } from "./routes/calendarRoutes";
@@ -97,6 +98,7 @@ export function createApp() {
   app.use("/api/system", systemRoutes);
   app.use("/api", productionRoutes);
   app.use("/api", projectMemoryRoutes);
+  app.use("/api", agentRoutes);
   app.use("/api", aiRoutes);
   app.use("/api", automationRoutes);
   app.use("/api", userRoutes);

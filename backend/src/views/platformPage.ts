@@ -1750,6 +1750,7 @@ ${logoYaraStyles()}
             ${navButton("chat", "Chat", "chat", true)}
             ${navButton("generator", "Gerador de Sistemas", "code")}
             ${navButton("systems", "Sistemas", "code")}
+            ${navButton("agents", "Agentes", "brain")}
             ${navButton("projects", "Projetos", "folder")}
             ${navButton("technicalProjects", "Projetos Técnicos", "code")}
             ${navButton("smartProjects", "Projetos Inteligentes", "brain")}
@@ -1981,6 +1982,68 @@ ${logoYaraStyles()}
             <article class="card" id="systemDetail">
               <p class="muted">Gere ou selecione um sistema para ver arquitetura, arquivos e exportações.</p>
             </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-agents" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Agentes Inteligentes</h2>
+                <p class="muted">Agentes especializados com histórico, memória própria, roteamento automático e colaboração.</p>
+              </div>
+              <button class="button" id="refreshAgentsButton" type="button">${icon("history")}Atualizar</button>
+            </div>
+            <div class="dashboard-grid" id="agentsDashboard"></div>
+            <div class="layout-grid">
+              <article class="card">
+                <div class="item-top">
+                  <h2>Todos os Agentes</h2>
+                  <span class="status"><span class="dot"></span><span id="agentsCount">0 agentes</span></span>
+                </div>
+                <div class="list" id="agentsList"></div>
+                <form class="form" id="agentForm">
+                  <h2>Criar agente</h2>
+                  <input class="field" id="agentName" placeholder="Nome" />
+                  <input class="field" id="agentSpecialty" placeholder="Especialidade" />
+                  <textarea class="field" id="agentDescription" rows="2" placeholder="Descrição"></textarea>
+                  <textarea class="field" id="agentPrompt" rows="3" placeholder="Prompt base"></textarea>
+                  <button class="button" type="submit">${icon("save")}Salvar agente</button>
+                </form>
+              </article>
+              <article class="card">
+                <div class="item-top">
+                  <div>
+                    <h2>Chat de Agentes</h2>
+                    <p class="muted">Escolha manualmente ou deixe a YARA rotear para o agente certo.</p>
+                  </div>
+                  <select class="select" id="agentSelect"></select>
+                </div>
+                <div class="messages system-chat-messages" id="agentChatMessages">
+                  <div class="empty-chat"><h2>Qual agente deve ajudar?</h2></div>
+                </div>
+                <form class="composer system-composer" id="agentChatForm">
+                  <textarea id="agentChatInput" rows="2" maxlength="4000" placeholder="Ex.: Analise este contrato, faça um orçamento, crie uma campanha..."></textarea>
+                  <button class="primary-action" id="agentChatSendButton" type="submit">${icon("send")}Enviar</button>
+                </form>
+              </article>
+            </div>
+            <div class="layout-grid">
+              <article class="card">
+                <h2>Conversas</h2>
+                <div class="list" id="agentConversations"></div>
+              </article>
+              <article class="card">
+                <h2>Colaboração</h2>
+                <form class="form" id="agentCollaborationForm">
+                  <select class="select" id="agentSourceSelect"></select>
+                  <select class="select" id="agentTargetSelect"></select>
+                  <textarea class="field" id="agentCollaborationRequest" rows="3" placeholder="Ex.: Engenharia consulte Financeiro para orçamento preliminar."></textarea>
+                  <button class="button" type="submit">${icon("share")}Consultar agente</button>
+                </form>
+                <div class="result-box" id="agentCollaborationResult">A colaboração aparecerá aqui.</div>
+              </article>
+            </div>
           </div>
         </section>
 
@@ -3286,6 +3349,10 @@ ${logoYaraStyles()}
       let selectedSystem = null;
       let systemChatSessionId = null;
       let systemChatMessages = [];
+      let agents = [];
+      let selectedAgentId = null;
+      let selectedAgentConversationId = null;
+      let agentMessages = [];
       let selectedSmartProjectId = null;
       let selectedProject = null;
       let technicalProjects = [];
@@ -3694,6 +3761,7 @@ ${logoYaraStyles()}
           dashboard: { title: "Dashboard", subtitle: "Resumo da sua atividade.", loader: loadDashboard },
           generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
           systems: { title: "Sistemas", subtitle: "Histórico, arquitetura e exportação dos sistemas criados pela YARA.", loader: loadSystems },
+          agents: { title: "Agentes", subtitle: "Agentes especializados, roteamento inteligente e colaboração.", loader: loadAgents },
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
           technicalProjects: { title: "Projetos Técnicos", subtitle: "Chat técnico, inspeções, arquivos e relatórios de engenharia.", loader: loadTechnicalProjects },
           smartProjects: { title: "Projetos Inteligentes", subtitle: "Memória de decisões, fases, pendências e commits.", loader: loadSmartProjects },
@@ -5522,6 +5590,136 @@ ${logoYaraStyles()}
         if (data.file && data.file.id) await downloadProtectedPath("/api/files/" + data.file.id + "/download", data.file.name || selectedSystem.name);
       }
 
+      function renderAgentsDashboard(dashboard) {
+        const target = document.getElementById("agentsDashboard");
+        if (!target) return;
+        const totals = dashboard && dashboard.totals ? dashboard.totals : {};
+        const metric = function(label, value, hint) {
+          return '<article class="metric-card"><span class="metric-label">' + escapeHtml(label) + '</span><strong>' + escapeHtml(String(value || 0)) + '</strong><p class="muted">' + escapeHtml(hint) + '</p></article>';
+        };
+        target.innerHTML = [
+          metric("Agentes", totals.agents || 0, "Total disponível"),
+          metric("Ativos", totals.activeAgents || 0, "Prontos para uso"),
+          metric("Conversas", totals.conversations || 0, "Histórico separado"),
+          metric("Memórias", totals.memories || 0, "Contexto por agente"),
+          metric("Colaborações", totals.collaborations || 0, "Consultas entre agentes")
+        ].join("");
+      }
+
+      function renderAgentSelectors() {
+        const options = ['<option value="">Roteamento automático</option>'].concat(agents.map(function(agent) {
+          return '<option value="' + escapeHtml(agent.id) + '">' + escapeHtml(agent.name) + '</option>';
+        })).join("");
+        setHtml("agentSelect", options);
+        setHtml("agentSourceSelect", agents.map(function(agent) { return '<option value="' + escapeHtml(agent.id) + '">' + escapeHtml(agent.name) + '</option>'; }).join(""));
+        setHtml("agentTargetSelect", agents.map(function(agent) { return '<option value="' + escapeHtml(agent.id) + '">' + escapeHtml(agent.name) + '</option>'; }).join(""));
+        setValue("agentSelect", selectedAgentId || "");
+      }
+
+      function renderAgentsList() {
+        setText("agentsCount", agents.length + " agente" + (agents.length === 1 ? "" : "s"));
+        const target = document.getElementById("agentsList");
+        if (!target) return;
+        target.innerHTML = agents.length ? agents.map(function(agent) {
+          const active = selectedAgentId === agent.id ? " active" : "";
+          return '<article class="list-item' + active + '"><div class="item-top"><div><strong>' + escapeHtml(agent.name) + '</strong><p class="muted">' + escapeHtml(agent.description) + '</p></div><span class="status"><span class="dot"></span>' + escapeHtml(agent.status) + '</span></div><p class="muted">Especialidade: ' + escapeHtml(agent.specialty) + '</p><div class="row"><button class="button" data-select-agent="' + escapeHtml(agent.id) + '" type="button">Usar</button><button class="button" data-toggle-agent="' + escapeHtml(agent.id) + '" data-status="' + escapeHtml(agent.status) + '" type="button">' + (agent.status === "active" ? "Inativar" : "Ativar") + '</button><button class="icon-button danger" data-delete-agent="' + escapeHtml(agent.id) + '" type="button" aria-label="Excluir agente">${icon("trash")}</button></div></article>';
+        }).join("") : '<p class="muted">Nenhum agente disponível.</p>';
+        renderAgentSelectors();
+      }
+
+      function renderAgentMessages() {
+        const target = document.getElementById("agentChatMessages");
+        if (!target) return;
+        if (!agentMessages.length) {
+          target.innerHTML = '<div class="empty-chat"><h2>Qual agente deve ajudar?</h2></div>';
+          return;
+        }
+        target.innerHTML = agentMessages.map(function(message) {
+          const isUser = message.role === "user";
+          return '<article class="message ' + (isUser ? "user" : "assistant") + '"><div class="message-avatar">' + (isUser ? initials(currentUser && currentUser.name) : "AG") + '</div><div class="message-content">' + renderMarkdown(message.content || "") + '</div></article>';
+        }).join("");
+        target.scrollTop = target.scrollHeight;
+      }
+
+      function renderAgentConversations(conversations) {
+        const target = document.getElementById("agentConversations");
+        if (!target) return;
+        target.innerHTML = conversations && conversations.length ? conversations.map(function(item) {
+          return '<button class="conversation-item" data-open-agent-conversation="' + escapeHtml(item.id) + '" data-agent-id="' + escapeHtml(item.agentId) + '" type="button"><strong>' + escapeHtml(item.title) + '</strong><span>' + escapeHtml(item.updatedAt || "") + '</span></button>';
+        }).join("") : '<p class="muted">Nenhuma conversa com agentes ainda.</p>';
+      }
+
+      async function loadAgents() {
+        const data = await api("/api/agents");
+        agents = data.agents || [];
+        if (!selectedAgentId && agents.length) selectedAgentId = "";
+        renderAgentsDashboard(data.dashboard);
+        renderAgentsList();
+        const history = await api("/api/agents/chat/history").catch(function() { return { conversations: [], messages: [] }; });
+        renderAgentConversations(history.conversations || []);
+        agentMessages = history.messages || [];
+        selectedAgentConversationId = history.conversations && history.conversations[0] ? history.conversations[0].id : selectedAgentConversationId;
+        renderAgentMessages();
+      }
+
+      async function sendAgentChatFromUi() {
+        const message = getValue("agentChatInput").trim();
+        if (message.length < 2) return showToast("Digite a mensagem para o agente.");
+        const button = document.getElementById("agentChatSendButton");
+        if (button) button.disabled = true;
+        agentMessages = agentMessages.concat([{ role: "user", content: message }]);
+        renderAgentMessages();
+        setValue("agentChatInput", "");
+        try {
+          const data = await api("/api/agents/chat", {
+            method: "POST",
+            body: JSON.stringify({
+              message: message,
+              agentId: getValue("agentSelect") || undefined,
+              conversationId: selectedAgentConversationId || undefined
+            })
+          });
+          selectedAgentId = data.agent ? data.agent.id : selectedAgentId;
+          selectedAgentConversationId = data.conversation ? data.conversation.id : selectedAgentConversationId;
+          agentMessages = data.messages || agentMessages;
+          renderAgentMessages();
+          await loadAgents();
+          showToast("Agente respondeu.");
+        } finally {
+          if (button) button.disabled = false;
+        }
+      }
+
+      async function createAgentFromUi() {
+        const name = getValue("agentName").trim();
+        const specialty = getValue("agentSpecialty").trim();
+        const description = getValue("agentDescription").trim();
+        const basePrompt = getValue("agentPrompt").trim();
+        if (name.length < 2 || specialty.length < 2 || description.length < 2 || basePrompt.length < 4) return showToast("Preencha os dados do agente.");
+        await api("/api/agents", {
+          method: "POST",
+          body: JSON.stringify({ name: name, specialty: specialty, description: description, basePrompt: basePrompt })
+        });
+        ["agentName", "agentSpecialty", "agentDescription", "agentPrompt"].forEach(function(id) { setValue(id, ""); });
+        await loadAgents();
+        showToast("Agente criado.");
+      }
+
+      async function collaborateAgentsFromUi() {
+        const sourceAgentId = getValue("agentSourceSelect");
+        const targetAgentId = getValue("agentTargetSelect");
+        const request = getValue("agentCollaborationRequest").trim();
+        if (!sourceAgentId || !targetAgentId || request.length < 2) return showToast("Informe origem, destino e pedido.");
+        const data = await api("/api/agents/collaborate", {
+          method: "POST",
+          body: JSON.stringify({ sourceAgentId: sourceAgentId, targetAgentId: targetAgentId, request: request, conversationId: selectedAgentConversationId || undefined })
+        });
+        setHtml("agentCollaborationResult", renderMarkdown(data.collaboration.response || ""));
+        setValue("agentCollaborationRequest", "");
+        await loadAgents();
+        showToast("Colaboração registrada.");
+      }
+
       async function loadMemories() {
         const intelligent = await api("/api/memory").catch(function() { return null; });
         if (intelligent && intelligent.dashboard) renderMemoryDashboard(intelligent.dashboard);
@@ -7093,6 +7291,9 @@ ${logoYaraStyles()}
             generatorForm: true,
             systemChatForm: true,
             systemGenerateForm: true,
+            agentForm: true,
+            agentChatForm: true,
+            agentCollaborationForm: true,
             projectCreateForm: true,
             projectTaskForm: true,
             projectNoteForm: true,
@@ -7130,6 +7331,9 @@ ${logoYaraStyles()}
               if (form.id === "generatorForm") return submitGeneratorForm();
               if (form.id === "systemChatForm") return sendSystemChatFromUi();
               if (form.id === "systemGenerateForm") return generateSystemFromUi();
+              if (form.id === "agentForm") return createAgentFromUi();
+              if (form.id === "agentChatForm") return sendAgentChatFromUi();
+              if (form.id === "agentCollaborationForm") return collaborateAgentsFromUi();
               if (form.id === "semanticSearchForm") return runSemanticSearchFromUi(event);
               if (form.id === "projectCreateForm") {
                 const name = getValue("projectCreateName").trim();
@@ -7848,6 +8052,57 @@ ${logoYaraStyles()}
         selectedSystem = null;
         await loadSystems();
         showToast("Sistema excluído.");
+      });
+
+      on("refreshAgentsButton", "click", async function() {
+        await loadAgents();
+        showToast("Agentes atualizados.");
+      });
+      on("agentSelect", "change", function() {
+        selectedAgentId = getValue("agentSelect") || null;
+        selectedAgentConversationId = null;
+        agentMessages = [];
+        renderAgentMessages();
+      });
+      on("agentsList", "click", async function(event) {
+        const selectButton = event.target.closest("[data-select-agent]");
+        if (selectButton) {
+          selectedAgentId = selectButton.dataset.selectAgent;
+          setValue("agentSelect", selectedAgentId || "");
+          selectedAgentConversationId = null;
+          agentMessages = [];
+          renderAgentMessages();
+          showToast("Agente selecionado.");
+          return;
+        }
+        const toggleButton = event.target.closest("[data-toggle-agent]");
+        if (toggleButton) {
+          const currentStatus = toggleButton.dataset.status === "active" ? "inactive" : "active";
+          await api("/api/agents/" + toggleButton.dataset.toggleAgent, {
+            method: "PUT",
+            body: JSON.stringify({ status: currentStatus })
+          });
+          await loadAgents();
+          showToast("Status do agente atualizado.");
+          return;
+        }
+        const deleteButton = event.target.closest("[data-delete-agent]");
+        if (!deleteButton) return;
+        if (!window.confirm("Excluir este agente?")) return;
+        await api("/api/agents/" + deleteButton.dataset.deleteAgent, { method: "DELETE" });
+        selectedAgentId = null;
+        await loadAgents();
+        showToast("Agente excluído.");
+      });
+      on("agentConversations", "click", async function(event) {
+        const button = event.target.closest("[data-open-agent-conversation]");
+        if (!button) return;
+        selectedAgentConversationId = button.dataset.openAgentConversation;
+        selectedAgentId = button.dataset.agentId;
+        setValue("agentSelect", selectedAgentId || "");
+        const history = await api("/api/agents/chat/history?agentId=" + encodeURIComponent(selectedAgentId) + "&conversationId=" + encodeURIComponent(selectedAgentConversationId));
+        agentMessages = history.messages || [];
+        renderAgentMessages();
       });
 
       on("projectSearch", "input", renderProjects);

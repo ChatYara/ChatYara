@@ -686,6 +686,90 @@ export function runMigrations() {
       foreign key (system_id) references systems(id) on delete set null
     );
 
+    create table if not exists agents (
+      id text primary key,
+      user_id text not null,
+      name text not null,
+      description text not null,
+      specialty text not null,
+      base_prompt text not null,
+      status text not null default 'active',
+      settings_json text not null default '{}',
+      is_default integer not null default 0,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists agent_conversations (
+      id text primary key,
+      user_id text not null,
+      agent_id text not null,
+      title text not null,
+      status text not null default 'active',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (agent_id) references agents(id) on delete cascade
+    );
+
+    create table if not exists agent_messages (
+      id text primary key,
+      user_id text not null,
+      agent_id text not null,
+      conversation_id text not null,
+      role text not null check (role in ('user', 'assistant', 'system')),
+      content text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (agent_id) references agents(id) on delete cascade,
+      foreign key (conversation_id) references agent_conversations(id) on delete cascade
+    );
+
+    create table if not exists agent_memory (
+      id text primary key,
+      user_id text not null,
+      agent_id text not null,
+      key text not null,
+      content text not null,
+      importance integer not null default 3,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (agent_id) references agents(id) on delete cascade
+    );
+
+    create table if not exists agent_collaborations (
+      id text primary key,
+      user_id text not null,
+      source_agent_id text not null,
+      target_agent_id text not null,
+      conversation_id text,
+      request text not null,
+      response text not null,
+      status text not null default 'completed',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (source_agent_id) references agents(id) on delete cascade,
+      foreign key (target_agent_id) references agents(id) on delete cascade,
+      foreign key (conversation_id) references agent_conversations(id) on delete set null
+    );
+
+    create table if not exists agent_audit_logs (
+      id text primary key,
+      user_id text not null,
+      agent_id text,
+      action text not null,
+      status text not null default 'success',
+      message text,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (agent_id) references agents(id) on delete set null
+    );
+
     create table if not exists user_settings (
       user_id text primary key,
       display_name text not null,
@@ -1722,6 +1806,24 @@ export function runMigrations() {
 
     create index if not exists system_audit_user_system
       on system_audit_logs(user_id, system_id, created_at);
+
+    create index if not exists agents_user_status
+      on agents(user_id, status, updated_at);
+
+    create index if not exists agent_conversations_user_agent
+      on agent_conversations(user_id, agent_id, updated_at);
+
+    create index if not exists agent_messages_user_conversation
+      on agent_messages(user_id, conversation_id, created_at);
+
+    create index if not exists agent_memory_user_agent
+      on agent_memory(user_id, agent_id, updated_at);
+
+    create index if not exists agent_collaborations_user_created
+      on agent_collaborations(user_id, created_at);
+
+    create index if not exists agent_audit_user_created
+      on agent_audit_logs(user_id, created_at);
 
     create index if not exists documents_user_created
       on documents(user_id, created_at);

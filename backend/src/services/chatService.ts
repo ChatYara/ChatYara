@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { env } from "../config/env";
 import { getDatabase } from "../db/connection";
+import { answerAgentIntent } from "./agentService";
 import { classifyAIProviderError } from "./ai/AIProvider";
 import { askYara } from "./ai/aiService";
 import { tryCreateCalendarItemFromChat } from "./calendarService";
@@ -663,6 +664,9 @@ export async function sendMessage(
   const graphAnswer = answerGraphQuestion(userId, storedMessage);
   const semanticAnswer = answerSemanticSearchQuestion(userId, storedMessage);
   const consolidatedMemoryAnswer = answerConsolidatedMemoryQuestion(userId, storedMessage);
+  const agentAnswer = !searchNeeded && !semanticAnswer && !consolidatedMemoryAnswer && !projectMemoryAnswer && !graphAnswer && !detectSystemGenerationRequest(storedMessage)
+    ? answerAgentIntent(userId, storedMessage)
+    : null;
   const technicalAnswer = !searchNeeded && !semanticAnswer && !consolidatedMemoryAnswer && !projectMemoryAnswer && !graphAnswer
     ? await answerTechnicalIntentFromMainChat(userId, storedMessage)
     : null;
@@ -716,6 +720,12 @@ export async function sendMessage(
       provider: "gemini",
       model: "technical-projects",
       response: technicalAnswer
+    };
+  } else if (agentAnswer && !searchNeeded) {
+    ai = {
+      provider: "gemini",
+      model: "agent-router",
+      response: agentAnswer
     };
   } else if (semanticAnswer && !searchNeeded) {
     ai = {
