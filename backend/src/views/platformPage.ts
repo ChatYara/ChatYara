@@ -1763,6 +1763,7 @@ ${logoYaraStyles()}
             ${navButton("calendar", "Agenda", "history")}
             ${navButton("integrations", "Integrações", "share")}
             ${navButton("automations", "Automações", "sparkles")}
+            ${navButton("marketplace", "Marketplace", "sparkles")}
             ${navButton("audit", "Auditoria", "shield")}
             ${navButton("memory", "Memória da YARA", "brain")}
             ${navButton("settings", "Configurações", "settings")}
@@ -2987,6 +2988,67 @@ ${logoYaraStyles()}
           </div>
         </section>
 
+        <section class="view" id="view-marketplace" hidden>
+          <div class="panel">
+            <div class="settings-hero">
+              <div>
+                <h2>Marketplace</h2>
+                <p class="muted">Instale, habilite e gerencie módulos da YARA sem alterar o núcleo da plataforma.</p>
+              </div>
+              <button class="button" id="refreshMarketplaceButton" type="button">${icon("history")}Atualizar loja</button>
+            </div>
+            <div class="stats-grid" id="pluginDashboardGrid">
+              ${statCard("Instalados", "0", "Plugins instalados")}
+              ${statCard("Ativos", "0", "Habilitados no workspace")}
+              ${statCard("Atualizações", "0", "Prévias e novidades")}
+              ${statCard("Uso", "0", "Eventos registrados")}
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Chat do Marketplace</h2>
+                <p class="muted">Use comandos como “instale o CRM”, “ative o financeiro” ou “quais plugins eu tenho?”.</p>
+                <div class="chat-feed compact" id="pluginChatMessages">
+                  <div class="message assistant"><div class="message-content">Posso instalar CRM, Financeiro, RH, Jurídico, Estoque, Atendimento, Obras, Contratos, Frota, Drive YARA e Analytics.</div></div>
+                </div>
+                <form class="composer" id="pluginChatForm">
+                  <textarea id="pluginChatInput" rows="2" placeholder="Comando do marketplace..."></textarea>
+                  <button class="send-button" type="submit" aria-label="Enviar comando">${icon("arrowUp")}</button>
+                </form>
+              </article>
+              <article class="card">
+                <h2>Categorias</h2>
+                <div class="list" id="pluginCategoryList"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <div class="item-top">
+                  <h2>Loja</h2>
+                  <span class="status">Catálogo YARA</span>
+                </div>
+                <div class="list" id="pluginMarketplaceList"></div>
+              </article>
+              <article class="card">
+                <div class="item-top">
+                  <h2>Instalados</h2>
+                  <span class="status">Por usuário</span>
+                </div>
+                <div class="list" id="pluginInstalledList"></div>
+              </article>
+            </div>
+            <div class="documents-layout">
+              <article class="card">
+                <h2>Atualizações</h2>
+                <div class="list" id="pluginUpdatesList"></div>
+              </article>
+              <article class="card">
+                <h2>Logs</h2>
+                <div class="list" id="pluginLogList"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <section class="view" id="view-audit" hidden>
           <div class="panel">
             <div class="settings-hero">
@@ -3875,6 +3937,7 @@ ${logoYaraStyles()}
           calendar: { title: "Agenda", subtitle: "Eventos, lembretes e notificações.", loader: loadCalendar },
           integrations: { title: "Integrações", subtitle: "Google, Gmail, Telegram, WhatsApp e notificações.", loader: loadIntegrations },
           automations: { title: "Automações", subtitle: "Fluxos inteligentes entre módulos, agentes e arquivos.", loader: loadAutomationWorkspace },
+          marketplace: { title: "Marketplace", subtitle: "Plugins, ferramentas e módulos extensíveis da YARA.", loader: loadMarketplace },
           audit: { title: "Auditoria", subtitle: "Segurança, logs, backups e saúde da produção.", loader: loadAudit },
           settings: { title: "Configurações", subtitle: "Preferências, conta e memória da YARA.", loader: loadSettings }
         };
@@ -6825,6 +6888,114 @@ ${logoYaraStyles()}
         showToast("Automação excluída.");
       }
 
+      function renderPluginDashboard(dashboard) {
+        const target = document.getElementById("pluginDashboardGrid");
+        if (!target) return;
+        const data = dashboard || {};
+        target.innerHTML = [
+          automationStatCard("Instalados", String(data.installed || 0), "Plugins instalados"),
+          automationStatCard("Ativos", String(data.active || 0), "Habilitados no workspace"),
+          automationStatCard("Atualizações", String(data.updates || 0), "Prévias e novidades"),
+          automationStatCard("Uso", String(data.usage || 0), "Eventos registrados")
+        ].join("");
+      }
+
+      function pluginCard(plugin) {
+        const permissions = (plugin.permissions || []).slice(0, 3).join(" · ");
+        const integrations = plugin.metadata && plugin.metadata.integrations ? plugin.metadata.integrations.slice(0, 3).join(" · ") : "";
+        return '<article class="list-item"><div class="item-top"><div><strong>' + escapeHtml(plugin.name) + '</strong><p class="muted">' + escapeHtml(plugin.description || "") + '</p><p class="muted">' + escapeHtml(plugin.category || "Geral") + ' · v' + escapeHtml(plugin.version || "1.0.0") + ' · ' + escapeHtml(plugin.status || "available") + '</p>' + (permissions ? '<p class="muted">Permissões: ' + escapeHtml(permissions) + '</p>' : "") + (integrations ? '<p class="muted">Integrações: ' + escapeHtml(integrations) + '</p>' : "") + '</div><div class="row">' + (plugin.installed ? '<button class="button" data-plugin-toggle="' + escapeHtml(plugin.id) + '" data-enabled="' + String(Boolean(plugin.enabled)) + '" type="button">' + (plugin.enabled ? "Desativar" : "Ativar") + '</button><button class="button danger" data-plugin-uninstall="' + escapeHtml(plugin.id) + '" type="button">Desinstalar</button>' : '<button class="primary-action" data-plugin-install="' + escapeHtml(plugin.id) + '" type="button">${icon("plus")}Instalar</button>') + '</div></div></article>';
+      }
+
+      function renderPluginLists(data, installedData, categoriesData, logsData) {
+        renderPluginDashboard((data && data.dashboard) || (installedData && installedData.dashboard) || {});
+        const marketplace = document.getElementById("pluginMarketplaceList");
+        const installed = document.getElementById("pluginInstalledList");
+        const categories = document.getElementById("pluginCategoryList");
+        const updates = document.getElementById("pluginUpdatesList");
+        const logs = document.getElementById("pluginLogList");
+        const plugins = data && data.plugins ? data.plugins : [];
+        const installedPlugins = installedData && installedData.plugins ? installedData.plugins : [];
+        if (marketplace) {
+          marketplace.innerHTML = plugins.length ? plugins.map(pluginCard).join("") : '<p class="muted">Marketplace indisponível.</p>';
+        }
+        if (installed) {
+          installed.innerHTML = installedPlugins.length ? installedPlugins.map(pluginCard).join("") : '<p class="muted">Nenhum plugin instalado ainda.</p>';
+        }
+        if (categories) {
+          const items = categoriesData && categoriesData.categories ? categoriesData.categories : [];
+          categories.innerHTML = items.length
+            ? items.map(function(item) { return '<article class="list-item"><strong>' + escapeHtml(item.name) + '</strong><p class="muted">' + escapeHtml(String(item.total || 0)) + ' plugins disponíveis</p></article>'; }).join("")
+            : '<p class="muted">Nenhuma categoria encontrada.</p>';
+        }
+        if (updates) {
+          const preview = plugins.filter(function(plugin) { return plugin.status === "preview"; });
+          updates.innerHTML = preview.length
+            ? preview.map(function(plugin) { return '<article class="list-item"><strong>' + escapeHtml(plugin.name) + '</strong><p class="muted">Prévia disponível · v' + escapeHtml(plugin.version || "") + '</p></article>'; }).join("")
+            : '<p class="muted">Nenhuma atualização pendente.</p>';
+        }
+        if (logs) {
+          const items = logsData && logsData.logs ? logsData.logs : [];
+          logs.innerHTML = items.length
+            ? items.map(function(item) { return '<article class="list-item"><div class="item-top"><strong>' + escapeHtml(item.pluginName || "Plugin") + '</strong><span class="status">' + escapeHtml(item.level || "info") + '</span></div><p>' + escapeHtml(item.message || "") + '</p><p class="muted">' + escapeHtml(item.createdAt || "") + '</p></article>'; }).join("")
+            : '<p class="muted">Nenhum log de plugin registrado.</p>';
+        }
+      }
+
+      async function loadMarketplace() {
+        const data = await api("/api/plugins/marketplace");
+        const installed = await api("/api/plugins/installed").catch(function() { return { plugins: [], dashboard: data.dashboard || {} }; });
+        const categories = await api("/api/plugins/categories").catch(function() { return { categories: [] }; });
+        const logs = await api("/api/plugins/logs").catch(function() { return { logs: [] }; });
+        renderPluginLists(data, installed, categories, logs);
+      }
+
+      function appendPluginChat(role, text) {
+        const target = document.getElementById("pluginChatMessages");
+        if (!target) return;
+        target.insertAdjacentHTML("beforeend", '<div class="message ' + escapeHtml(role) + '"><div class="message-content">' + escapeHtml(text) + '</div></div>');
+        target.scrollTop = target.scrollHeight;
+      }
+
+      async function sendPluginChatFromUi() {
+        const input = document.getElementById("pluginChatInput");
+        const message = getValue("pluginChatInput").trim();
+        if (!message) return showToast("Informe um comando para o marketplace.");
+        appendPluginChat("user", message);
+        if (input && "value" in input) input.value = "";
+        const data = await api("/api/plugins/chat", {
+          method: "POST",
+          body: JSON.stringify({ message: message })
+        });
+        appendPluginChat("assistant", data.reply || "Comando processado.");
+        await loadMarketplace();
+      }
+
+      async function handlePluginActionClick(event) {
+        const install = event.target.closest("[data-plugin-install]");
+        if (install) {
+          await api("/api/plugins/install", { method: "POST", body: JSON.stringify({ pluginId: install.dataset.pluginInstall }) });
+          await loadMarketplace();
+          showToast("Plugin instalado.");
+          return;
+        }
+        const toggle = event.target.closest("[data-plugin-toggle]");
+        if (toggle) {
+          await api(toggle.dataset.enabled === "true" ? "/api/plugins/disable" : "/api/plugins/enable", {
+            method: "POST",
+            body: JSON.stringify({ pluginId: toggle.dataset.pluginToggle })
+          });
+          await loadMarketplace();
+          showToast("Plugin atualizado.");
+          return;
+        }
+        const uninstall = event.target.closest("[data-plugin-uninstall]");
+        if (!uninstall) return;
+        if (!window.confirm("Desinstalar este plugin?")) return;
+        await api("/api/plugins/uninstall", { method: "POST", body: JSON.stringify({ pluginId: uninstall.dataset.pluginUninstall }) });
+        await loadMarketplace();
+        showToast("Plugin desinstalado.");
+      }
+
       function statusBadge(label, state, detail) {
         return '<article class="card stat-card"><span class="avatar">' + (state ? "OK" : "!") + '</span><strong>' + escapeHtml(label) + '</strong><p class="muted">' + escapeHtml(detail || (state ? "Operacional" : "Atenção necessária")) + '</p></article>';
       }
@@ -7285,6 +7456,7 @@ ${logoYaraStyles()}
           },
           refreshAutomationsButton: loadAutomations,
           refreshAutomationWorkspaceButton: loadAutomationWorkspace,
+          refreshMarketplaceButton: loadMarketplace,
           integrationCalendarSync: function() { return callIntegration("/api/integrations/google/calendar/sync", "integrationCalendarResult", { method: "POST" }); },
           integrationCalendarList: function() { return callIntegration("/api/integrations/google/calendar/events", "integrationCalendarResult"); },
           integrationGmailRecent: function() { return callIntegration("/api/integrations/gmail/messages?maxResults=5", "integrationGmailResult"); },
@@ -7561,6 +7733,7 @@ ${logoYaraStyles()}
             automationForm: true,
             automationChatForm: true,
             automationFlowForm: true,
+            pluginChatForm: true,
             integrationTelegramForm: true,
             integrationWhatsappForm: true,
             quickSettingsForm: true,
@@ -7749,6 +7922,7 @@ ${logoYaraStyles()}
               }
               if (form.id === "automationChatForm") return sendAutomationChatFromUi();
               if (form.id === "automationFlowForm") return createAutomationFlowFromUi();
+              if (form.id === "pluginChatForm") return sendPluginChatFromUi();
               if (form.id === "integrationTelegramForm") {
                 return callIntegration("/api/integrations/telegram/send", "integrationTelegramResult", {
                   method: "POST",
@@ -9048,6 +9222,25 @@ ${logoYaraStyles()}
           await handleAutomationWorkspaceClick(event);
         } catch (error) {
           showToast(error.message || "Não foi possível atualizar a automação.");
+        }
+      });
+      on("pluginChatForm", "submit", function(event) {
+        event.preventDefault();
+        sendPluginChatFromUi();
+      });
+      on("refreshMarketplaceButton", "click", loadMarketplace);
+      on("pluginMarketplaceList", "click", async function(event) {
+        try {
+          await handlePluginActionClick(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível atualizar o plugin.");
+        }
+      });
+      on("pluginInstalledList", "click", async function(event) {
+        try {
+          await handlePluginActionClick(event);
+        } catch (error) {
+          showToast(error.message || "Não foi possível atualizar o plugin.");
         }
       });
       on("automationList", "click", async function(event) {

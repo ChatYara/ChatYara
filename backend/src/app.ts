@@ -16,6 +16,7 @@ import { graphRoutes } from "./routes/graphRoutes";
 import { imageRoutes } from "./routes/imageRoutes";
 import { integrationRoutes } from "./routes/integrationRoutes";
 import { memoryRoutes } from "./routes/memoryRoutes";
+import { pluginRoutes } from "./routes/pluginRoutes";
 import { profileRoutes } from "./routes/profileRoutes";
 import { productionRoutes } from "./routes/productionRoutes";
 import { projectMemoryRoutes } from "./routes/projectMemoryRoutes";
@@ -109,6 +110,7 @@ export function createApp() {
   app.use("/api", imageRoutes);
   app.use("/api", integrationRoutes);
   app.use("/api", memoryRoutes);
+  app.use("/api", pluginRoutes);
   app.use("/api", profileRoutes);
   app.use("/api", calendarRoutes);
   app.use("/api", chatRoutes);

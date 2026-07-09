@@ -1342,6 +1342,92 @@ export function runMigrations() {
       foreign key (user_id) references users(id) on delete cascade
     );
 
+    create table if not exists plugins (
+      id text primary key,
+      name text not null,
+      slug text not null unique,
+      version text not null,
+      description text not null default '',
+      category text not null,
+      author text not null default 'YARA AI',
+      status text not null default 'available',
+      icon text not null default 'sparkles',
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp
+    );
+
+    create table if not exists plugin_installations (
+      id text primary key,
+      user_id text not null,
+      plugin_id text not null,
+      installed_at text not null default current_timestamp,
+      enabled integer not null default 1,
+      settings_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, plugin_id),
+      foreign key (plugin_id) references plugins(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists plugin_settings (
+      id text primary key,
+      user_id text not null,
+      plugin_id text not null,
+      installation_id text,
+      key text not null,
+      value_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, plugin_id, key),
+      foreign key (plugin_id) references plugins(id) on delete cascade,
+      foreign key (installation_id) references plugin_installations(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists plugin_permissions (
+      id text primary key,
+      user_id text not null,
+      plugin_id text not null,
+      permission text not null,
+      granted integer not null default 1,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, plugin_id, permission),
+      foreign key (plugin_id) references plugins(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists plugin_logs (
+      id text primary key,
+      user_id text not null,
+      plugin_id text,
+      installation_id text,
+      level text not null default 'info',
+      message text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (plugin_id) references plugins(id) on delete set null,
+      foreign key (installation_id) references plugin_installations(id) on delete set null,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists plugin_audit_logs (
+      id text primary key,
+      user_id text not null,
+      plugin_id text,
+      installation_id text,
+      action text not null,
+      status text not null default 'success',
+      message text not null default '',
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (plugin_id) references plugins(id) on delete set null,
+      foreign key (installation_id) references plugin_installations(id) on delete set null,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists backups (
       id text primary key,
       user_id text,
@@ -1524,6 +1610,17 @@ export function runMigrations() {
   ensureColumn("automation_runs", "duration_ms", "integer");
   ensureColumn("automation_logs", "metadata_json", "text not null default '{}'");
   ensureColumn("automation_audit_logs", "metadata_json", "text not null default '{}'");
+  ensureColumn("plugins", "metadata_json", "text not null default '{}'");
+  ensureColumn("plugins", "updated_at", "text");
+  ensureColumn("plugin_installations", "settings_json", "text not null default '{}'");
+  ensureColumn("plugin_installations", "created_at", "text");
+  ensureColumn("plugin_installations", "updated_at", "text");
+  ensureColumn("plugin_settings", "value_json", "text not null default '{}'");
+  ensureColumn("plugin_settings", "updated_at", "text");
+  ensureColumn("plugin_permissions", "granted", "integer not null default 1");
+  ensureColumn("plugin_permissions", "updated_at", "text");
+  ensureColumn("plugin_logs", "metadata_json", "text not null default '{}'");
+  ensureColumn("plugin_audit_logs", "metadata_json", "text not null default '{}'");
   ensureColumn("backups", "metadata_json", "text not null default '{}'");
   ensureColumn("backups", "file_size", "integer not null default 0");
   ensureColumn("notifications", "scheduled_for", "text");
@@ -1638,6 +1735,17 @@ export function runMigrations() {
     update automation_runs set logs_json = '[]' where logs_json is null;
     update automation_logs set metadata_json = '{}' where metadata_json is null;
     update automation_audit_logs set metadata_json = '{}' where metadata_json is null;
+    update plugins set metadata_json = '{}' where metadata_json is null;
+    update plugins set updated_at = created_at where updated_at is null;
+    update plugin_installations set settings_json = '{}' where settings_json is null;
+    update plugin_installations set created_at = installed_at where created_at is null;
+    update plugin_installations set updated_at = installed_at where updated_at is null;
+    update plugin_settings set value_json = '{}' where value_json is null;
+    update plugin_settings set updated_at = created_at where updated_at is null;
+    update plugin_permissions set granted = 1 where granted is null;
+    update plugin_permissions set updated_at = created_at where updated_at is null;
+    update plugin_logs set metadata_json = '{}' where metadata_json is null;
+    update plugin_audit_logs set metadata_json = '{}' where metadata_json is null;
     update audit_events set metadata_json = '{}' where metadata_json is null;
     update application_logs set context_json = '{}' where context_json is null;
     update backups set metadata_json = '{}' where metadata_json is null;
@@ -1769,6 +1877,24 @@ export function runMigrations() {
 
     create index if not exists automation_audit_logs_user_created
       on automation_audit_logs(user_id, created_at);
+
+    create index if not exists plugins_category_status
+      on plugins(category, status, updated_at);
+
+    create index if not exists plugin_installations_user_enabled
+      on plugin_installations(user_id, enabled, updated_at);
+
+    create index if not exists plugin_settings_user_plugin
+      on plugin_settings(user_id, plugin_id, updated_at);
+
+    create index if not exists plugin_permissions_user_plugin
+      on plugin_permissions(user_id, plugin_id, permission);
+
+    create index if not exists plugin_logs_user_created
+      on plugin_logs(user_id, created_at);
+
+    create index if not exists plugin_audit_logs_user_created
+      on plugin_audit_logs(user_id, created_at);
 
     create index if not exists backups_created
       on backups(created_at);
