@@ -4,11 +4,14 @@ import { authRequired } from "../middleware/auth";
 import { recordAudit, requestAuditContext } from "../services/auditService";
 import {
   deleteSystem,
+  duplicateSystem,
   exportSystem,
   generateSystemFromPrompt,
+  getSystemChatHistory,
   getSystemDetails,
   listSystemChatHistory,
   listSystems,
+  publishSystem,
   sendSystemChatMessage
 } from "../services/systemGeneratorService";
 import { sendError } from "../utils/http";
@@ -78,6 +81,51 @@ systemsRoutes.post("/systems/chat", async (req, res) => {
 systemsRoutes.get("/systems/:id", (req, res) => {
   try {
     return res.json({ system: getSystemDetails(req.user!.id, req.params.id) });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Sistema não encontrado.");
+  }
+});
+
+systemsRoutes.get("/systems/:id/chat/history", (req, res) => {
+  try {
+    return res.json(getSystemChatHistory(req.user!.id, req.params.id));
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Histórico do sistema não encontrado.");
+  }
+});
+
+systemsRoutes.post("/systems/:id/publish", (req, res) => {
+  try {
+    const system = publishSystem(req.user!.id, req.params.id);
+    recordAudit({
+      userId: req.user!.id,
+      category: "systems",
+      action: "publish",
+      entityType: "system",
+      entityId: req.params.id,
+      message: "Sistema publicado.",
+      ...requestAuditContext(req)
+    });
+    return res.json({ system });
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Sistema não encontrado.");
+  }
+});
+
+systemsRoutes.post("/systems/:id/duplicate", (req, res) => {
+  try {
+    const system = duplicateSystem(req.user!.id, req.params.id);
+    recordAudit({
+      userId: req.user!.id,
+      category: "systems",
+      action: "duplicate",
+      entityType: "system",
+      entityId: system.id,
+      message: "Sistema duplicado.",
+      metadata: { sourceSystemId: req.params.id },
+      ...requestAuditContext(req)
+    });
+    return res.status(201).json({ system });
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Sistema não encontrado.");
   }

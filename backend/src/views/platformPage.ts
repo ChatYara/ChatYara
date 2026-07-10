@@ -1041,6 +1041,309 @@ ${logoYaraStyles()}
         box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
       }
 
+      .system-builder-shell {
+        position: relative;
+        min-height: calc(100dvh - 122px);
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
+        gap: 14px;
+        border: 1px solid rgba(56, 189, 248, 0.13);
+        border-radius: 20px;
+        padding: clamp(14px, 2.4vw, 24px);
+        background:
+          radial-gradient(circle at 22% 12%, rgba(10, 132, 255, 0.13), transparent 36%),
+          linear-gradient(180deg, rgba(8, 17, 32, 0.96), rgba(2, 6, 23, 0.94));
+        box-shadow: 0 22px 80px rgba(0, 0, 0, 0.28);
+        overflow: hidden;
+      }
+
+      .system-builder-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .system-builder-header h2,
+      .system-builder-header strong,
+      .system-builder-header p {
+        margin: 0;
+      }
+
+      .system-builder-header h2 {
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 650;
+      }
+
+      .system-builder-header strong {
+        display: block;
+        margin-top: 6px;
+        font-size: clamp(22px, 3vw, 34px);
+        line-height: 1.05;
+      }
+
+      .system-builder-header p,
+      .system-builder-note {
+        color: var(--muted);
+      }
+
+      .system-builder-actions,
+      .system-card-actions,
+      .system-tech-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .system-builder-chat {
+        min-height: 0;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: clamp(8px, 2vw, 18px) max(6px, calc((100% - 920px) / 2));
+      }
+
+      .system-builder-empty {
+        margin: auto;
+        max-width: 620px;
+        text-align: center;
+        color: var(--text);
+      }
+
+      .system-empty-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        color: #93c5fd;
+        background: rgba(10, 132, 255, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.24);
+        box-shadow: 0 0 34px rgba(10, 132, 255, 0.16);
+      }
+
+      .system-builder-empty h2 {
+        margin: 16px 0 8px;
+        font-size: clamp(30px, 5vw, 52px);
+      }
+
+      .system-builder-empty p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .system-builder-empty ul {
+        display: grid;
+        gap: 8px;
+        margin: 22px 0 0;
+        padding: 0;
+        list-style: none;
+        color: #dbeafe;
+      }
+
+      .system-chat-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+        max-width: min(760px, 92%);
+      }
+
+      .system-chat-row.user {
+        align-self: flex-end;
+        justify-content: flex-end;
+      }
+
+      .system-chat-row.assistant {
+        align-self: flex-start;
+      }
+
+      .system-chat-bubble {
+        border: 1px solid rgba(148, 163, 184, 0.13);
+        border-radius: 16px;
+        padding: 14px 16px;
+        background: rgba(15, 23, 42, 0.78);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+      }
+
+      .system-chat-row.user .system-chat-bubble {
+        background: linear-gradient(135deg, #0A84FF, #1E40AF);
+        border-color: rgba(56, 189, 248, 0.44);
+      }
+
+      .system-chat-time {
+        display: block;
+        margin-top: 8px;
+        color: rgba(226, 232, 240, 0.62);
+        font-size: 12px;
+        text-align: right;
+      }
+
+      .system-builder-card {
+        align-self: center;
+        width: min(100%, 920px);
+        display: grid;
+        gap: 16px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 18px;
+        padding: clamp(14px, 2vw, 22px);
+        background:
+          radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.1), transparent 30%),
+          rgba(15, 23, 42, 0.86);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+      }
+
+      .system-builder-card h3,
+      .system-builder-card p {
+        margin: 0;
+      }
+
+      .system-card-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+        gap: 18px;
+        align-items: center;
+      }
+
+      .system-preview {
+        min-height: 230px;
+        border-radius: 14px;
+        padding: 14px;
+        background: #f8fafc;
+        color: #0f172a;
+        overflow: hidden;
+      }
+
+      .system-preview-sidebar {
+        float: left;
+        width: 82px;
+        height: 202px;
+        border-radius: 10px;
+        padding: 10px;
+        background: #0f172a;
+        color: #cbd5e1;
+        font-size: 10px;
+      }
+
+      .system-preview-main {
+        margin-left: 98px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .system-preview-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .system-preview-metrics span,
+      .system-preview-chart,
+      .system-preview-pie {
+        border-radius: 10px;
+        background: #e2e8f0;
+      }
+
+      .system-preview-metrics span {
+        min-height: 48px;
+      }
+
+      .system-preview-metrics span:nth-child(2) { background: #22c55e; }
+      .system-preview-metrics span:nth-child(3) { background: #dbeafe; }
+      .system-preview-metrics span:nth-child(4) { background: #bfdbfe; }
+
+      .system-preview-content {
+        display: grid;
+        grid-template-columns: 1.1fr 0.8fr;
+        gap: 10px;
+      }
+
+      .system-preview-chart,
+      .system-preview-pie {
+        min-height: 116px;
+      }
+
+      .system-summary-list {
+        display: grid;
+        gap: 9px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .system-summary-list li::before {
+        content: "✓";
+        color: #22c55e;
+        margin-right: 8px;
+      }
+
+      .system-tech-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(56, 189, 248, 0.16);
+        border-radius: 12px;
+        padding: 10px 12px;
+        color: #dbeafe;
+        background: rgba(2, 6, 23, 0.34);
+      }
+
+      .system-card-actions .button,
+      .system-card-actions .primary-action {
+        flex: 1 1 142px;
+      }
+
+      .system-builder-composer {
+        width: min(100%, 920px);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: end;
+        border: 1px solid rgba(56, 189, 248, 0.32);
+        border-radius: 18px;
+        padding: 10px;
+        background: rgba(2, 6, 23, 0.82);
+        box-shadow: 0 0 34px rgba(10, 132, 255, 0.1);
+      }
+
+      .system-builder-composer textarea {
+        width: 100%;
+        min-height: 50px;
+        max-height: 140px;
+        resize: none;
+        border: 0;
+        outline: 0;
+        color: var(--text);
+        background: transparent;
+      }
+
+      .system-builder-note {
+        margin: -4px 0 0;
+        text-align: center;
+        font-size: 12px;
+      }
+
+      .system-history-drawer {
+        position: absolute;
+        inset: 0 auto 0 0;
+        z-index: 12;
+        width: min(360px, 92vw);
+        display: grid;
+        align-content: start;
+        gap: 12px;
+        padding: 18px;
+        border-right: 1px solid rgba(56, 189, 248, 0.18);
+        background: rgba(2, 6, 23, 0.96);
+        box-shadow: 28px 0 80px rgba(0, 0, 0, 0.36);
+      }
+
+      .system-history-drawer[hidden] {
+        display: none;
+      }
+
       .floating-menu,
       .attach-menu {
         position: absolute;
@@ -1681,6 +1984,64 @@ ${logoYaraStyles()}
         .row { align-items: stretch; flex-direction: column; }
         .row > *,
         .project-toolbar > * { width: 100%; }
+        .system-builder-shell {
+          min-height: calc(100dvh - 96px);
+          border-radius: 0;
+          margin: -14px;
+          padding: 14px;
+        }
+        .system-builder-header {
+          flex-direction: column;
+        }
+        .system-builder-actions {
+          width: 100%;
+        }
+        .system-builder-actions .button {
+          width: auto;
+          flex: 1 1 160px;
+        }
+        .system-builder-chat {
+          padding-inline: 0;
+        }
+        .system-chat-row,
+        .system-builder-card {
+          max-width: 100%;
+          width: 100%;
+        }
+        .system-chat-row.user {
+          max-width: 90%;
+          width: auto;
+        }
+        .system-card-grid,
+        .system-preview-content,
+        .system-preview-metrics {
+          grid-template-columns: 1fr;
+        }
+        .system-preview-sidebar {
+          display: none;
+        }
+        .system-preview-main {
+          margin-left: 0;
+        }
+        .system-builder-composer {
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          border-radius: 16px;
+        }
+        .system-builder-composer .primary-action {
+          width: 44px;
+          min-width: 44px;
+          padding: 0;
+          font-size: 0;
+        }
+        .system-builder-composer .primary-action svg {
+          margin: 0;
+        }
+        .system-history-drawer {
+          position: fixed;
+          inset: 0 0 0 auto;
+          width: min(92vw, 360px);
+          z-index: 80;
+        }
         .settings-hero { align-items: flex-start; flex-direction: column; }
         .settings-card-grid,
         .option-grid,
@@ -1948,42 +2309,49 @@ ${logoYaraStyles()}
         </section>
 
         <section class="view" id="view-systems" hidden>
-          <div class="panel">
-            <div class="settings-hero">
+          <div class="system-builder-shell">
+            <div class="system-builder-header">
               <div>
                 <h2>Sistemas</h2>
-                <p class="muted">Converse com a YARA para criar, melhorar, exportar e organizar sistemas completos.</p>
+                <strong>Criador de Sistemas</strong>
+                <p>Converse com a YARA e veja seu sistema ganhar vida.</p>
               </div>
-              <button class="button" id="refreshSystemsButton" type="button">${icon("history")}Atualizar</button>
+              <div class="system-builder-actions">
+                <button class="button" id="systemsHistoryButton" type="button">${icon("history")}Histórico de Sistemas</button>
+                <button class="icon-button" id="systemsSearchButton" type="button" aria-label="Pesquisar sistemas">${icon("search")}</button>
+                <button class="icon-button" id="systemsSettingsButton" type="button" aria-label="Configurações do builder">${icon("settings")}</button>
+              </div>
             </div>
-            <div class="layout-grid">
-              <article class="card">
-                <div class="item-top">
-                  <div>
-                    <h2>Chat de Sistemas</h2>
-                    <p class="muted">Descreva o que quer criar. A YARA decide arquitetura, stack, banco, telas, APIs e arquivos-base.</p>
-                  </div>
-                  <span class="status"><span class="dot"></span><span id="systemChatStatus">Pronto</span></span>
+            <aside class="system-history-drawer" id="systemsHistoryDrawer" aria-label="Histórico de Sistemas" hidden>
+              <div class="item-top">
+                <div>
+                  <h2>Histórico de Sistemas</h2>
+                  <p class="muted" id="systemsCount">0 sistemas</p>
                 </div>
-                <div class="messages system-chat-messages" id="systemChatMessages">
-                  <div class="empty-chat"><h2>Que sistema vamos criar?</h2></div>
-                </div>
-                <form class="composer system-composer" id="systemChatForm">
-                  <textarea id="systemChatInput" rows="2" maxlength="4000" placeholder="Ex.: Crie um sistema de estoque com login, produtos, alertas e painel administrativo."></textarea>
-                  <button class="primary-action" id="systemChatSendButton" type="submit">${icon("send")}Enviar</button>
-                </form>
-              </article>
-              <article class="card">
-                <div class="item-top">
-                  <h2>Histórico</h2>
-                  <span class="status"><span class="dot"></span><span id="systemsCount">0 sistemas</span></span>
-                </div>
-                <div class="list" id="systemsList"></div>
-              </article>
+                <button class="icon-button" id="systemsHistoryClose" type="button" aria-label="Fechar histórico">${icon("close")}</button>
+              </div>
+              <div class="list" id="systemsList"></div>
+            </aside>
+            <div class="system-builder-chat" id="systemChatMessages">
+              <div class="system-builder-empty">
+                <span class="system-empty-icon">${icon("sparkles")}</span>
+                <h2>Criador de Sistemas</h2>
+                <p>Converse com a YARA para criar qualquer sistema.</p>
+                <ul>
+                  <li>Aplicativo de investimentos</li>
+                  <li>Sistema de estoque</li>
+                  <li>ERP para construtora</li>
+                  <li>CRM de vendas</li>
+                  <li>Sistema de manutenção industrial</li>
+                </ul>
+              </div>
             </div>
-            <article class="card" id="systemDetail">
-              <p class="muted">Gere ou selecione um sistema para ver arquitetura, arquivos e exportações.</p>
-            </article>
+            <form class="system-builder-composer" id="systemChatForm">
+              <button class="icon-button" id="systemAttachButton" type="button" aria-label="Adicionar contexto">${icon("plus")}</button>
+              <textarea id="systemChatInput" rows="2" maxlength="4000" placeholder="Descreva seu sistema em linguagem natural..."></textarea>
+              <button class="primary-action" id="systemChatSendButton" type="submit">${icon("send")}Enviar</button>
+            </form>
+            <p class="system-builder-note">A YARA escolhe a melhor arquitetura, stack, banco e plano para o seu sistema.</p>
           </div>
         </section>
 
@@ -5632,50 +6000,151 @@ ${logoYaraStyles()}
         }
         target.innerHTML = systems.map(function(system) {
           const active = selectedSystem && selectedSystem.id === system.id ? " active" : "";
-          return '<button class="conversation-item' + active + '" data-open-system="' + escapeHtml(system.id) + '" type="button"><strong>' + escapeHtml(system.name) + '</strong><span>' + escapeHtml(system.architecture || "Arquitetura") + ' · ' + escapeHtml(system.type || "Sistema") + '</span></button>';
+          return '<button class="conversation-item' + active + '" data-open-system="' + escapeHtml(system.id) + '" type="button"><strong>' + escapeHtml(system.name) + '</strong><span>' + escapeHtml(system.updatedAt || system.createdAt || "") + ' · ' + escapeHtml(system.status || "ready") + '</span></button>';
         }).join("");
       }
 
       function renderSystemChatMessages() {
         const target = document.getElementById("systemChatMessages");
         if (!target) return;
-        if (!systemChatMessages.length) {
-          target.innerHTML = '<div class="empty-chat"><h2>Que sistema vamos criar?</h2></div>';
+        if (!systemChatMessages.length && !selectedSystem) {
+          target.innerHTML = '<div class="system-builder-empty"><span class="system-empty-icon">${icon("sparkles")}</span><h2>Criador de Sistemas</h2><p>Converse com a YARA para criar qualquer sistema.</p><ul><li>Aplicativo de investimentos</li><li>Sistema de estoque</li><li>ERP para construtora</li><li>CRM de vendas</li><li>Sistema de manutenção industrial</li></ul></div>';
           return;
         }
-        target.innerHTML = systemChatMessages.map(function(message) {
+        const html = systemChatMessages.map(function(message) {
           const isUser = message.role === "user";
-          return '<article class="message ' + (isUser ? "user" : "assistant") + '"><div class="message-avatar">' + (isUser ? initials(currentUser && currentUser.name) : "YA") + '</div><div class="message-content">' + renderMarkdown(message.content || "") + '</div></article>';
+          return '<article class="system-chat-row ' + (isUser ? "user" : "assistant") + '">' + (isUser ? "" : '<div class="message-avatar">YA</div>') + '<div class="system-chat-bubble">' + renderMarkdown(message.content || "") + '<span class="system-chat-time">' + escapeHtml((message.createdAt || "").slice(11, 16)) + '</span></div></article>';
         }).join("");
+        target.innerHTML = html + (selectedSystem ? renderSystemBuilderCard(selectedSystem) : "");
         target.scrollTop = target.scrollHeight;
       }
 
-      function renderSystemDetail(system) {
-        const target = document.getElementById("systemDetail");
-        if (!target) return;
-        if (!system) {
-          target.innerHTML = '<p class="muted">Selecione ou gere um sistema para visualizar arquitetura, arquivos e plano.</p>';
+      function renderSystemBuilderCard(system) {
+        const scope = system.scope || {};
+        const techs = [system.backend, "Express", system.frontend, "TypeScript", system.database, system.database === "PostgreSQL" ? "Prisma" : ""].filter(Boolean);
+        const features = (scope.features || []).slice(0, 7);
+        return [
+          '<article class="system-builder-card" data-system-card="' + escapeHtml(system.id) + '">',
+          '<div><h3>✓ Sistema gerado com sucesso!</h3><p class="muted">' + escapeHtml(system.name) + '</p></div>',
+          '<div class="system-card-grid">',
+          '<div class="system-preview"><div class="system-preview-sidebar">Sistema<br>Dashboard<br>Produtos<br>Relatórios<br>Configurações</div><div class="system-preview-main"><div class="system-preview-metrics"><span></span><span></span><span></span><span></span></div><div class="system-preview-content"><div class="system-preview-chart"></div><div class="system-preview-pie"></div></div></div></div>',
+          '<div><h3>Resumo do sistema</h3><p class="muted">' + escapeHtml(system.objective || "") + '</p><ul class="system-summary-list">' + features.map(function(feature) { return '<li>' + escapeHtml(feature) + '</li>'; }).join("") + '</ul></div>',
+          '</div>',
+          '<div><p class="muted">Tecnologias escolhidas pela YARA</p><div class="system-tech-list">' + techs.map(function(tech) { return '<span class="system-tech-pill">' + escapeHtml(tech) + '</span>'; }).join("") + '</div></div>',
+          '<div class="system-card-actions">',
+          '<button class="button" data-system-panel="folders" type="button">${icon("folder")}Ver estrutura de pastas</button>',
+          '<button class="button" data-system-panel="screens" type="button">${icon("search")}Ver telas</button>',
+          '<button class="button" data-system-panel="apis" type="button">${icon("code")}Ver APIs</button>',
+          '<button class="button" data-system-panel="database" type="button">${icon("brain")}Ver banco de dados</button>',
+          '<button class="button" data-export-system="pdf" type="button">${icon("file")}Exportar PDF</button>',
+          '<button class="button" data-export-system="docx" type="button">${icon("file")}Exportar DOCX</button>',
+          '<button class="button" data-system-panel="code" type="button">${icon("code")}Gerar Código</button>',
+          '<button class="primary-action" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}Publicar Sistema</button>',
+          '<button class="button" data-duplicate-system="' + escapeHtml(system.id) + '" type="button">${icon("file")}Duplicar Projeto</button>',
+          '<button class="button" data-continue-system="' + escapeHtml(system.id) + '" type="button">${icon("sparkles")}Continuar Evolução</button>',
+          '</div>',
+          '</article>'
+        ].join("");
+      }
+
+      function openSystemsHistoryDrawer() {
+        const drawer = document.getElementById("systemsHistoryDrawer");
+        if (drawer) drawer.hidden = false;
+        renderSystemList();
+      }
+
+      function closeSystemsHistoryDrawer() {
+        const drawer = document.getElementById("systemsHistoryDrawer");
+        if (drawer) drawer.hidden = true;
+      }
+
+      function systemListHtml(items) {
+        if (!items || !items.length) return '<p class="muted">Nada registrado ainda.</p>';
+        return '<ul class="clean-list">' + items.map(function(item) {
+          if (typeof item === "string") return '<li>' + escapeHtml(item) + '</li>';
+          return '<li><pre class="code-block">' + escapeHtml(JSON.stringify(item, null, 2)) + '</pre></li>';
+        }).join("") + '</ul>';
+      }
+
+      function systemFilesHtml(files) {
+        if (!files || !files.length) return '<p class="muted">Nenhum arquivo-base criado ainda.</p>';
+        return files.map(function(file) {
+          return '<details class="list-item" open><summary><strong>' + escapeHtml(file.name || "arquivo") + '</strong><span class="muted"> · ' + escapeHtml(file.type || "base") + '</span></summary><pre class="code-block">' + escapeHtml(file.content || "") + '</pre></details>';
+        }).join("");
+      }
+
+      function openSystemPanel(panel) {
+        if (!selectedSystem) return showToast("Gere ou selecione um sistema primeiro.");
+        const scope = selectedSystem.scope || {};
+        const panels = {
+          folders: ["Estrutura de pastas", "Organização inicial escolhida pela YARA.", systemListHtml(selectedSystem.folderStructure || [])],
+          screens: ["Telas do sistema", "Fluxos e telas previstos para o produto.", systemListHtml(scope.screens || [])],
+          apis: ["APIs", "Endpoints e contratos planejados.", systemListHtml(scope.apis || [])],
+          database: ["Banco de dados", "Entidades, tabelas e dados necessários.", systemListHtml(scope.database || [])],
+          code: ["Arquivos-base", "Arquivos iniciais gerados para orientar o desenvolvimento.", systemFilesHtml(selectedSystem.files || [])]
+        };
+        const content = panels[panel];
+        if (!content) return showToast("Painel indisponível.");
+        openModal(content[0], content[1], content[2]);
+      }
+
+      async function publishSelectedSystem() {
+        if (!selectedSystem) return showToast("Gere ou selecione um sistema primeiro.");
+        const data = await api("/api/systems/" + selectedSystem.id + "/publish", { method: "POST" });
+        selectedSystem = data.system;
+        renderSystemChatMessages();
+        await loadSystems();
+        showToast("Sistema publicado.");
+      }
+
+      async function duplicateSelectedSystem() {
+        if (!selectedSystem) return showToast("Gere ou selecione um sistema primeiro.");
+        const data = await api("/api/systems/" + selectedSystem.id + "/duplicate", { method: "POST" });
+        selectedSystem = data.system;
+        systemChatSessionId = null;
+        systemChatMessages = [];
+        await loadSystems();
+        await selectSystem(selectedSystem.id);
+        showToast("Projeto duplicado.");
+      }
+
+      function continueSystemEvolution() {
+        if (!selectedSystem) return showToast("Gere ou selecione um sistema primeiro.");
+        const input = document.getElementById("systemChatInput");
+        if (input) {
+          input.focus();
+          input.placeholder = "Peça a próxima evolução para " + selectedSystem.name + "...";
+        }
+        showToast("Continue a conversa para evoluir o sistema.");
+      }
+
+      function openSystemSearch() {
+        const query = window.prompt("Pesquisar no histórico de sistemas");
+        if (query === null) return;
+        const term = query.trim().toLowerCase();
+        if (!term) {
+          renderSystemList();
+          openSystemsHistoryDrawer();
           return;
         }
-        const scope = system.scope || {};
-        const stack = system.stack || {};
-        const list = function(items) {
-          return (items || []).length ? '<ul class="clean-list">' + items.map(function(item) { return '<li>' + escapeHtml(item) + '</li>'; }).join("") + '</ul>' : '<p class="muted">Nada registrado.</p>';
-        };
-        const files = (system.files || []).length
-          ? system.files.map(function(file) {
-              return '<details class="list-item"><summary><strong>' + escapeHtml(file.name) + '</strong><span class="muted"> · ' + escapeHtml(file.type) + '</span></summary><pre class="code-block">' + escapeHtml(file.content || "") + '</pre></details>';
-            }).join("")
-          : '<p class="muted">Nenhum arquivo-base criado.</p>';
-        target.innerHTML = [
-          '<div class="item-top"><div><h2>' + escapeHtml(system.name) + '</h2><p class="muted">' + escapeHtml(system.objective || "") + '</p></div><div class="row"><button class="button" data-export-system="txt" type="button">TXT</button><button class="button" data-export-system="pdf" type="button">PDF</button><button class="button" data-export-system="docx" type="button">DOCX</button><button class="icon-button danger" data-delete-system="' + escapeHtml(system.id) + '" type="button" aria-label="Excluir sistema">${icon("trash")}</button></div></div>',
-          '<div class="dashboard-grid"><article class="metric-card"><span class="metric-label">Tipo</span><strong>' + escapeHtml(system.type) + '</strong></article><article class="metric-card"><span class="metric-label">Complexidade</span><strong>' + escapeHtml(system.complexity) + '</strong></article><article class="metric-card"><span class="metric-label">Arquitetura</span><strong>' + escapeHtml(system.architecture) + '</strong></article><article class="metric-card"><span class="metric-label">Banco</span><strong>' + escapeHtml(system.database || "Definido pela YARA") + '</strong></article></div>',
-          '<div class="layout-grid"><article class="card"><h2>Stack escolhida</h2><p class="muted"><strong>Frontend:</strong> ' + escapeHtml(system.frontend || "") + '</p><p class="muted"><strong>Backend:</strong> ' + escapeHtml(system.backend || "") + '</p><p class="muted"><strong>Banco:</strong> ' + escapeHtml(system.database || "") + '</p><p class="muted">' + escapeHtml(stack.reason || "") + '</p></article><article class="card"><h2>Funcionalidades</h2>' + list(scope.features) + '</article></div>',
-          '<div class="layout-grid"><article class="card"><h2>Telas</h2>' + list(scope.screens) + '</article><article class="card"><h2>APIs</h2>' + list(scope.apis) + '</article></div>',
-          '<div class="layout-grid"><article class="card"><h2>Banco de dados</h2>' + list(scope.database) + '</article><article class="card"><h2>Plano de desenvolvimento</h2>' + list(system.developmentPlan) + '</article></div>',
-          '<article class="card"><h2>Estrutura de pastas</h2>' + list(system.folderStructure) + '</article>',
-          '<article class="card"><h2>Arquivos-base</h2><div class="list">' + files + '</div></article>'
-        ].join("");
+        const filtered = systems.filter(function(system) {
+          return [system.name, system.objective, system.type, system.architecture, system.database].join(" ").toLowerCase().includes(term);
+        });
+        const target = document.getElementById("systemsList");
+        if (target) {
+          target.innerHTML = filtered.length ? filtered.map(function(system) {
+            return '<button class="conversation-item" data-open-system="' + escapeHtml(system.id) + '" type="button"><strong>' + escapeHtml(system.name) + '</strong><span>' + escapeHtml(system.updatedAt || system.createdAt || "") + ' · ' + escapeHtml(system.status || "ready") + '</span></button>';
+          }).join("") : '<p class="muted">Nenhum sistema encontrado.</p>';
+        }
+        openSystemsHistoryDrawer();
+      }
+
+      function openSystemSettings() {
+        openModal(
+          "Configurações do Criador",
+          "A YARA decide arquitetura, stack, banco e plano automaticamente.",
+          '<article class="list-item"><strong>Modo conversa</strong><p class="muted">Ativo. O usuário descreve o produto em linguagem natural.</p></article><article class="list-item"><strong>Decisão técnica automática</strong><p class="muted">Ativa. Não há seleção manual de linguagem, framework, banco ou arquitetura.</p></article><article class="list-item"><strong>Persistência</strong><p class="muted">Cada sistema e sua conversa ficam salvos no histórico do usuário.</p></article>'
+        );
       }
 
       async function loadSystems() {
@@ -5683,8 +6152,6 @@ ${logoYaraStyles()}
         systems = data.systems || [];
         renderSystemList();
         if (selectedSystem && !systems.some(function(system) { return system.id === selectedSystem.id; })) selectedSystem = null;
-        if (!selectedSystem && systems.length) await selectSystem(systems[0].id);
-        else renderSystemDetail(selectedSystem);
         await loadSystemChatHistory();
       }
 
@@ -5702,7 +6169,13 @@ ${logoYaraStyles()}
         const data = await api("/api/systems/" + systemId);
         selectedSystem = data.system;
         renderSystemList();
-        renderSystemDetail(selectedSystem);
+        const history = await api("/api/systems/" + systemId + "/chat/history").catch(function() {
+          return { session: null, messages: [] };
+        });
+        systemChatSessionId = history.session ? history.session.id : systemChatSessionId;
+        systemChatMessages = history.messages || [];
+        renderSystemChatMessages();
+        closeSystemsHistoryDrawer();
       }
 
       async function generateSystemFromUi() {
@@ -5713,7 +6186,6 @@ ${logoYaraStyles()}
         const prompt = getValue("systemChatInput").trim();
         if (prompt.length < 2) return showToast("Digite o que deseja criar ou alterar.");
         const button = document.getElementById("systemChatSendButton");
-        setText("systemChatStatus", "Processando...");
         if (button) button.disabled = true;
         systemChatMessages = systemChatMessages.concat([{ role: "user", content: prompt }]);
         renderSystemChatMessages();
@@ -5732,15 +6204,16 @@ ${logoYaraStyles()}
           renderSystemChatMessages();
           if (data.system && data.system.id) {
             selectedSystem = data.system;
-            await loadSystems();
-            await selectSystem(data.system.id);
+            const list = await api("/api/systems").catch(function() { return { systems: systems }; });
+            systems = list.systems || systems;
+            renderSystemList();
+            renderSystemChatMessages();
           }
           if (data.file && data.file.id) {
             await downloadProtectedPath("/api/files/" + data.file.id + "/download", data.file.name || "sistema");
           }
           showToast(data.file ? "Arquivo gerado." : "Chat de Sistemas atualizado.");
         } finally {
-          setText("systemChatStatus", "Pronto");
           if (button) button.disabled = false;
         }
       }
@@ -8456,28 +8929,52 @@ ${logoYaraStyles()}
         if (els.messageInput) els.messageInput.focus();
       });
 
-      on("refreshSystemsButton", "click", async function() {
+      on("systemsHistoryButton", "click", async function() {
         await loadSystems();
-        showToast("Sistemas atualizados.");
+        openSystemsHistoryDrawer();
+      });
+      on("systemsHistoryClose", "click", closeSystemsHistoryDrawer);
+      on("systemsSearchButton", "click", function() {
+        openSystemSearch();
+      });
+      on("systemsSettingsButton", "click", function() {
+        openSystemSettings();
+      });
+      on("systemAttachButton", "click", function() {
+        openModal(
+          "Adicionar contexto",
+          "Use o chat para descrever regras, telas, integrações e arquivos necessários.",
+          '<article class="list-item"><strong>Como usar</strong><p class="muted">Cole no campo de mensagem requisitos, regras de negócio, exemplos de telas ou mudanças desejadas. A YARA incorpora esse contexto ao mesmo sistema.</p></article><article class="list-item"><strong>Arquivos</strong><p class="muted">Anexos técnicos continuam disponíveis nos módulos Arquivos, Documentos e Projetos Técnicos.</p></article>'
+        );
       });
       on("systemsList", "click", async function(event) {
         const button = event.target.closest("[data-open-system]");
         if (!button) return;
         await selectSystem(button.dataset.openSystem);
       });
-      on("systemDetail", "click", async function(event) {
+      on("systemChatMessages", "click", async function(event) {
+        const panelButton = event.target.closest("[data-system-panel]");
+        if (panelButton) {
+          openSystemPanel(panelButton.dataset.systemPanel);
+          return;
+        }
         const exportButton = event.target.closest("[data-export-system]");
         if (exportButton) {
           await exportSelectedSystem(exportButton.dataset.exportSystem);
           return;
         }
-        const deleteButton = event.target.closest("[data-delete-system]");
-        if (!deleteButton) return;
-        if (!window.confirm("Excluir este sistema?")) return;
-        await api("/api/systems/" + deleteButton.dataset.deleteSystem, { method: "DELETE" });
-        selectedSystem = null;
-        await loadSystems();
-        showToast("Sistema excluído.");
+        const publishButton = event.target.closest("[data-publish-system]");
+        if (publishButton) {
+          await publishSelectedSystem();
+          return;
+        }
+        const duplicateButton = event.target.closest("[data-duplicate-system]");
+        if (duplicateButton) {
+          await duplicateSelectedSystem();
+          return;
+        }
+        const continueButton = event.target.closest("[data-continue-system]");
+        if (continueButton) continueSystemEvolution();
       });
 
       on("refreshAgentsButton", "click", async function() {

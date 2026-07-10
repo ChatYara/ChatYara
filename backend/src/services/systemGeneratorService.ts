@@ -689,6 +689,63 @@ export function deleteSystem(userId: string, systemId: string) {
   return { id: systemId };
 }
 
+export function publishSystem(userId: string, systemId: string) {
+  getSystemDetails(userId, systemId);
+  getDatabase()
+    .prepare("update systems set status = 'published', updated_at = current_timestamp where id = ? and user_id = ?")
+    .run(systemId, userId);
+  auditSystem(userId, systemId, "publish", "Sistema marcado como publicado.");
+  refreshKnowledgeGraphSoon(userId);
+  return getSystemDetails(userId, systemId);
+}
+
+export function duplicateSystem(userId: string, systemId: string) {
+  const original = getSystemDetails(userId, systemId);
+  const id = uuid();
+  const now = new Date().toISOString();
+  const db = getDatabase();
+  db.prepare(
+    `insert into systems (
+      id, user_id, name, prompt, type, complexity, scalability, architecture, frontend, backend,
+      database_choice, needs_auth, needs_database, needs_mobile, needs_admin, objective,
+      scope_json, stack_json, folder_structure_json, development_plan_json, status, created_at, updated_at
+    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ready', ?, ?)`
+  ).run(
+    id,
+    userId,
+    `${original.name} (cópia)`,
+    original.prompt,
+    original.type,
+    original.complexity,
+    original.scalability,
+    original.architecture,
+    original.frontend,
+    original.backend,
+    original.database,
+    original.needsAuth ? 1 : 0,
+    original.needsDatabase ? 1 : 0,
+    original.needsMobile ? 1 : 0,
+    original.needsAdmin ? 1 : 0,
+    original.objective,
+    JSON.stringify(original.scope),
+    JSON.stringify(original.stack),
+    JSON.stringify(original.folderStructure),
+    JSON.stringify(original.developmentPlan),
+    now,
+    now
+  );
+  const insertFile = db.prepare(
+    `insert into system_files (id, user_id, system_id, name, type, content, created_at, updated_at)
+     values (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  for (const file of original.files || []) {
+    insertFile.run(uuid(), userId, id, file.name, file.type, file.content || "", now, now);
+  }
+  auditSystem(userId, id, "duplicate", "Sistema duplicado.", { sourceSystemId: systemId });
+  refreshKnowledgeGraphSoon(userId);
+  return getSystemDetails(userId, id);
+}
+
 export async function exportSystem(userId: string, systemId: string, format: "txt" | "pdf" | "docx") {
   const system = getSystemDetails(userId, systemId);
   const content = [
@@ -781,6 +838,32 @@ export function listSystemChatHistory(userId: string) {
 
   return {
     sessions: sessions.map(publicSystemChatSession),
+    messages: messages.map(publicSystemChatMessage)
+  };
+}
+
+export function getSystemChatHistory(userId: string, systemId: string) {
+  getSystemDetails(userId, systemId);
+  let session = getDatabase()
+    .prepare(
+      `select * from system_chat_sessions
+       where user_id = ? and system_id = ?
+       order by datetime(updated_at) desc
+       limit 1`
+    )
+    .get(userId, systemId) as SystemChatSessionRow | undefined;
+  if (!session) {
+    session = createSystemChatSession(userId, systemId);
+  }
+  const messages = getDatabase()
+    .prepare(
+      `select * from system_chat_messages
+       where user_id = ? and session_id = ?
+       order by datetime(created_at) asc`
+    )
+    .all(userId, session.id) as SystemChatMessageRow[];
+  return {
+    session: publicSystemChatSession(session),
     messages: messages.map(publicSystemChatMessage)
   };
 }
