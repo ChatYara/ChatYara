@@ -6023,9 +6023,13 @@ ${logoYaraStyles()}
         const scope = system.scope || {};
         const techs = [system.backend, "Express", system.frontend, "TypeScript", system.database, system.database === "PostgreSQL" ? "Prisma" : ""].filter(Boolean);
         const features = (scope.features || []).slice(0, 7);
+        const deploy = system.deploy || null;
+        const deployProject = deploy && deploy.project ? deploy.project : null;
+        const deployUrls = deployProject && deployProject.urls ? deployProject.urls : {};
         return [
           '<article class="system-builder-card" data-system-card="' + escapeHtml(system.id) + '">',
           '<div><h3>✓ Sistema gerado com sucesso!</h3><p class="muted">' + escapeHtml(system.name) + '</p></div>',
+          deployProject ? '<div class="list-item"><div class="item-top"><div><strong>Produção online</strong><p class="muted">Versão publicada pelo YARA Deploy Engine.</p></div><span class="status"><span class="dot"></span>' + escapeHtml(deployProject.status || "online") + '</span></div><div class="row"><a class="button" href="' + escapeHtml(deployUrls.frontend || "#") + '" target="_blank" rel="noreferrer">Abrir URL</a><button class="button" data-deploy-panel="' + escapeHtml(deployProject.id) + '" type="button">Painel de Produção</button></div></div>' : "",
           '<div class="system-card-grid">',
           '<div class="system-preview"><div class="system-preview-sidebar">Sistema<br>Dashboard<br>Produtos<br>Relatórios<br>Configurações</div><div class="system-preview-main"><div class="system-preview-metrics"><span></span><span></span><span></span><span></span></div><div class="system-preview-content"><div class="system-preview-chart"></div><div class="system-preview-pie"></div></div></div></div>',
           '<div><h3>Resumo do sistema</h3><p class="muted">' + escapeHtml(system.objective || "") + '</p><ul class="system-summary-list">' + features.map(function(feature) { return '<li>' + escapeHtml(feature) + '</li>'; }).join("") + '</ul></div>',
@@ -6039,7 +6043,7 @@ ${logoYaraStyles()}
           '<button class="button" data-export-system="pdf" type="button">${icon("file")}Exportar PDF</button>',
           '<button class="button" data-export-system="docx" type="button">${icon("file")}Exportar DOCX</button>',
           '<button class="button" data-system-panel="code" type="button">${icon("code")}Gerar Código</button>',
-          '<button class="primary-action" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}Publicar Sistema</button>',
+          '<button class="primary-action" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}' + (deployProject ? "Publicar nova versão" : "Publicar Sistema") + '</button>',
           '<button class="button" data-duplicate-system="' + escapeHtml(system.id) + '" type="button">${icon("file")}Duplicar Projeto</button>',
           '<button class="button" data-continue-system="' + escapeHtml(system.id) + '" type="button">${icon("sparkles")}Continuar Evolução</button>',
           '</div>',
@@ -6090,11 +6094,14 @@ ${logoYaraStyles()}
 
       async function publishSelectedSystem() {
         if (!selectedSystem) return showToast("Gere ou selecione um sistema primeiro.");
+        showToast("Executando build e deploy do sistema...");
         const data = await api("/api/systems/" + selectedSystem.id + "/publish", { method: "POST" });
         selectedSystem = data.system;
+        if (data.deploy && data.deploy.project) selectedSystem.deploy = data.deploy;
         renderSystemChatMessages();
         await loadSystems();
-        showToast("Sistema publicado.");
+        if (data.deploy && data.deploy.project) await openDeployPanel(data.deploy.project.id);
+        showToast("Sistema online. URLs geradas.");
       }
 
       async function duplicateSelectedSystem() {
@@ -6147,6 +6154,64 @@ ${logoYaraStyles()}
         );
       }
 
+      async function attachDeployStatusToSelectedSystem() {
+        if (!selectedSystem || !selectedSystem.id) return;
+        const status = await api("/api/deploy/status?systemId=" + encodeURIComponent(selectedSystem.id)).catch(function() {
+          return null;
+        });
+        if (status && status.project) {
+          selectedSystem.deploy = status;
+        }
+      }
+
+      function renderDeployPanel(data) {
+        const project = data && data.project ? data.project : null;
+        if (!project) return '<p class="muted">Este sistema ainda não foi publicado.</p>';
+        const urls = project.urls || {};
+        const domains = data.domains || [];
+        const logs = data.logs || [];
+        const release = data.latestRelease || (data.releases && data.releases[0]) || null;
+        const build = data.latestBuild || (data.builds && data.builds[0]) || null;
+        return [
+          '<div class="dashboard-grid">',
+          '<article class="metric-card"><span class="metric-label">Status</span><strong>' + escapeHtml(project.status || "online") + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Versão</span><strong>' + escapeHtml(release ? release.version : "v1") + '</strong></article>',
+          '<article class="metric-card"><span class="metric-label">Último build</span><strong>' + escapeHtml(build ? build.status : "success") + '</strong></article>',
+          '</div>',
+          '<div class="list">',
+          '<article class="list-item"><strong>URL principal</strong><p class="muted">' + escapeHtml(urls.frontend || "") + '</p><a class="button" href="' + escapeHtml(urls.frontend || "#") + '" target="_blank" rel="noreferrer">Abrir aplicação</a></article>',
+          '<article class="list-item"><strong>API</strong><p class="muted">' + escapeHtml(urls.api ? urls.api + "/health" : "") + '</p><a class="button" href="' + escapeHtml(urls.api ? urls.api + "/health" : "#") + '" target="_blank" rel="noreferrer">Ver health</a></article>',
+          '<article class="list-item"><strong>Admin</strong><p class="muted">' + escapeHtml(urls.admin || "") + '</p><a class="button" href="' + escapeHtml(urls.admin || "#") + '" target="_blank" rel="noreferrer">Abrir painel</a></article>',
+          '<article class="list-item"><strong>Docs</strong><p class="muted">' + escapeHtml(urls.docs || "") + '</p><a class="button" href="' + escapeHtml(urls.docs || "#") + '" target="_blank" rel="noreferrer">Abrir documentação</a></article>',
+          '</div>',
+          '<article class="list-item"><strong>Aliases de domínio</strong><p class="muted">Preparados para DNS. Ficam ativos quando o domínio/provedor estiver configurado.</p>' + (domains.length ? domains.map(function(domain) { return '<p class="muted">' + escapeHtml(domain.type) + ': ' + escapeHtml(domain.domain) + ' · ' + (domain.active ? "ativo" : "pendente") + '</p>'; }).join("") : '<p class="muted">Nenhum alias registrado.</p>') + '</article>',
+          '<div class="row"><button class="button" data-deploy-action="redeploy" data-project-id="' + escapeHtml(project.id) + '" type="button">Publicar nova versão</button><button class="button" data-deploy-action="restart" data-project-id="' + escapeHtml(project.id) + '" type="button">Reiniciar</button><button class="button" data-deploy-action="rollback" data-project-id="' + escapeHtml(project.id) + '" type="button">Rollback</button></div>',
+          '<article class="list-item"><strong>Logs</strong>' + (logs.length ? logs.map(function(log) { return '<p class="muted">' + escapeHtml(log.createdAt || "") + ' · ' + escapeHtml(log.message || "") + '</p>'; }).join("") : '<p class="muted">Sem logs ainda.</p>') + '</article>'
+        ].join("");
+      }
+
+      async function openDeployPanel(projectId) {
+        if (!projectId && selectedSystem && selectedSystem.deploy && selectedSystem.deploy.project) {
+          projectId = selectedSystem.deploy.project.id;
+        }
+        if (!projectId) return showToast("Publique o sistema primeiro.");
+        const detail = await api("/api/deploy/projects/" + encodeURIComponent(projectId));
+        const status = await api("/api/deploy/status?projectId=" + encodeURIComponent(projectId));
+        openModal("Painel de Produção", "URLs, status, versão, logs e controles do deploy.", renderDeployPanel(Object.assign({}, detail, status)));
+      }
+
+      async function runDeployAction(action, projectId) {
+        if (!projectId) return showToast("Projeto de deploy inválido.");
+        const data = await api("/api/deploy/" + action, {
+          method: "POST",
+          body: JSON.stringify({ projectId: projectId })
+        });
+        if (selectedSystem && data.project) selectedSystem.deploy = Object.assign({}, selectedSystem.deploy || {}, { project: data.project });
+        await openDeployPanel(projectId);
+        renderSystemChatMessages();
+        showToast("Ação de produção executada.");
+      }
+
       async function loadSystems() {
         const data = await api("/api/systems");
         systems = data.systems || [];
@@ -6168,6 +6233,7 @@ ${logoYaraStyles()}
         if (!systemId) return;
         const data = await api("/api/systems/" + systemId);
         selectedSystem = data.system;
+        await attachDeployStatusToSelectedSystem();
         renderSystemList();
         const history = await api("/api/systems/" + systemId + "/chat/history").catch(function() {
           return { session: null, messages: [] };
@@ -6204,6 +6270,7 @@ ${logoYaraStyles()}
           renderSystemChatMessages();
           if (data.system && data.system.id) {
             selectedSystem = data.system;
+            if (data.deploy && data.deploy.project) selectedSystem.deploy = data.deploy;
             const list = await api("/api/systems").catch(function() { return { systems: systems }; });
             systems = list.systems || systems;
             renderSystemList();
@@ -6212,7 +6279,7 @@ ${logoYaraStyles()}
           if (data.file && data.file.id) {
             await downloadProtectedPath("/api/files/" + data.file.id + "/download", data.file.name || "sistema");
           }
-          showToast(data.file ? "Arquivo gerado." : "Chat de Sistemas atualizado.");
+          showToast(data.deploy ? "Sistema atualizado e nova versão publicada." : data.file ? "Arquivo gerado." : "Chat de Sistemas atualizado.");
         } finally {
           if (button) button.disabled = false;
         }
@@ -8799,6 +8866,12 @@ ${logoYaraStyles()}
       });
 
       on("modalBody", "click", async function(event) {
+        const deployActionButton = event.target.closest("[data-deploy-action]");
+        if (deployActionButton) {
+          await runDeployAction(deployActionButton.dataset.deployAction, deployActionButton.dataset.projectId);
+          return;
+        }
+
         const settingsTab = event.target.closest("[data-modal-settings-tab]");
         if (settingsTab) {
           document.querySelectorAll("[data-modal-settings-tab]").forEach(function(tab) {
@@ -8953,6 +9026,11 @@ ${logoYaraStyles()}
         await selectSystem(button.dataset.openSystem);
       });
       on("systemChatMessages", "click", async function(event) {
+        const deployPanelButton = event.target.closest("[data-deploy-panel]");
+        if (deployPanelButton) {
+          await openDeployPanel(deployPanelButton.dataset.deployPanel);
+          return;
+        }
         const panelButton = event.target.closest("[data-system-panel]");
         if (panelButton) {
           openSystemPanel(panelButton.dataset.systemPanel);

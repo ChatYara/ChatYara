@@ -686,6 +686,93 @@ export function runMigrations() {
       foreign key (system_id) references systems(id) on delete set null
     );
 
+    create table if not exists deploy_projects (
+      id text primary key,
+      user_id text not null,
+      system_id text not null,
+      name text not null,
+      slug text not null,
+      status text not null default 'created',
+      frontend_url text,
+      api_url text,
+      admin_url text,
+      docs_url text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (user_id, system_id),
+      unique (slug),
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (system_id) references systems(id) on delete cascade
+    );
+
+    create table if not exists deploy_builds (
+      id text primary key,
+      user_id text not null,
+      project_id text not null,
+      status text not null default 'queued',
+      started_at text not null default current_timestamp,
+      finished_at text,
+      logs text not null default '',
+      metadata_json text not null default '{}',
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references deploy_projects(id) on delete cascade
+    );
+
+    create table if not exists deploy_environments (
+      id text primary key,
+      user_id text not null,
+      project_id text not null,
+      name text not null default 'production',
+      status text not null default 'active',
+      variables_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references deploy_projects(id) on delete cascade
+    );
+
+    create table if not exists deploy_domains (
+      id text primary key,
+      user_id text not null,
+      project_id text not null,
+      domain text not null,
+      type text not null,
+      active integer not null default 0,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      unique (project_id, type),
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references deploy_projects(id) on delete cascade
+    );
+
+    create table if not exists deploy_logs (
+      id text primary key,
+      user_id text not null,
+      project_id text not null,
+      build_id text,
+      level text not null default 'info',
+      message text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references deploy_projects(id) on delete cascade,
+      foreign key (build_id) references deploy_builds(id) on delete set null
+    );
+
+    create table if not exists deploy_releases (
+      id text primary key,
+      user_id text not null,
+      project_id text not null,
+      build_id text,
+      version text not null,
+      status text not null default 'deployed',
+      deployed_at text not null default current_timestamp,
+      metadata_json text not null default '{}',
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (project_id) references deploy_projects(id) on delete cascade,
+      foreign key (build_id) references deploy_builds(id) on delete set null
+    );
+
     create table if not exists agents (
       id text primary key,
       user_id text not null,
@@ -1779,6 +1866,21 @@ export function runMigrations() {
     update systems set status = 'ready' where status is null;
     update systems set updated_at = created_at where updated_at is null;
     update system_files set updated_at = created_at where updated_at is null;
+    update deploy_projects set status = 'created' where status is null;
+    update deploy_projects set updated_at = created_at where updated_at is null;
+    update deploy_builds set status = 'queued' where status is null;
+    update deploy_builds set logs = '' where logs is null;
+    update deploy_builds set metadata_json = '{}' where metadata_json is null;
+    update deploy_environments set name = 'production' where name is null;
+    update deploy_environments set status = 'active' where status is null;
+    update deploy_environments set variables_json = '{}' where variables_json is null;
+    update deploy_environments set updated_at = created_at where updated_at is null;
+    update deploy_domains set active = 0 where active is null;
+    update deploy_domains set updated_at = created_at where updated_at is null;
+    update deploy_logs set level = 'info' where level is null;
+    update deploy_logs set metadata_json = '{}' where metadata_json is null;
+    update deploy_releases set status = 'deployed' where status is null;
+    update deploy_releases set metadata_json = '{}' where metadata_json is null;
     update technical_projects set project_type = 'inspecao_tecnica' where project_type is null;
     update technical_projects set discipline = 'multidisciplinar' where discipline is null;
     update technical_projects set description = '' where description is null;
@@ -2048,6 +2150,24 @@ export function runMigrations() {
 
     create index if not exists system_audit_user_system
       on system_audit_logs(user_id, system_id, created_at);
+
+    create index if not exists deploy_projects_user_status
+      on deploy_projects(user_id, status, updated_at);
+
+    create index if not exists deploy_projects_user_system
+      on deploy_projects(user_id, system_id);
+
+    create index if not exists deploy_builds_project_started
+      on deploy_builds(project_id, started_at);
+
+    create index if not exists deploy_domains_project_type
+      on deploy_domains(project_id, type);
+
+    create index if not exists deploy_logs_project_created
+      on deploy_logs(project_id, created_at);
+
+    create index if not exists deploy_releases_project_deployed
+      on deploy_releases(project_id, deployed_at);
 
     create index if not exists agents_user_status
       on agents(user_id, status, updated_at);

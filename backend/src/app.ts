@@ -11,6 +11,7 @@ import { automationRoutes } from "./routes/automationRoutes";
 import { calendarRoutes } from "./routes/calendarRoutes";
 import { chatRoutes } from "./routes/chatRoutes";
 import { documentRoutes } from "./routes/documentRoutes";
+import { deployRoutes, publicDeployRoutes } from "./routes/deployRoutes";
 import { fileRoutes } from "./routes/fileRoutes";
 import { graphRoutes } from "./routes/graphRoutes";
 import { imageRoutes } from "./routes/imageRoutes";
@@ -94,6 +95,7 @@ export function createApp() {
     res.json({ ok: true, name: "YARA AI API" });
   });
 
+  app.use(publicDeployRoutes);
   app.use("/api/auth", authRoutes);
   app.use("/api", rateLimit({ windowMs: 60_000, max: 180, keyPrefix: "api" }));
   app.use("/api/system", systemRoutes);
@@ -107,6 +109,7 @@ export function createApp() {
   app.use("/api", fileRoutes);
   app.use("/api", graphRoutes);
   app.use("/api", documentRoutes);
+  app.use("/api", deployRoutes);
   app.use("/api", imageRoutes);
   app.use("/api", integrationRoutes);
   app.use("/api", memoryRoutes);

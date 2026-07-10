@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { authRequired } from "../middleware/auth";
 import { recordAudit, requestAuditContext } from "../services/auditService";
+import { createAndDeploySystem, redeploySystemIfDeployed } from "../services/deployService";
 import {
   deleteSystem,
   duplicateSystem,
@@ -62,6 +63,7 @@ systemsRoutes.post("/systems/chat", async (req, res) => {
 
   try {
     const result = await sendSystemChatMessage(req.user!.id, parsed.data);
+    const deploy = result.system?.id ? redeploySystemIfDeployed(req.user!.id, result.system.id) : null;
     recordAudit({
       userId: req.user!.id,
       category: "systems",
@@ -69,10 +71,10 @@ systemsRoutes.post("/systems/chat", async (req, res) => {
       entityType: "system",
       entityId: result.system?.id || parsed.data.systemId || null,
       message: "Chat de Sistemas processado.",
-      metadata: { sessionId: result.session.id, fileId: result.file?.id || null },
+      metadata: { sessionId: result.session.id, fileId: result.file?.id || null, redeployed: Boolean(deploy) },
       ...requestAuditContext(req)
     });
-    return res.json(result);
+    return res.json({ ...result, deploy });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível processar o Chat de Sistemas.");
   }
@@ -97,18 +99,20 @@ systemsRoutes.get("/systems/:id/chat/history", (req, res) => {
 systemsRoutes.post("/systems/:id/publish", (req, res) => {
   try {
     const system = publishSystem(req.user!.id, req.params.id);
+    const deploy = createAndDeploySystem(req.user!.id, req.params.id);
     recordAudit({
       userId: req.user!.id,
       category: "systems",
       action: "publish",
       entityType: "system",
       entityId: req.params.id,
-      message: "Sistema publicado.",
+      message: "Sistema publicado e hospedado.",
+      metadata: { deployProjectId: deploy.project.id },
       ...requestAuditContext(req)
     });
-    return res.json({ system });
+    return res.json({ system, deploy });
   } catch (error) {
-    return sendError(res, 404, error instanceof Error ? error.message : "Sistema não encontrado.");
+    return sendError(res, 400, error instanceof Error ? error.message : "Sistema não encontrado.");
   }
 });
 
