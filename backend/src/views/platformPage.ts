@@ -401,6 +401,10 @@ ${logoYaraStyles()}
         gap: 10px;
       }
 
+      body.systems-mode .topbar-actions .status {
+        display: none;
+      }
+
       .model-select {
         display: none;
         min-height: 38px;
@@ -1043,57 +1047,33 @@ ${logoYaraStyles()}
 
       .system-builder-shell {
         position: relative;
-        min-height: calc(100dvh - 122px);
+        height: calc(100dvh - 122px);
+        min-height: 560px;
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto auto;
-        gap: 14px;
-        border: 1px solid rgba(56, 189, 248, 0.13);
-        border-radius: 20px;
-        padding: clamp(14px, 2.4vw, 24px);
-        background:
-          radial-gradient(circle at 22% 12%, rgba(10, 132, 255, 0.13), transparent 36%),
-          linear-gradient(180deg, rgba(8, 17, 32, 0.96), rgba(2, 6, 23, 0.94));
-        box-shadow: 0 22px 80px rgba(0, 0, 0, 0.28);
+        grid-template-rows: minmax(0, 1fr) auto;
+        gap: 12px;
+        padding: 0;
+        background: transparent;
         overflow: hidden;
       }
 
-      .system-builder-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
+      .system-builder-history-trigger {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        z-index: 10;
+        opacity: 0.78;
       }
 
-      .system-builder-header h2,
-      .system-builder-header strong,
-      .system-builder-header p {
-        margin: 0;
+      .system-builder-history-trigger:hover {
+        opacity: 1;
       }
 
-      .system-builder-header h2 {
-        font-size: 14px;
-        color: var(--muted);
-        font-weight: 650;
-      }
-
-      .system-builder-header strong {
-        display: block;
-        margin-top: 6px;
-        font-size: clamp(22px, 3vw, 34px);
-        line-height: 1.05;
-      }
-
-      .system-builder-header p,
-      .system-builder-note {
-        color: var(--muted);
-      }
-
-      .system-builder-actions,
       .system-card-actions,
-      .system-tech-list {
+      .system-quick-prompts {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
       }
 
       .system-builder-chat {
@@ -1101,13 +1081,13 @@ ${logoYaraStyles()}
         overflow: auto;
         display: flex;
         flex-direction: column;
-        gap: 16px;
-        padding: clamp(8px, 2vw, 18px) max(6px, calc((100% - 920px) / 2));
+        gap: 18px;
+        padding: 18px max(8px, calc((100% - 840px) / 2)) 10px;
       }
 
       .system-builder-empty {
-        margin: auto;
-        max-width: 620px;
+        margin: auto auto 0;
+        max-width: 680px;
         text-align: center;
         color: var(--text);
       }
@@ -1127,7 +1107,8 @@ ${logoYaraStyles()}
 
       .system-builder-empty h2 {
         margin: 16px 0 8px;
-        font-size: clamp(30px, 5vw, 52px);
+        font-size: clamp(32px, 6vw, 56px);
+        line-height: 1.02;
       }
 
       .system-builder-empty p {
@@ -1135,13 +1116,17 @@ ${logoYaraStyles()}
         color: var(--muted);
       }
 
-      .system-builder-empty ul {
-        display: grid;
-        gap: 8px;
-        margin: 22px 0 0;
-        padding: 0;
-        list-style: none;
+      .system-quick-prompts {
+        justify-content: center;
+        margin-top: 24px;
+      }
+
+      .system-quick-prompt {
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        border-radius: 999px;
+        padding: 10px 14px;
         color: #dbeafe;
+        background: rgba(15, 23, 42, 0.62);
       }
 
       .system-chat-row {
@@ -1182,17 +1167,17 @@ ${logoYaraStyles()}
       }
 
       .system-builder-card {
-        align-self: center;
-        width: min(100%, 920px);
+        align-self: flex-start;
+        width: min(100%, 640px);
         display: grid;
-        gap: 16px;
+        gap: 12px;
         border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 18px;
-        padding: clamp(14px, 2vw, 22px);
+        border-radius: 16px;
+        padding: 14px;
         background:
-          radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.1), transparent 30%),
+          radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.08), transparent 30%),
           rgba(15, 23, 42, 0.86);
-        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+        box-shadow: 0 18px 56px rgba(0, 0, 0, 0.22);
       }
 
       .system-builder-card h3,
@@ -1200,77 +1185,32 @@ ${logoYaraStyles()}
         margin: 0;
       }
 
-      .system-card-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
-        gap: 18px;
-        align-items: center;
-      }
-
-      .system-preview {
-        min-height: 230px;
-        border-radius: 14px;
-        padding: 14px;
-        background: #f8fafc;
-        color: #0f172a;
-        overflow: hidden;
-      }
-
-      .system-preview-sidebar {
-        float: left;
-        width: 82px;
-        height: 202px;
-        border-radius: 10px;
-        padding: 10px;
-        background: #0f172a;
-        color: #cbd5e1;
-        font-size: 10px;
-      }
-
-      .system-preview-main {
-        margin-left: 98px;
-        display: grid;
-        gap: 12px;
-      }
-
-      .system-preview-metrics {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+      .system-builder-status {
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
+        align-items: center;
+        color: var(--muted);
       }
 
-      .system-preview-metrics span,
-      .system-preview-chart,
-      .system-preview-pie {
-        border-radius: 10px;
-        background: #e2e8f0;
-      }
-
-      .system-preview-metrics span {
-        min-height: 48px;
-      }
-
-      .system-preview-metrics span:nth-child(2) { background: #22c55e; }
-      .system-preview-metrics span:nth-child(3) { background: #dbeafe; }
-      .system-preview-metrics span:nth-child(4) { background: #bfdbfe; }
-
-      .system-preview-content {
-        display: grid;
-        grid-template-columns: 1.1fr 0.8fr;
-        gap: 10px;
-      }
-
-      .system-preview-chart,
-      .system-preview-pie {
-        min-height: 116px;
+      .system-builder-status span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(56, 189, 248, 0.14);
+        border-radius: 999px;
+        padding: 6px 9px;
+        background: rgba(2, 6, 23, 0.38);
       }
 
       .system-summary-list {
         display: grid;
-        gap: 9px;
+        gap: 6px;
         margin: 0;
         padding: 0;
         list-style: none;
+        color: #dbeafe;
+        font-size: 14px;
       }
 
       .system-summary-list li::before {
@@ -1279,27 +1219,21 @@ ${logoYaraStyles()}
         margin-right: 8px;
       }
 
-      .system-tech-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid rgba(56, 189, 248, 0.16);
-        border-radius: 12px;
-        padding: 10px 12px;
-        color: #dbeafe;
-        background: rgba(2, 6, 23, 0.34);
-      }
-
       .system-card-actions .button,
       .system-card-actions .primary-action {
-        flex: 1 1 142px;
+        flex: 1 1 120px;
+        min-height: 40px;
+      }
+
+      .system-card-actions .system-open-main {
+        flex-basis: 100%;
       }
 
       .system-builder-composer {
-        width: min(100%, 920px);
+        width: min(100%, 840px);
         margin: 0 auto;
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 8px;
         align-items: end;
         border: 1px solid rgba(56, 189, 248, 0.32);
@@ -1318,12 +1252,6 @@ ${logoYaraStyles()}
         outline: 0;
         color: var(--text);
         background: transparent;
-      }
-
-      .system-builder-note {
-        margin: -4px 0 0;
-        text-align: center;
-        font-size: 12px;
       }
 
       .system-history-drawer {
@@ -1990,16 +1918,6 @@ ${logoYaraStyles()}
           margin: -14px;
           padding: 14px;
         }
-        .system-builder-header {
-          flex-direction: column;
-        }
-        .system-builder-actions {
-          width: 100%;
-        }
-        .system-builder-actions .button {
-          width: auto;
-          flex: 1 1 160px;
-        }
         .system-builder-chat {
           padding-inline: 0;
         }
@@ -2012,19 +1930,8 @@ ${logoYaraStyles()}
           max-width: 90%;
           width: auto;
         }
-        .system-card-grid,
-        .system-preview-content,
-        .system-preview-metrics {
-          grid-template-columns: 1fr;
-        }
-        .system-preview-sidebar {
-          display: none;
-        }
-        .system-preview-main {
-          margin-left: 0;
-        }
         .system-builder-composer {
-          grid-template-columns: auto minmax(0, 1fr) auto;
+          grid-template-columns: minmax(0, 1fr) auto;
           border-radius: 16px;
         }
         .system-builder-composer .primary-action {
@@ -2310,18 +2217,7 @@ ${logoYaraStyles()}
 
         <section class="view" id="view-systems" hidden>
           <div class="system-builder-shell">
-            <div class="system-builder-header">
-              <div>
-                <h2>Sistemas</h2>
-                <strong>Criador de Sistemas</strong>
-                <p>Converse com a YARA e veja seu sistema ganhar vida.</p>
-              </div>
-              <div class="system-builder-actions">
-                <button class="button" id="systemsHistoryButton" type="button">${icon("history")}Histórico de Sistemas</button>
-                <button class="icon-button" id="systemsSearchButton" type="button" aria-label="Pesquisar sistemas">${icon("search")}</button>
-                <button class="icon-button" id="systemsSettingsButton" type="button" aria-label="Configurações do builder">${icon("settings")}</button>
-              </div>
-            </div>
+            <button class="icon-button system-builder-history-trigger" id="systemsHistoryButton" type="button" aria-label="Histórico de Sistemas">${icon("history")}</button>
             <aside class="system-history-drawer" id="systemsHistoryDrawer" aria-label="Histórico de Sistemas" hidden>
               <div class="item-top">
                 <div>
@@ -2336,22 +2232,19 @@ ${logoYaraStyles()}
               <div class="system-builder-empty">
                 <span class="system-empty-icon">${icon("sparkles")}</span>
                 <h2>Criador de Sistemas</h2>
-                <p>Converse com a YARA para criar qualquer sistema.</p>
-                <ul>
-                  <li>Aplicativo de investimentos</li>
-                  <li>Sistema de estoque</li>
-                  <li>ERP para construtora</li>
-                  <li>CRM de vendas</li>
-                  <li>Sistema de manutenção industrial</li>
-                </ul>
+                <p>Converse com a YARA e descreva o que deseja criar.</p>
+                <div class="system-quick-prompts">
+                  <button class="system-quick-prompt" data-system-prompt="Crie um CRM" type="button">Crie um CRM</button>
+                  <button class="system-quick-prompt" data-system-prompt="Crie um aplicativo de investimentos" type="button">Crie um aplicativo de investimentos</button>
+                  <button class="system-quick-prompt" data-system-prompt="Crie um ERP para construtora" type="button">Crie um ERP para construtora</button>
+                  <button class="system-quick-prompt" data-system-prompt="Crie um sistema de estoque" type="button">Crie um sistema de estoque</button>
+                </div>
               </div>
             </div>
             <form class="system-builder-composer" id="systemChatForm">
-              <button class="icon-button" id="systemAttachButton" type="button" aria-label="Adicionar contexto">${icon("plus")}</button>
-              <textarea id="systemChatInput" rows="2" maxlength="4000" placeholder="Descreva seu sistema em linguagem natural..."></textarea>
+              <textarea id="systemChatInput" rows="2" maxlength="4000" placeholder="Descreva o sistema que deseja criar..."></textarea>
               <button class="primary-action" id="systemChatSendButton" type="submit">${icon("send")}Enviar</button>
             </form>
-            <p class="system-builder-note">A YARA escolhe a melhor arquitetura, stack, banco e plano para o seu sistema.</p>
           </div>
         </section>
 
@@ -4291,7 +4184,7 @@ ${logoYaraStyles()}
           chat: { title: "YARA AI", subtitle: "Chat geral com a YARA." },
           dashboard: { title: "Dashboard", subtitle: "Resumo da sua atividade.", loader: loadDashboard },
           generator: { title: "Gerador de Sistemas", subtitle: "Crie sistemas completos em um módulo separado." },
-          systems: { title: "Sistemas", subtitle: "Histórico, arquitetura e exportação dos sistemas criados pela YARA.", loader: loadSystems },
+          systems: { title: "Sistemas", subtitle: "Criador de Sistemas", loader: loadSystems },
           agents: { title: "Agentes", subtitle: "Agentes especializados, roteamento inteligente e colaboração.", loader: loadAgents },
           projects: { title: "Projetos", subtitle: "Organize projetos, tarefas, notas e arquivos.", loader: loadProjects },
           technicalProjects: { title: "Projetos Técnicos", subtitle: "Chat técnico, inspeções, arquivos e relatórios de engenharia.", loader: loadTechnicalProjects },
@@ -4335,6 +4228,7 @@ ${logoYaraStyles()}
         }
         const finalConfig = viewConfig(targetView) || viewConfig("chat");
         currentView = targetView;
+        document.body.classList.toggle("systems-mode", targetView === "systems");
         clearDiagnosticPanel();
         console.info("[YARA UI] Navegando para módulo:", requestedView, "=>", targetView);
         document.querySelectorAll(".view").forEach(function(item) {
@@ -6008,44 +5902,52 @@ ${logoYaraStyles()}
         const target = document.getElementById("systemChatMessages");
         if (!target) return;
         if (!systemChatMessages.length && !selectedSystem) {
-          target.innerHTML = '<div class="system-builder-empty"><span class="system-empty-icon">${icon("sparkles")}</span><h2>Criador de Sistemas</h2><p>Converse com a YARA para criar qualquer sistema.</p><ul><li>Aplicativo de investimentos</li><li>Sistema de estoque</li><li>ERP para construtora</li><li>CRM de vendas</li><li>Sistema de manutenção industrial</li></ul></div>';
+          target.innerHTML = '<div class="system-builder-empty"><span class="system-empty-icon">${icon("sparkles")}</span><h2>Criador de Sistemas</h2><p>Converse com a YARA e descreva o que deseja criar.</p><div class="system-quick-prompts"><button class="system-quick-prompt" data-system-prompt="Crie um CRM" type="button">Crie um CRM</button><button class="system-quick-prompt" data-system-prompt="Crie um aplicativo de investimentos" type="button">Crie um aplicativo de investimentos</button><button class="system-quick-prompt" data-system-prompt="Crie um ERP para construtora" type="button">Crie um ERP para construtora</button><button class="system-quick-prompt" data-system-prompt="Crie um sistema de estoque" type="button">Crie um sistema de estoque</button></div></div>';
           return;
         }
         const html = systemChatMessages.map(function(message) {
           const isUser = message.role === "user";
-          return '<article class="system-chat-row ' + (isUser ? "user" : "assistant") + '">' + (isUser ? "" : '<div class="message-avatar">YA</div>') + '<div class="system-chat-bubble">' + renderMarkdown(message.content || "") + '<span class="system-chat-time">' + escapeHtml((message.createdAt || "").slice(11, 16)) + '</span></div></article>';
+          const displayContent = isUser ? message.content || "" : systemAssistantMessageForDisplay(message.content || "");
+          return '<article class="system-chat-row ' + (isUser ? "user" : "assistant") + '">' + (isUser ? "" : '<div class="message-avatar">YA</div>') + '<div class="system-chat-bubble">' + renderMarkdown(displayContent) + '<span class="system-chat-time">' + escapeHtml((message.createdAt || "").slice(11, 16)) + '</span></div></article>';
         }).join("");
         target.innerHTML = html + (selectedSystem ? renderSystemBuilderCard(selectedSystem) : "");
         target.scrollTop = target.scrollHeight;
       }
 
+      function systemAssistantMessageForDisplay(content) {
+        const text = String(content || "").trim();
+        const generatedSystem = /Sistema criado:|Arquitetura:|Stack:|Principais módulos:|Decisão da YARA:/i.test(text);
+        if (generatedSystem) {
+          return "Sistema criado. A YARA escolheu arquitetura, stack, banco e plano automaticamente. Use o card abaixo para abrir, publicar, atualizar ou ver detalhes.";
+        }
+        if (text.length > 700) {
+          return text.slice(0, 420).trim() + "\\n\\nDetalhes completos disponíveis em Ver detalhes.";
+        }
+        return text;
+      }
+
       function renderSystemBuilderCard(system) {
         const scope = system.scope || {};
-        const techs = [system.backend, "Express", system.frontend, "TypeScript", system.database, system.database === "PostgreSQL" ? "Prisma" : ""].filter(Boolean);
-        const features = (scope.features || []).slice(0, 7);
+        const features = (scope.features || []).slice(0, 4);
         const deploy = system.deploy || null;
         const deployProject = deploy && deploy.project ? deploy.project : null;
         const deployUrls = deployProject && deployProject.urls ? deployProject.urls : {};
+        const statusLabel = deployProject ? "Online" : system.status === "published" ? "Publicado" : "Pronto para publicar";
+        const appHref = deployUrls.frontend || "#";
+        const adminHref = deployUrls.admin || "#";
         return [
           '<article class="system-builder-card" data-system-card="' + escapeHtml(system.id) + '">',
-          '<div><h3>✓ Sistema gerado com sucesso!</h3><p class="muted">' + escapeHtml(system.name) + '</p></div>',
-          deployProject ? '<div class="list-item"><div class="item-top"><div><strong>Produção online</strong><p class="muted">Versão publicada pelo YARA Deploy Engine.</p></div><span class="status"><span class="dot"></span>' + escapeHtml(deployProject.status || "online") + '</span></div><div class="row"><a class="button" href="' + escapeHtml(deployUrls.frontend || "#") + '" target="_blank" rel="noreferrer">Abrir URL</a><button class="button" data-deploy-panel="' + escapeHtml(deployProject.id) + '" type="button">Painel de Produção</button></div></div>' : "",
-          '<div class="system-card-grid">',
-          '<div class="system-preview"><div class="system-preview-sidebar">Sistema<br>Dashboard<br>Produtos<br>Relatórios<br>Configurações</div><div class="system-preview-main"><div class="system-preview-metrics"><span></span><span></span><span></span><span></span></div><div class="system-preview-content"><div class="system-preview-chart"></div><div class="system-preview-pie"></div></div></div></div>',
-          '<div><h3>Resumo do sistema</h3><p class="muted">' + escapeHtml(system.objective || "") + '</p><ul class="system-summary-list">' + features.map(function(feature) { return '<li>' + escapeHtml(feature) + '</li>'; }).join("") + '</ul></div>',
-          '</div>',
-          '<div><p class="muted">Tecnologias escolhidas pela YARA</p><div class="system-tech-list">' + techs.map(function(tech) { return '<span class="system-tech-pill">' + escapeHtml(tech) + '</span>'; }).join("") + '</div></div>',
+          '<div><h3>Sistema criado</h3><p class="muted">' + escapeHtml(system.name) + '</p></div>',
+          '<div class="system-builder-status"><span><span class="dot"></span>' + escapeHtml(statusLabel) + '</span><span>' + escapeHtml(system.type || "Sistema") + '</span></div>',
+          '<p class="muted">' + escapeHtml(system.objective || "") + '</p>',
+          features.length ? '<ul class="system-summary-list">' + features.map(function(feature) { return '<li>' + escapeHtml(feature) + '</li>'; }).join("") + '</ul>' : "",
           '<div class="system-card-actions">',
-          '<button class="button" data-system-panel="folders" type="button">${icon("folder")}Ver estrutura de pastas</button>',
-          '<button class="button" data-system-panel="screens" type="button">${icon("search")}Ver telas</button>',
-          '<button class="button" data-system-panel="apis" type="button">${icon("code")}Ver APIs</button>',
-          '<button class="button" data-system-panel="database" type="button">${icon("brain")}Ver banco de dados</button>',
-          '<button class="button" data-export-system="pdf" type="button">${icon("file")}Exportar PDF</button>',
-          '<button class="button" data-export-system="docx" type="button">${icon("file")}Exportar DOCX</button>',
-          '<button class="button" data-system-panel="code" type="button">${icon("code")}Gerar Código</button>',
+          deployProject ? '<a class="primary-action system-open-main" href="' + escapeHtml(appHref) + '" target="_blank" rel="noreferrer">${icon("share")}Abrir Sistema</a>' : '<button class="primary-action system-open-main" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}Abrir Sistema</button>',
+          deployProject ? '<a class="button" href="' + escapeHtml(adminHref) + '" target="_blank" rel="noreferrer">${icon("settings")}Abrir Painel</a>' : '<button class="button" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("settings")}Abrir Painel</button>',
+          '<button class="button" data-continue-system="' + escapeHtml(system.id) + '" type="button">${icon("sparkles")}Atualizar</button>',
           '<button class="primary-action" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}' + (deployProject ? "Publicar nova versão" : "Publicar Sistema") + '</button>',
-          '<button class="button" data-duplicate-system="' + escapeHtml(system.id) + '" type="button">${icon("file")}Duplicar Projeto</button>',
-          '<button class="button" data-continue-system="' + escapeHtml(system.id) + '" type="button">${icon("sparkles")}Continuar Evolução</button>',
+          '<button class="button" data-deploy-panel="' + escapeHtml(deployProject ? deployProject.id : "") + '" type="button">${icon("history")}Logs</button>',
+          '<button class="button" data-system-panel="details" type="button">${icon("dots")}Ver detalhes</button>',
           '</div>',
           '</article>'
         ].join("");
@@ -6081,6 +5983,18 @@ ${logoYaraStyles()}
         if (!selectedSystem) return showToast("Gere ou selecione um sistema primeiro.");
         const scope = selectedSystem.scope || {};
         const panels = {
+          details: [
+            "Detalhes do sistema",
+            "Arquitetura, telas, APIs, banco e arquivos ficam ocultos para manter a conversa limpa.",
+            [
+              '<article class="list-item"><strong>Arquitetura</strong><p class="muted">' + escapeHtml(selectedSystem.architecture || "") + '</p></article>',
+              '<article class="list-item"><strong>Stack decidida pela YARA</strong><p class="muted">Frontend: ' + escapeHtml(selectedSystem.frontend || "") + ' · Backend: ' + escapeHtml(selectedSystem.backend || "") + ' · Banco: ' + escapeHtml(selectedSystem.database || "") + '</p><p class="muted">' + escapeHtml((selectedSystem.stack && selectedSystem.stack.reason) || "") + '</p></article>',
+              '<article class="list-item"><strong>Telas</strong>' + systemListHtml(scope.screens || []) + '</article>',
+              '<article class="list-item"><strong>APIs</strong>' + systemListHtml(scope.apis || []) + '</article>',
+              '<article class="list-item"><strong>Banco de dados</strong>' + systemListHtml(scope.database || []) + '</article>',
+              '<article class="list-item"><strong>Estrutura</strong>' + systemListHtml(selectedSystem.folderStructure || []) + '</article>'
+            ].join("")
+          ],
           folders: ["Estrutura de pastas", "Organização inicial escolhida pela YARA.", systemListHtml(selectedSystem.folderStructure || [])],
           screens: ["Telas do sistema", "Fluxos e telas previstos para o produto.", systemListHtml(scope.screens || [])],
           apis: ["APIs", "Endpoints e contratos planejados.", systemListHtml(scope.apis || [])],
@@ -6259,11 +6173,11 @@ ${logoYaraStyles()}
         try {
           const data = await api("/api/systems/chat", {
             method: "POST",
-            body: JSON.stringify({
-              message: prompt,
-              sessionId: systemChatSessionId,
-              systemId: selectedSystem ? selectedSystem.id : null
-            })
+            body: JSON.stringify(Object.assign(
+              { message: prompt },
+              systemChatSessionId ? { sessionId: systemChatSessionId } : {},
+              selectedSystem && selectedSystem.id ? { systemId: selectedSystem.id } : {}
+            ))
           });
           systemChatSessionId = data.session ? data.session.id : systemChatSessionId;
           systemChatMessages = data.messages || systemChatMessages;
@@ -6279,7 +6193,7 @@ ${logoYaraStyles()}
           if (data.file && data.file.id) {
             await downloadProtectedPath("/api/files/" + data.file.id + "/download", data.file.name || "sistema");
           }
-          showToast(data.deploy ? "Sistema atualizado e nova versão publicada." : data.file ? "Arquivo gerado." : "Chat de Sistemas atualizado.");
+          showToast(data.deploy ? "Sistema atualizado e nova versão publicada." : data.file ? "Arquivo gerado." : "Conversa atualizada.");
         } finally {
           if (button) button.disabled = false;
         }
@@ -9007,25 +8921,19 @@ ${logoYaraStyles()}
         openSystemsHistoryDrawer();
       });
       on("systemsHistoryClose", "click", closeSystemsHistoryDrawer);
-      on("systemsSearchButton", "click", function() {
-        openSystemSearch();
-      });
-      on("systemsSettingsButton", "click", function() {
-        openSystemSettings();
-      });
-      on("systemAttachButton", "click", function() {
-        openModal(
-          "Adicionar contexto",
-          "Use o chat para descrever regras, telas, integrações e arquivos necessários.",
-          '<article class="list-item"><strong>Como usar</strong><p class="muted">Cole no campo de mensagem requisitos, regras de negócio, exemplos de telas ou mudanças desejadas. A YARA incorpora esse contexto ao mesmo sistema.</p></article><article class="list-item"><strong>Arquivos</strong><p class="muted">Anexos técnicos continuam disponíveis nos módulos Arquivos, Documentos e Projetos Técnicos.</p></article>'
-        );
-      });
       on("systemsList", "click", async function(event) {
         const button = event.target.closest("[data-open-system]");
         if (!button) return;
         await selectSystem(button.dataset.openSystem);
       });
       on("systemChatMessages", "click", async function(event) {
+        const promptButton = event.target.closest("[data-system-prompt]");
+        if (promptButton) {
+          setValue("systemChatInput", promptButton.dataset.systemPrompt || "");
+          const input = document.getElementById("systemChatInput");
+          if (input) input.focus();
+          return;
+        }
         const deployPanelButton = event.target.closest("[data-deploy-panel]");
         if (deployPanelButton) {
           await openDeployPanel(deployPanelButton.dataset.deployPanel);
