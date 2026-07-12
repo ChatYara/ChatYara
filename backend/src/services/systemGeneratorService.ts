@@ -2,6 +2,7 @@ import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { generateExportFile } from "./exportService";
 import { refreshKnowledgeGraphSoon } from "./graphService";
+import { recordExecutionEvent, updateExecutionSession } from "./systemExecutionService";
 
 type SystemAnalysis = {
   type: string;
@@ -528,11 +529,29 @@ function detectSystemExportFormat(message: string): "txt" | "pdf" | "docx" | nul
   return null;
 }
 
-function updateSystemFromPrompt(userId: string, systemId: string, rawPrompt: string) {
+function updateSystemFromPrompt(userId: string, systemId: string, rawPrompt: string, options: { executionSessionId?: string } = {}) {
   const current = getSystemDetails(userId, systemId);
   const prompt = cleanPrompt([current.prompt, `Alteração solicitada: ${rawPrompt}`].join("\n"));
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "context_analyzed",
+    category: "planning",
+    title: "Contexto analisado",
+    summary: "A YARA combinou o sistema existente com a alteração solicitada.",
+    status: "completed",
+    progress: 18,
+    metadata: { systemId }
+  });
   const analysis = analyzeSystemPrompt(prompt);
   const stack = chooseStack(analysis, prompt);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "architecture_selected",
+    category: "planning",
+    title: "Arquitetura atualizada",
+    summary: `${stack.architecture} com ${stack.frontend}, ${stack.backend} e ${stack.database}.`,
+    details: { architecture: stack.architecture, frontend: stack.frontend, backend: stack.backend, database: stack.database, reason: stack.reason },
+    status: "completed",
+    progress: 34
+  });
   const scope = generateScope(prompt, analysis, stack);
   const folders = folderStructure(stack);
   const plan = developmentPlan(analysis);
@@ -580,6 +599,16 @@ function updateSystemFromPrompt(userId: string, systemId: string, rawPrompt: str
   for (const file of files) {
     insertFile.run(uuid(), userId, systemId, file.name, file.type, file.content, now, now);
   }
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "files_changed",
+    category: "file",
+    title: `Alterou ${files.length} arquivos`,
+    summary: "Os arquivos-base do sistema foram atualizados no histórico do projeto.",
+    details: files.map((file) => ({ name: file.name, type: file.type })),
+    status: "completed",
+    progress: 62,
+    metadata: { count: files.length, mode: "replace" }
+  });
 
   db.prepare(
     `insert into system_generations (id, user_id, system_id, prompt, analysis_json, output_json)
@@ -588,6 +617,15 @@ function updateSystemFromPrompt(userId: string, systemId: string, rawPrompt: str
 
   auditSystem(userId, systemId, "chat_update", "Sistema atualizado pelo Chat de Sistemas.", { type: analysis.type, architecture: stack.architecture });
   refreshKnowledgeGraphSoon(userId);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "system_updated",
+    category: "completion",
+    title: "Sistema atualizado",
+    summary: `${scope.name} foi atualizado e salvo.`,
+    status: "completed",
+    progress: 82,
+    metadata: { systemId, type: analysis.type }
+  });
 
   return getSystemDetails(userId, systemId);
 }
@@ -596,10 +634,37 @@ function systemOutput(scope: SystemScope, stack: SystemStack, analysis: SystemAn
   return { analysis, stack, scope, folderStructure: folders, developmentPlan: plan };
 }
 
-export function generateSystemFromPrompt(userId: string, rawPrompt: string) {
+export function generateSystemFromPrompt(userId: string, rawPrompt: string, options: { executionSessionId?: string; conversationId?: string | null } = {}) {
   const prompt = cleanPrompt(rawPrompt);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "request_received",
+    category: "planning",
+    title: "Pedido recebido",
+    summary: "A YARA recebeu o briefing do sistema.",
+    details: { promptPreview: prompt.slice(0, 240) },
+    status: "completed",
+    progress: 8
+  });
   const analysis = analyzeSystemPrompt(prompt);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "context_analyzed",
+    category: "planning",
+    title: "Pedido analisado",
+    summary: `${analysis.type} com complexidade ${analysis.complexity}.`,
+    details: analysis,
+    status: "completed",
+    progress: 22
+  });
   const stack = chooseStack(analysis, prompt);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "stack_selected",
+    category: "planning",
+    title: "Stack escolhida automaticamente",
+    summary: `${stack.frontend} + ${stack.backend} + ${stack.database}.`,
+    details: { architecture: stack.architecture, frontend: stack.frontend, backend: stack.backend, database: stack.database, reason: stack.reason },
+    status: "completed",
+    progress: 38
+  });
   const scope = generateScope(prompt, analysis, stack);
   const folders = folderStructure(stack);
   const plan = developmentPlan(analysis);
@@ -652,9 +717,41 @@ export function generateSystemFromPrompt(userId: string, rawPrompt: string) {
   for (const file of files) {
     insertFile.run(uuid(), userId, id, file.name, file.type, file.content, now, now);
   }
+  if (options.executionSessionId) {
+    updateExecutionSession(userId, options.executionSessionId, { systemId: id, conversationId: options.conversationId || undefined });
+  }
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "project_created",
+    category: "database",
+    title: "Projeto criado",
+    summary: `${scope.name} foi salvo no banco da YARA.`,
+    details: { systemId: id, tables: ["systems", "system_generations", "system_files"] },
+    status: "completed",
+    progress: 55,
+    metadata: { systemId: id }
+  });
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "files_created",
+    category: "file",
+    title: `Criou ${files.length} arquivos`,
+    summary: "A estrutura inicial e os arquivos-base foram registrados.",
+    details: files.map((file) => ({ name: file.name, type: file.type })),
+    status: "completed",
+    progress: 70,
+    metadata: { count: files.length }
+  });
 
   auditSystem(userId, id, "generate", "Sistema gerado pela YARA AI.", { type: analysis.type, architecture: stack.architecture });
   refreshKnowledgeGraphSoon(userId);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "system_finalized",
+    category: "completion",
+    title: "Sistema finalizado",
+    summary: `${scope.name} está pronto para revisão, exportação ou publicação.`,
+    status: "completed",
+    progress: 86,
+    metadata: { systemId: id, type: analysis.type }
+  });
 
   return getSystemDetails(userId, id);
 }
@@ -870,7 +967,7 @@ export function getSystemChatHistory(userId: string, systemId: string) {
 
 export async function sendSystemChatMessage(
   userId: string,
-  input: { message: string; sessionId?: string; systemId?: string | null }
+  input: { message: string; sessionId?: string; systemId?: string | null; executionSessionId?: string | null }
 ) {
   const message = String(input.message || "").replace(/\s+/g, " ").trim();
   if (message.length < 2) throw new Error("Descreva o que deseja criar ou alterar.");
@@ -878,6 +975,13 @@ export async function sendSystemChatMessage(
 
   let session = resolveSystemChatSession(userId, input);
   let systemId = input.systemId || session.system_id || null;
+  if (input.executionSessionId) {
+    updateExecutionSession(userId, input.executionSessionId, {
+      systemId,
+      conversationId: session.id,
+      status: "running"
+    });
+  }
   insertSystemChatMessage(userId, session.id, systemId, "user", message);
 
   const exportFormat = detectSystemExportFormat(message);
@@ -888,11 +992,20 @@ export async function sendSystemChatMessage(
 
   if (exportFormat && systemId) {
     const exported = await exportSystem(userId, systemId, exportFormat);
+    recordExecutionEvent(userId, input.executionSessionId, {
+      eventType: "file_exported",
+      category: "file",
+      title: `Exportou ${exportFormat.toUpperCase()}`,
+      summary: `${exported.file.name} foi gerado pelo serviço de exportação.`,
+      details: { fileId: exported.file.id, name: exported.file.name, format: exportFormat },
+      status: "completed",
+      progress: 82
+    });
     file = exported.file;
     action = "exported";
     response = `Arquivo ${exportFormat.toUpperCase()} gerado: ${file.name}\nBaixar: ${file.url}`;
   } else if (systemId) {
-    system = updateSystemFromPrompt(userId, systemId, message);
+    system = updateSystemFromPrompt(userId, systemId, message, { executionSessionId: input.executionSessionId || undefined });
     action = "updated";
     response = [
       `Atualizei o sistema: ${system.name}`,
@@ -904,7 +1017,7 @@ export async function sendSystemChatMessage(
       ...system.scope.features.slice(0, 6).map((feature: string) => `- ${feature}`)
     ].join("\n");
   } else {
-    system = generateSystemFromPrompt(userId, message);
+    system = generateSystemFromPrompt(userId, message, { executionSessionId: input.executionSessionId || undefined, conversationId: session.id });
     systemId = system.id;
     action = "created";
     response = systemChatResponse(system);
@@ -918,7 +1031,8 @@ export async function sendSystemChatMessage(
   insertSystemChatMessage(userId, session.id, systemId, "assistant", response, {
     action,
     systemId,
-    fileId: file?.id || null
+    fileId: file?.id || null,
+    executionSessionId: input.executionSessionId || null
   });
 
   auditSystem(userId, systemId, `chat_${action}`, "Chat de Sistemas processado.", { sessionId: session.id, fileId: file?.id || null });

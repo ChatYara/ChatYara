@@ -805,6 +805,88 @@ create table if not exists system_audit_logs (
 create index if not exists system_audit_user_system
   on system_audit_logs(user_id, system_id, created_at);
 
+create table if not exists system_execution_sessions (
+  id text primary key,
+  user_id text not null,
+  system_id text,
+  conversation_id text,
+  operation_type text not null,
+  status text not null default 'running',
+  started_at text,
+  finished_at text,
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (user_id) references users(id) on delete cascade,
+  foreign key (system_id) references systems(id) on delete set null,
+  foreign key (conversation_id) references system_chat_sessions(id) on delete set null
+);
+
+create table if not exists system_execution_events (
+  id text primary key,
+  session_id text not null,
+  event_type text not null,
+  category text not null,
+  title text not null,
+  summary text,
+  details_json text not null default 'null',
+  status text not null default 'completed',
+  progress integer not null default 0,
+  metadata_json text not null default '{}',
+  started_at text,
+  finished_at text,
+  created_at text not null default current_timestamp,
+  foreign key (session_id) references system_execution_sessions(id) on delete cascade
+);
+
+create table if not exists system_execution_steps (
+  id text primary key,
+  session_id text not null,
+  name text not null,
+  status text not null default 'pending',
+  progress integer not null default 0,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  updated_at text not null default current_timestamp,
+  foreign key (session_id) references system_execution_sessions(id) on delete cascade
+);
+
+create table if not exists system_execution_artifacts (
+  id text primary key,
+  session_id text not null,
+  system_id text,
+  artifact_type text not null,
+  name text not null,
+  path text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (session_id) references system_execution_sessions(id) on delete cascade,
+  foreign key (system_id) references systems(id) on delete set null
+);
+
+create table if not exists system_execution_errors (
+  id text primary key,
+  session_id text not null,
+  event_id text,
+  message text not null,
+  stack text,
+  metadata_json text not null default '{}',
+  created_at text not null default current_timestamp,
+  foreign key (session_id) references system_execution_sessions(id) on delete cascade,
+  foreign key (event_id) references system_execution_events(id) on delete set null
+);
+
+create index if not exists system_execution_sessions_user_status
+  on system_execution_sessions(user_id, status, created_at);
+
+create index if not exists system_execution_sessions_user_system
+  on system_execution_sessions(user_id, system_id, created_at);
+
+create index if not exists system_execution_sessions_user_conversation
+  on system_execution_sessions(user_id, conversation_id, created_at);
+
+create index if not exists system_execution_events_session_created
+  on system_execution_events(session_id, created_at);
+
 create table if not exists deploy_projects (
   id text primary key,
   user_id text not null,

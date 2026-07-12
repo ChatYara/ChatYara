@@ -1180,6 +1180,103 @@ ${logoYaraStyles()}
         box-shadow: 0 18px 56px rgba(0, 0, 0, 0.22);
       }
 
+      .system-activity-card {
+        align-self: flex-start;
+        width: min(100%, 640px);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(2, 6, 23, 0.72);
+        box-shadow: 0 18px 56px rgba(0, 0, 0, 0.2);
+      }
+
+      .system-activity-card[aria-busy="true"] {
+        background:
+          linear-gradient(120deg, rgba(56, 189, 248, 0.08), transparent 38%),
+          rgba(2, 6, 23, 0.78);
+      }
+
+      .system-activity-head,
+      .system-activity-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .system-activity-head h3,
+      .system-activity-head p,
+      .system-activity-row p {
+        margin: 0;
+      }
+
+      .system-activity-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .system-activity-row {
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(15, 23, 42, 0.48);
+      }
+
+      .system-activity-main {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .system-activity-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #dbeafe;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      .system-activity-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #94a3b8;
+        box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.1);
+      }
+
+      .system-activity-row[data-status="completed"] .system-activity-dot { background: #22c55e; }
+      .system-activity-row[data-status="running"] .system-activity-dot { background: #38bdf8; animation: pulse 1.4s ease-in-out infinite; }
+      .system-activity-row[data-status="error"] .system-activity-dot { background: #fb7185; }
+      .system-activity-row[data-status="warning"] .system-activity-dot { background: #facc15; }
+      .system-activity-row[data-status="cancelled"] .system-activity-dot { background: #94a3b8; }
+
+      .system-activity-details {
+        margin-top: 8px;
+      }
+
+      .system-activity-details summary {
+        cursor: pointer;
+        color: var(--accent);
+        font-weight: 650;
+      }
+
+      .system-activity-progress {
+        height: 6px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.14);
+        margin-top: 12px;
+      }
+
+      .system-activity-progress span {
+        display: block;
+        height: 100%;
+        width: var(--progress, 0%);
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+      }
+
       .system-builder-card h3,
       .system-builder-card p {
         margin: 0;
@@ -3773,6 +3870,9 @@ ${logoYaraStyles()}
       let selectedSystem = null;
       let systemChatSessionId = null;
       let systemChatMessages = [];
+      let systemExecutionStates = {};
+      let activeSystemExecutionId = null;
+      let systemExecutionAbort = null;
       let agents = [];
       let selectedAgentId = null;
       let selectedAgentConversationId = null;
@@ -5910,7 +6010,7 @@ ${logoYaraStyles()}
           const displayContent = isUser ? message.content || "" : systemAssistantMessageForDisplay(message.content || "");
           return '<article class="system-chat-row ' + (isUser ? "user" : "assistant") + '">' + (isUser ? "" : '<div class="message-avatar">YA</div>') + '<div class="system-chat-bubble">' + renderMarkdown(displayContent) + '<span class="system-chat-time">' + escapeHtml((message.createdAt || "").slice(11, 16)) + '</span></div></article>';
         }).join("");
-        target.innerHTML = html + (selectedSystem ? renderSystemBuilderCard(selectedSystem) : "");
+        target.innerHTML = html + latestSystemExecutionHtml() + (selectedSystem ? renderSystemBuilderCard(selectedSystem) : "");
         target.scrollTop = target.scrollHeight;
       }
 
@@ -5924,6 +6024,51 @@ ${logoYaraStyles()}
           return text.slice(0, 420).trim() + "\\n\\nDetalhes completos disponíveis em Ver detalhes.";
         }
         return text;
+      }
+
+      function executionStatusLabel(status) {
+        const labels = {
+          pending: "pendente",
+          running: "em execução",
+          completed: "concluído",
+          warning: "aviso",
+          error: "erro",
+          cancelled: "cancelado"
+        };
+        return labels[status] || status || "pendente";
+      }
+
+      function renderExecutionDetails(details) {
+        if (!details) return "";
+        return '<details class="system-activity-details"><summary>Ver detalhes</summary><pre class="code-block">' + escapeHtml(JSON.stringify(details, null, 2)) + '</pre></details>';
+      }
+
+      function renderSystemExecutionActivity(execution) {
+        if (!execution || !execution.session) return "";
+        const session = execution.session;
+        const events = execution.events || [];
+        const progress = events.length ? Math.max.apply(null, events.map(function(event) { return Number(event.progress || 0); })) : 0;
+        const busy = session.status === "running";
+        const rows = events.length ? events.map(function(event) {
+          return '<article class="system-activity-row" data-status="' + escapeHtml(event.status || "pending") + '"><div class="system-activity-main"><div class="system-activity-status"><span class="system-activity-dot" aria-hidden="true"></span><strong>' + escapeHtml(event.title || event.eventType) + '</strong></div>' + (event.summary ? '<p class="muted">' + escapeHtml(event.summary) + '</p>' : "") + renderExecutionDetails(event.details) + '</div><span class="muted">' + escapeHtml(String(event.finishedAt || event.createdAt || "").slice(11, 16)) + '</span></article>';
+        }).join("") : '<article class="system-activity-row" data-status="running"><div class="system-activity-main"><div class="system-activity-status"><span class="system-activity-dot" aria-hidden="true"></span><strong>Preparando atividade</strong></div><p class="muted">Aguardando eventos reais do backend.</p></div></article>';
+        return [
+          '<section class="system-activity-card" data-execution-id="' + escapeHtml(session.id) + '" aria-live="polite" aria-busy="' + (busy ? "true" : "false") + '">',
+          '<div class="system-activity-head"><div><h3>YARA está trabalhando</h3><p class="muted">' + escapeHtml(executionStatusLabel(session.status)) + ' · ' + escapeHtml(session.operationType || "sistemas") + '</p></div><button class="button" data-execution-logs="' + escapeHtml(session.id) + '" type="button">Ver logs completos</button></div>',
+          '<div class="system-activity-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progress + '"><span style="--progress: ' + progress + '%"></span></div>',
+          '<div class="system-activity-list">' + rows + '</div>',
+          busy ? '<div class="row"><button class="button danger" data-cancel-execution="' + escapeHtml(session.id) + '" type="button">Parar execução</button></div>' : "",
+          '</section>'
+        ].join("");
+      }
+
+      function latestSystemExecutionHtml() {
+        const values = Object.values(systemExecutionStates || {});
+        if (!values.length) return "";
+        values.sort(function(a, b) {
+          return String(a.session.createdAt || "").localeCompare(String(b.session.createdAt || ""));
+        });
+        return renderSystemExecutionActivity(values[values.length - 1]);
       }
 
       function renderSystemBuilderCard(system) {
@@ -6006,10 +6151,121 @@ ${logoYaraStyles()}
         openModal(content[0], content[1], content[2]);
       }
 
+      function rememberSystemExecution(session, events) {
+        if (!session || !session.id) return;
+        const existing = systemExecutionStates[session.id] || { session: session, events: [] };
+        const byId = {};
+        (existing.events || []).forEach(function(event) { byId[event.id] = event; });
+        (events || []).forEach(function(event) { byId[event.id] = event; });
+        systemExecutionStates[session.id] = {
+          session: Object.assign({}, existing.session || {}, session),
+          events: Object.values(byId).sort(function(a, b) {
+            return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+          })
+        };
+        activeSystemExecutionId = session.id;
+      }
+
+      async function startSystemExecution(operationType) {
+        const data = await api("/api/systems/executions", {
+          method: "POST",
+          body: JSON.stringify({
+            systemId: selectedSystem ? selectedSystem.id : null,
+            conversationId: systemChatSessionId || null,
+            operationType: operationType
+          })
+        });
+        rememberSystemExecution(data.session, []);
+        renderSystemChatMessages();
+        connectSystemExecutionStream(data.session.id);
+        return data.session;
+      }
+
+      async function connectSystemExecutionStream(sessionId) {
+        if (!sessionId || !window.ReadableStream) return;
+        if (systemExecutionAbort) systemExecutionAbort.abort();
+        const controller = new AbortController();
+        systemExecutionAbort = controller;
+        try {
+          const response = await fetch("/api/systems/executions/" + encodeURIComponent(sessionId) + "/stream", {
+            headers: { Authorization: "Bearer " + token },
+            signal: controller.signal
+          });
+          if (!response.ok || !response.body) return;
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          while (true) {
+            const result = await reader.read();
+            if (result.done) break;
+            buffer += decoder.decode(result.value, { stream: true });
+            const chunks = buffer.split("\\n\\n");
+            buffer = chunks.pop() || "";
+            chunks.forEach(function(chunk) {
+              const lines = chunk.split("\\n");
+              const eventLine = lines.find(function(line) { return line.startsWith("event:"); });
+              const dataLine = lines.find(function(line) { return line.startsWith("data:"); });
+              if (!dataLine) return;
+              const eventName = eventLine ? eventLine.replace("event:", "").trim() : "message";
+              const payload = JSON.parse(dataLine.replace("data:", "").trim());
+              if (eventName === "event" && payload.event) {
+                const current = systemExecutionStates[sessionId] || { session: { id: sessionId, status: "running" }, events: [] };
+                rememberSystemExecution(current.session, [payload.event]);
+                renderSystemChatMessages();
+              }
+              if ((eventName === "session" || eventName === "done") && payload.session) {
+                const current = systemExecutionStates[sessionId] || { session: payload.session, events: [] };
+                rememberSystemExecution(payload.session, current.events || []);
+                renderSystemChatMessages();
+              }
+            });
+          }
+        } catch (error) {
+          if (!controller.signal.aborted) console.warn("[YARA UI] Stream de execução encerrado:", error);
+        }
+      }
+
+      async function loadLatestSystemExecutions() {
+        if (selectedSystem && selectedSystem.id) {
+          const data = await api("/api/systems/" + encodeURIComponent(selectedSystem.id) + "/executions").catch(function() { return { sessions: [] }; });
+          const latest = data.sessions && data.sessions[0];
+          if (latest) {
+            const detail = await api("/api/systems/executions/" + encodeURIComponent(latest.id)).catch(function() { return null; });
+            if (detail) rememberSystemExecution(detail.session, detail.events || []);
+          }
+        } else if (systemChatSessionId) {
+          const data = await api("/api/systems/executions?conversationId=" + encodeURIComponent(systemChatSessionId)).catch(function() { return { sessions: [] }; });
+          const latest = data.sessions && data.sessions[0];
+          if (latest) {
+            const detail = await api("/api/systems/executions/" + encodeURIComponent(latest.id)).catch(function() { return null; });
+            if (detail) rememberSystemExecution(detail.session, detail.events || []);
+          }
+        }
+      }
+
+      async function openExecutionLogs(executionId) {
+        const detail = await api("/api/systems/executions/" + encodeURIComponent(executionId));
+        rememberSystemExecution(detail.session, detail.events || []);
+        openModal("Atividade da YARA", "Eventos reais registrados pelo backend.", renderSystemExecutionActivity(systemExecutionStates[executionId]));
+      }
+
+      async function cancelSystemExecution(executionId) {
+        const data = await api("/api/systems/executions/" + encodeURIComponent(executionId) + "/cancel", { method: "POST" });
+        const current = systemExecutionStates[executionId] || { events: [] };
+        rememberSystemExecution(data.session, current.events || []);
+        renderSystemChatMessages();
+        showToast("Execução cancelada.");
+      }
+
       async function publishSelectedSystem() {
         if (!selectedSystem) return showToast("Gere ou selecione um sistema primeiro.");
         showToast("Executando build e deploy do sistema...");
-        const data = await api("/api/systems/" + selectedSystem.id + "/publish", { method: "POST" });
+        const execution = await startSystemExecution("system_publish");
+        const data = await api("/api/systems/" + selectedSystem.id + "/publish", {
+          method: "POST",
+          body: JSON.stringify({ executionSessionId: execution.id })
+        });
+        if (data.executionSession) rememberSystemExecution(data.executionSession, (systemExecutionStates[data.executionSession.id] || {}).events || []);
         selectedSystem = data.system;
         if (data.deploy && data.deploy.project) selectedSystem.deploy = data.deploy;
         renderSystemChatMessages();
@@ -6140,6 +6396,7 @@ ${logoYaraStyles()}
         });
         systemChatSessionId = history.sessions && history.sessions[0] ? history.sessions[0].id : systemChatSessionId;
         systemChatMessages = history.messages || [];
+        await loadLatestSystemExecutions();
         renderSystemChatMessages();
       }
 
@@ -6154,6 +6411,7 @@ ${logoYaraStyles()}
         });
         systemChatSessionId = history.session ? history.session.id : systemChatSessionId;
         systemChatMessages = history.messages || [];
+        await loadLatestSystemExecutions();
         renderSystemChatMessages();
         closeSystemsHistoryDrawer();
       }
@@ -6171,16 +6429,19 @@ ${logoYaraStyles()}
         renderSystemChatMessages();
         setValue("systemChatInput", "");
         try {
+          const execution = await startSystemExecution(selectedSystem && selectedSystem.id ? "system_update" : "system_create");
           const data = await api("/api/systems/chat", {
             method: "POST",
             body: JSON.stringify(Object.assign(
               { message: prompt },
               systemChatSessionId ? { sessionId: systemChatSessionId } : {},
-              selectedSystem && selectedSystem.id ? { systemId: selectedSystem.id } : {}
+              selectedSystem && selectedSystem.id ? { systemId: selectedSystem.id } : {},
+              { executionSessionId: execution.id }
             ))
           });
           systemChatSessionId = data.session ? data.session.id : systemChatSessionId;
           systemChatMessages = data.messages || systemChatMessages;
+          if (data.executionSession) rememberSystemExecution(data.executionSession, (systemExecutionStates[data.executionSession.id] || {}).events || []);
           renderSystemChatMessages();
           if (data.system && data.system.id) {
             selectedSystem = data.system;
@@ -8932,6 +9193,16 @@ ${logoYaraStyles()}
           setValue("systemChatInput", promptButton.dataset.systemPrompt || "");
           const input = document.getElementById("systemChatInput");
           if (input) input.focus();
+          return;
+        }
+        const executionLogsButton = event.target.closest("[data-execution-logs]");
+        if (executionLogsButton) {
+          await openExecutionLogs(executionLogsButton.dataset.executionLogs);
+          return;
+        }
+        const cancelExecutionButton = event.target.closest("[data-cancel-execution]");
+        if (cancelExecutionButton) {
+          await cancelSystemExecution(cancelExecutionButton.dataset.cancelExecution);
           return;
         }
         const deployPanelButton = event.target.closest("[data-deploy-panel]");

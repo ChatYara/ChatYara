@@ -2,6 +2,7 @@ import { v4 as uuid } from "uuid";
 import { getDatabase } from "../db/connection";
 import { recordAudit } from "./auditService";
 import { getSystemDetails } from "./systemGeneratorService";
+import { recordExecutionEvent } from "./systemExecutionService";
 
 type DeployProjectRow = {
   id: string;
@@ -290,7 +291,9 @@ export function getDeployStatus(userId: string, input: { projectId?: string; sys
   };
 }
 
-export function createDeployProject(userId: string, systemId: string) {
+type DeployOptions = { executionSessionId?: string | null };
+
+export function createDeployProject(userId: string, systemId: string, options: DeployOptions = {}) {
   const existing = findProjectBySystem(userId, systemId);
   if (existing) return getDeployProject(userId, existing.id);
 
@@ -298,6 +301,16 @@ export function createDeployProject(userId: string, systemId: string) {
   const slug = uniqueSlug(system.name);
   const urls = urlsForSlug(slug);
   const projectId = uuid();
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "deploy_project_started",
+    category: "deploy",
+    title: "Projeto de deploy criado",
+    summary: "A YARA preparou o runtime gerenciado e os domínios internos.",
+    details: { slug, urls },
+    status: "completed",
+    progress: 72,
+    metadata: { systemId, projectId }
+  });
   const db = getDatabase();
   db.prepare(
     `insert into deploy_projects (
@@ -321,11 +334,21 @@ export function createDeployProject(userId: string, systemId: string) {
   return getDeployProject(userId, projectId);
 }
 
-export function buildDeployProject(userId: string, projectId: string) {
+export function buildDeployProject(userId: string, projectId: string, options: DeployOptions = {}) {
   const project = getProjectRow(userId, projectId);
   const system = getSystemDetails(userId, project.system_id);
   const buildId = uuid();
   const started = new Date().toISOString();
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "build_started",
+    category: "build",
+    title: "Build iniciado",
+    summary: `Build do sistema ${system.name} iniciado no runtime gerenciado da YARA.`,
+    status: "running",
+    progress: 76,
+    startedAt: started,
+    metadata: { projectId, buildId, systemId: system.id }
+  });
   const logs = [
     `[${started}] Iniciando build do sistema ${system.name}.`,
     "Validando escopo, telas, APIs e banco de dados.",
@@ -341,6 +364,17 @@ export function buildDeployProject(userId: string, projectId: string) {
     .run(buildId, userId, projectId, started, logs, JSON.stringify({ systemId: system.id, files: system.files.length }));
   getDatabase().prepare("update deploy_projects set status = 'built', updated_at = current_timestamp where id = ? and user_id = ?").run(projectId, userId);
   logDeploy(userId, projectId, "Build concluído.", { systemId: system.id, stack: system.stack }, "info", buildId);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "build_completed",
+    category: "build",
+    title: "Build concluído",
+    summary: "O build foi registrado com sucesso.",
+    details: { logs, files: system.files.map((file: any) => file.name) },
+    status: "completed",
+    progress: 84,
+    startedAt: started,
+    metadata: { projectId, buildId, systemId: system.id, fileCount: system.files.length }
+  });
   recordAudit({
     userId,
     category: "deploy",
@@ -353,12 +387,21 @@ export function buildDeployProject(userId: string, projectId: string) {
   return publicBuild(getDatabase().prepare("select * from deploy_builds where id = ?").get(buildId) as DeployBuildRow);
 }
 
-export function deployProject(userId: string, projectId: string) {
+export function deployProject(userId: string, projectId: string, options: DeployOptions = {}) {
   const project = getProjectRow(userId, projectId);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "deploy_started",
+    category: "deploy",
+    title: "Deploy iniciado",
+    summary: "A YARA iniciou a publicação da versão atual.",
+    status: "running",
+    progress: 88,
+    metadata: { projectId, systemId: project.system_id }
+  });
   const latestBuild = getDatabase()
     .prepare("select * from deploy_builds where project_id = ? and user_id = ? and status = 'success' order by datetime(started_at) desc limit 1")
     .get(projectId, userId) as DeployBuildRow | undefined;
-  const build = latestBuild || (buildDeployProject(userId, projectId) as ReturnType<typeof publicBuild>);
+  const build = latestBuild || (buildDeployProject(userId, projectId, options) as ReturnType<typeof publicBuild>);
   const buildId = "id" in build ? build.id : latestBuild?.id || null;
   const version = releaseVersion(projectId);
   const releaseId = uuid();
@@ -372,6 +415,27 @@ export function deployProject(userId: string, projectId: string) {
     .prepare("update deploy_projects set status = 'online', updated_at = current_timestamp where id = ? and user_id = ?")
     .run(projectId, userId);
   logDeploy(userId, projectId, `Deploy publicado: ${version}.`, { buildId, version });
+  const published = getDeployProject(userId, projectId);
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "deploy_completed",
+    category: "deploy",
+    title: "Deploy concluído",
+    summary: `Versão ${version} publicada.`,
+    details: { version, urls: published.project.urls },
+    status: "completed",
+    progress: 94,
+    metadata: { projectId, buildId, version }
+  });
+  recordExecutionEvent(userId, options.executionSessionId, {
+    eventType: "url_validated",
+    category: "validation",
+    title: "URL validada",
+    summary: "As URLs públicas foram ativadas no backend da YARA.",
+    details: published.project.urls,
+    status: "completed",
+    progress: 100,
+    metadata: { projectId, slug: published.project.slug }
+  });
   recordAudit({
     userId,
     category: "deploy",
@@ -381,25 +445,25 @@ export function deployProject(userId: string, projectId: string) {
     message: "Deploy publicado.",
     metadata: { buildId, version }
   });
-  return getDeployProject(userId, projectId);
+  return published;
 }
 
-export function createAndDeploySystem(userId: string, systemId: string) {
-  const created = createDeployProject(userId, systemId);
-  buildDeployProject(userId, created.project.id);
-  return deployProject(userId, created.project.id);
+export function createAndDeploySystem(userId: string, systemId: string, options: DeployOptions = {}) {
+  const created = createDeployProject(userId, systemId, options);
+  buildDeployProject(userId, created.project.id, options);
+  return deployProject(userId, created.project.id, options);
 }
 
-export function redeployProject(userId: string, projectId: string) {
-  buildDeployProject(userId, projectId);
+export function redeployProject(userId: string, projectId: string, options: DeployOptions = {}) {
+  buildDeployProject(userId, projectId, options);
   logDeploy(userId, projectId, "Redeploy solicitado.", {});
-  return deployProject(userId, projectId);
+  return deployProject(userId, projectId, options);
 }
 
-export function redeploySystemIfDeployed(userId: string, systemId: string) {
+export function redeploySystemIfDeployed(userId: string, systemId: string, options: DeployOptions = {}) {
   const project = findProjectBySystem(userId, systemId);
   if (!project || project.status !== "online") return null;
-  return redeployProject(userId, project.id);
+  return redeployProject(userId, project.id, options);
 }
 
 export function rollbackProject(userId: string, projectId: string) {
