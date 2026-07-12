@@ -16,6 +16,7 @@ import {
   restartProject,
   rollbackProject
 } from "../services/deployService";
+import { runRealExecutionPipeline } from "../services/realExecutionService";
 import { sendError } from "../utils/http";
 
 export const deployRoutes = Router();
@@ -37,44 +38,51 @@ deployRoutes.get("/deploy/projects/:id", (req, res) => {
   }
 });
 
-deployRoutes.post("/deploy/create", (req, res) => {
+deployRoutes.post("/deploy/create", async (req, res) => {
   const parsed = z.object({ systemId: z.string().min(1), autoDeploy: z.boolean().optional() }).safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Informe o sistema que deve ser publicado.");
   try {
+    const realExecution = parsed.data.autoDeploy ? await runRealExecutionPipeline(req.user!.id, parsed.data.systemId) : null;
     const result = parsed.data.autoDeploy
       ? createAndDeploySystem(req.user!.id, parsed.data.systemId)
       : createDeployProject(req.user!.id, parsed.data.systemId);
-    return res.status(201).json(result);
+    return res.status(201).json({ ...result, realExecution });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível criar o deploy.");
   }
 });
 
-deployRoutes.post("/deploy/build", (req, res) => {
+deployRoutes.post("/deploy/build", async (req, res) => {
   const parsed = projectBody.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Informe o projeto de deploy.");
   try {
-    return res.json({ build: buildDeployProject(req.user!.id, parsed.data.projectId) });
+    const project = getDeployProject(req.user!.id, parsed.data.projectId);
+    const realExecution = await runRealExecutionPipeline(req.user!.id, project.project.systemId);
+    return res.json({ build: buildDeployProject(req.user!.id, parsed.data.projectId), realExecution });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível executar o build.");
   }
 });
 
-deployRoutes.post("/deploy/deploy", (req, res) => {
+deployRoutes.post("/deploy/deploy", async (req, res) => {
   const parsed = projectBody.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Informe o projeto de deploy.");
   try {
-    return res.json(deployProject(req.user!.id, parsed.data.projectId));
+    const project = getDeployProject(req.user!.id, parsed.data.projectId);
+    const realExecution = await runRealExecutionPipeline(req.user!.id, project.project.systemId);
+    return res.json({ ...deployProject(req.user!.id, parsed.data.projectId), realExecution });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível publicar.");
   }
 });
 
-deployRoutes.post("/deploy/redeploy", (req, res) => {
+deployRoutes.post("/deploy/redeploy", async (req, res) => {
   const parsed = projectBody.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, "Informe o projeto de deploy.");
   try {
-    return res.json(redeployProject(req.user!.id, parsed.data.projectId));
+    const project = getDeployProject(req.user!.id, parsed.data.projectId);
+    const realExecution = await runRealExecutionPipeline(req.user!.id, project.project.systemId);
+    return res.json({ ...redeployProject(req.user!.id, parsed.data.projectId), realExecution });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível republicar.");
   }

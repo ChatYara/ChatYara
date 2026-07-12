@@ -756,6 +756,91 @@ export function runMigrations() {
       foreign key (event_id) references system_execution_events(id) on delete set null
     );
 
+    create table if not exists execution_jobs (
+      id text primary key,
+      user_id text not null,
+      system_id text not null,
+      execution_session_id text,
+      status text not null default 'queued',
+      environment_type text not null default 'node',
+      attempt integer not null default 1,
+      commands_json text not null default '[]',
+      workspace_path text,
+      artifact_path text,
+      started_at text,
+      finished_at text,
+      duration_ms integer,
+      result_json text not null default '{}',
+      error text,
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (user_id) references users(id) on delete cascade,
+      foreign key (system_id) references systems(id) on delete cascade,
+      foreign key (execution_session_id) references system_execution_sessions(id) on delete set null
+    );
+
+    create table if not exists execution_commands (
+      id text primary key,
+      job_id text not null,
+      user_id text not null,
+      command_label text not null,
+      command text not null,
+      args_json text not null default '[]',
+      status text not null default 'pending',
+      exit_code integer,
+      started_at text,
+      finished_at text,
+      duration_ms integer,
+      stdout text not null default '',
+      stderr text not null default '',
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (job_id) references execution_jobs(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists execution_results (
+      id text primary key,
+      job_id text not null,
+      user_id text not null,
+      kind text not null,
+      status text not null,
+      summary text not null,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (job_id) references execution_jobs(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists execution_artifacts (
+      id text primary key,
+      job_id text not null,
+      user_id text not null,
+      artifact_type text not null,
+      name text not null,
+      path text not null,
+      size integer not null default 0,
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      foreign key (job_id) references execution_jobs(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
+    create table if not exists execution_environments (
+      id text primary key,
+      job_id text not null,
+      user_id text not null,
+      environment_type text not null,
+      workspace_path text not null,
+      artifact_path text not null,
+      status text not null default 'active',
+      metadata_json text not null default '{}',
+      created_at text not null default current_timestamp,
+      updated_at text not null default current_timestamp,
+      foreign key (job_id) references execution_jobs(id) on delete cascade,
+      foreign key (user_id) references users(id) on delete cascade
+    );
+
     create table if not exists deploy_projects (
       id text primary key,
       user_id text not null,
@@ -2232,6 +2317,24 @@ export function runMigrations() {
 
     create index if not exists system_execution_events_session_created
       on system_execution_events(session_id, created_at);
+
+    create index if not exists execution_jobs_user_system
+      on execution_jobs(user_id, system_id, created_at);
+
+    create index if not exists execution_jobs_user_status
+      on execution_jobs(user_id, status, created_at);
+
+    create index if not exists execution_commands_job_created
+      on execution_commands(job_id, created_at);
+
+    create index if not exists execution_results_job_created
+      on execution_results(job_id, created_at);
+
+    create index if not exists execution_artifacts_job_created
+      on execution_artifacts(job_id, created_at);
+
+    create index if not exists execution_environments_job_status
+      on execution_environments(job_id, status);
 
     create index if not exists deploy_projects_user_status
       on deploy_projects(user_id, status, updated_at);
