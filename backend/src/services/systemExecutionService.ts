@@ -273,7 +273,10 @@ export function failExecutionSession(userId: string, sessionId: string | null | 
 }
 
 export function cancelExecutionSession(userId: string, sessionId: string) {
-  getSessionRow(userId, sessionId);
+  const session = getSessionRow(userId, sessionId);
+  if (["completed", "error", "cancelled", "failed", "online", "rolled_back"].includes(session.status)) {
+    throw new Error("Esta execução já foi encerrada e não pode ser cancelada.");
+  }
   recordExecutionEvent(userId, sessionId, {
     eventType: "execution_cancelled",
     category: "completion",

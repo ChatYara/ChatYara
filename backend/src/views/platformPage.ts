@@ -1,6 +1,8 @@
 import { logoYaraStyles, renderLogoYara } from "./components/logoYara";
 
-export function renderPlatformPage() {
+export function renderPlatformPage(localDevToken = "") {
+  const showDiagnostics = process.env.NODE_ENV !== "production";
+  const localTokenLiteral = process.env.NODE_ENV !== "production" ? JSON.stringify(localDevToken) : "\"\"";
   return `<!doctype html>
 <html lang="pt-BR">
   <head>
@@ -1190,6 +1192,12 @@ ${logoYaraStyles()}
         box-shadow: 0 18px 56px rgba(0, 0, 0, 0.2);
       }
 
+      .system-activity-card.compact {
+        width: min(100%, 560px);
+        padding: 12px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+      }
+
       .system-activity-card[aria-busy="true"] {
         background:
           linear-gradient(120deg, rgba(56, 189, 248, 0.08), transparent 38%),
@@ -1216,11 +1224,72 @@ ${logoYaraStyles()}
         margin-top: 14px;
       }
 
+      .system-activity-list.compact {
+        gap: 6px;
+        margin-top: 10px;
+      }
+
       .system-activity-row {
         border: 1px solid rgba(148, 163, 184, 0.12);
         border-radius: 12px;
         padding: 10px;
         background: rgba(15, 23, 42, 0.48);
+      }
+
+      .system-activity-row.compact {
+        border: 0;
+        border-radius: 8px;
+        padding: 4px 2px;
+        background: transparent;
+      }
+
+      .system-activity-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .system-result-url {
+        display: grid;
+        gap: 6px;
+        border: 1px solid rgba(34, 197, 94, 0.24);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(22, 163, 74, 0.08);
+        color: #dcfce7;
+        overflow-wrap: anywhere;
+      }
+
+      .system-final-meta {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .system-secondary-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .activity-log-modal {
+        display: grid;
+        gap: 12px;
+      }
+
+      .activity-group {
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(15, 23, 42, 0.46);
+      }
+
+      .activity-group summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: #dbeafe;
       }
 
       .system-activity-main {
@@ -1827,7 +1896,10 @@ ${logoYaraStyles()}
       }
 
       .modal {
-        width: min(620px, 100%);
+        width: min(760px, 100%);
+        max-height: min(84dvh, 760px);
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
         border: 1px solid var(--line-strong);
         border-radius: 20px;
         padding: 20px;
@@ -1841,6 +1913,12 @@ ${logoYaraStyles()}
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 16px;
+      }
+
+      #modalBody {
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
       }
 
       .modal h2 {
@@ -2053,8 +2131,8 @@ ${logoYaraStyles()}
         .settings-metric { width: 100%; min-width: 0; }
         .modal {
           width: calc(100vw - 24px);
-          max-height: calc(100dvh - 24px);
-          overflow: auto;
+          max-height: min(90dvh, calc(100dvh - 24px));
+          padding: 14px;
         }
         .toast {
           right: 12px;
@@ -3846,7 +3924,7 @@ ${logoYaraStyles()}
     </div>
 
     <div class="toast" id="toast"></div>
-    <div class="diagnostic-panel" id="diagnosticPanel" hidden>
+    ${showDiagnostics ? `<div class="diagnostic-panel" id="diagnosticPanel" hidden>
       <h2>Diagnóstico da interface</h2>
       <dl>
         <dt>View atual</dt><dd id="diagnosticView">-</dd>
@@ -3854,9 +3932,49 @@ ${logoYaraStyles()}
         <dt>Módulo</dt><dd id="diagnosticModule">-</dd>
         <dt>Erro</dt><dd id="diagnosticError">-</dd>
       </dl>
-    </div>
+    </div>` : ""}
     <script>
-      const token = localStorage.getItem("yaraToken");
+      const safeStorage = {
+        get(key) {
+          try {
+            if (typeof localStorage !== "undefined") return localStorage.getItem(key);
+          } catch (error) {
+            console.warn("[YARA UI] localStorage indisponivel", error);
+          }
+          const match = document.cookie.match(new RegExp("(?:^|; )" + key.replace(/[.$?*|{}()[\\]\\\\/\\+^]/g, "\\\\$&") + "=([^;]*)"));
+          if (match) return decodeURIComponent(match[1]);
+          if (["127.0.0.1", "localhost"].includes(window.location.hostname)) {
+            const localTokenMatch = window.location.search.match(/[?&]localToken=([^&]+)/);
+            const localToken = localTokenMatch ? localTokenMatch[1] : "";
+            if (key === "yaraToken" && localToken) return localToken;
+            try {
+              const localFallback = JSON.parse(window.name || "{}");
+              return localFallback[key] || null;
+            } catch (error) {
+              return null;
+            }
+          }
+          return null;
+        },
+        remove(key) {
+          try {
+            if (typeof localStorage !== "undefined") localStorage.removeItem(key);
+          } catch (error) {
+            console.warn("[YARA UI] nao foi possivel limpar localStorage", error);
+          }
+          document.cookie = key + "=; Max-Age=0; Path=/; SameSite=Lax";
+          if (["127.0.0.1", "localhost"].includes(window.location.hostname)) {
+            try {
+              const localFallback = JSON.parse(window.name || "{}");
+              delete localFallback[key];
+              window.name = JSON.stringify(localFallback);
+            } catch (error) {
+              window.name = "{}";
+            }
+          }
+        }
+      };
+      const token = safeStorage.get("yaraToken") || ${localTokenLiteral};
       let currentView = "chat";
       let lastClickedControl = "-";
       let currentUser = null;
@@ -6038,6 +6156,48 @@ ${logoYaraStyles()}
         return labels[status] || status || "pendente";
       }
 
+      function canCancelExecution(status) {
+        return ["queued", "planning", "pending", "running", "building", "testing", "deploying", "validating"].includes(String(status || "").toLowerCase());
+      }
+
+      function officialSystemState(system, execution) {
+        const deploy = system && system.deploy && system.deploy.project ? system.deploy.project : null;
+        const sessionStatus = execution && execution.session ? String(execution.session.status || "").toLowerCase() : "";
+        if (sessionStatus === "cancelled") return "CANCELLED";
+        if (sessionStatus === "error" || sessionStatus === "failed") return "FAILED";
+        if (deploy && deploy.status === "online") return "ONLINE";
+        if (deploy && deploy.status === "validating") return "VALIDATING";
+        if (deploy && deploy.status === "failed") return "FAILED";
+        if (execution && execution.events && execution.events.some(function(event) { return event.eventType === "build_completed"; })) return "READY_TO_DEPLOY";
+        if (execution && execution.events && execution.events.some(function(event) { return event.eventType === "test_started"; })) return "TESTING";
+        if (execution && execution.events && execution.events.some(function(event) { return event.eventType === "files_created"; })) return "EXECUTING";
+        return system ? "DRAFT" : "PLANNING";
+      }
+
+      function summarizeExecutionEvents(events) {
+        const list = events || [];
+        const countType = function(types) {
+          return list.filter(function(event) { return types.includes(event.eventType); }).length;
+        };
+        const commandEvents = list.filter(function(event) { return ["command_completed", "dependency_installed", "test_passed", "build_completed"].includes(event.eventType); });
+        const fileEvent = list.find(function(event) { return event.eventType === "files_created" && event.metadata && event.metadata.fileCount; });
+        const hasTests = countType(["test_passed"]) > 0;
+        const hasBuild = countType(["build_completed"]) > 0;
+        const hasDeploy = countType(["deploy_completed"]) > 0;
+        const hasValidation = countType(["url_validated"]) > 0;
+        const commandCount = commandEvents.length;
+        const fileCount = fileEvent && fileEvent.metadata ? Number(fileEvent.metadata.fileCount || 0) : countType(["files_created"]);
+        const rows = [];
+        if (list.some(function(event) { return event.eventType === "context_analyzed" || event.eventType === "request_received"; })) rows.push("Pedido analisado");
+        if (fileCount) rows.push(fileCount + " arquivos criados");
+        if (commandCount) rows.push(commandCount + " comandos executados");
+        if (hasTests) rows.push("Testes aprovados");
+        if (hasBuild) rows.push("Build concluído");
+        if (hasDeploy) rows.push("Deploy concluído");
+        if (hasValidation) rows.push("URL validada");
+        return rows;
+      }
+
       function renderExecutionDetails(details) {
         if (!details) return "";
         return '<details class="system-activity-details"><summary>Ver detalhes</summary><pre class="code-block">' + escapeHtml(JSON.stringify(details, null, 2)) + '</pre></details>';
@@ -6048,16 +6208,19 @@ ${logoYaraStyles()}
         const session = execution.session;
         const events = execution.events || [];
         const progress = events.length ? Math.max.apply(null, events.map(function(event) { return Number(event.progress || 0); })) : 0;
-        const busy = session.status === "running";
-        const rows = events.length ? events.map(function(event) {
-          return '<article class="system-activity-row" data-status="' + escapeHtml(event.status || "pending") + '"><div class="system-activity-main"><div class="system-activity-status"><span class="system-activity-dot" aria-hidden="true"></span><strong>' + escapeHtml(event.title || event.eventType) + '</strong></div>' + (event.summary ? '<p class="muted">' + escapeHtml(event.summary) + '</p>' : "") + renderExecutionDetails(event.details) + '</div><span class="muted">' + escapeHtml(String(event.finishedAt || event.createdAt || "").slice(11, 16)) + '</span></article>';
-        }).join("") : '<article class="system-activity-row" data-status="running"><div class="system-activity-main"><div class="system-activity-status"><span class="system-activity-dot" aria-hidden="true"></span><strong>Preparando atividade</strong></div><p class="muted">Aguardando eventos reais do backend.</p></div></article>';
+        const busy = canCancelExecution(session.status);
+        const summaries = summarizeExecutionEvents(events);
+        const final = !busy && ["completed", "error", "cancelled"].includes(String(session.status || "").toLowerCase());
+        const title = final && session.status === "completed" ? "Sistema concluído" : final ? "Execução finalizada" : "YARA está trabalhando";
+        const rows = summaries.length ? summaries.slice(-7).map(function(item) {
+          return '<article class="system-activity-row compact" data-status="completed"><div class="system-activity-main"><div class="system-activity-status"><span class="system-activity-dot" aria-hidden="true"></span><strong>' + escapeHtml(item) + '</strong></div></div></article>';
+        }).join("") : '<article class="system-activity-row compact" data-status="running"><div class="system-activity-main"><div class="system-activity-status"><span class="system-activity-dot" aria-hidden="true"></span><strong>Preparando atividade real</strong></div></div></article>';
         return [
-          '<section class="system-activity-card" data-execution-id="' + escapeHtml(session.id) + '" aria-live="polite" aria-busy="' + (busy ? "true" : "false") + '">',
-          '<div class="system-activity-head"><div><h3>YARA está trabalhando</h3><p class="muted">' + escapeHtml(executionStatusLabel(session.status)) + ' · ' + escapeHtml(session.operationType || "sistemas") + '</p></div><button class="button" data-execution-logs="' + escapeHtml(session.id) + '" type="button">Ver logs completos</button></div>',
+          '<section class="system-activity-card compact" data-execution-id="' + escapeHtml(session.id) + '" aria-live="polite" aria-busy="' + (busy ? "true" : "false") + '">',
+          '<div class="system-activity-head"><div><h3>' + escapeHtml(title) + '</h3><p class="muted">' + escapeHtml(executionStatusLabel(session.status)) + ' · ' + escapeHtml(session.operationType || "sistemas") + '</p></div></div>',
           '<div class="system-activity-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progress + '"><span style="--progress: ' + progress + '%"></span></div>',
-          '<div class="system-activity-list">' + rows + '</div>',
-          busy ? '<div class="row"><button class="button danger" data-cancel-execution="' + escapeHtml(session.id) + '" type="button">Parar execução</button></div>' : "",
+          '<div class="system-activity-list compact">' + rows + '</div>',
+          '<div class="system-activity-actions"><button class="button" data-execution-logs="' + escapeHtml(session.id) + '" type="button">' + (final ? "Ver atividade completa" : "Ver atividade") + '</button>' + (busy ? '<button class="button danger" data-cancel-execution="' + escapeHtml(session.id) + '" type="button">Parar</button>' : '<span class="muted">✓ Execução concluída</span>') + '</div>',
           '</section>'
         ].join("");
       }
@@ -6073,26 +6236,37 @@ ${logoYaraStyles()}
 
       function renderSystemBuilderCard(system) {
         const scope = system.scope || {};
-        const features = (scope.features || []).slice(0, 4);
         const deploy = system.deploy || null;
         const deployProject = deploy && deploy.project ? deploy.project : null;
         const deployUrls = deployProject && deployProject.urls ? deployProject.urls : {};
-        const statusLabel = deployProject ? "Online" : system.status === "published" ? "Publicado" : "Pronto para publicar";
+        const currentExecution = activeSystemExecutionId ? systemExecutionStates[activeSystemExecutionId] : null;
+        const officialState = officialSystemState(system, currentExecution);
+        const statusLabel = officialState === "ONLINE" ? "Sistema online" : officialState === "READY_TO_DEPLOY" ? "Aguardando publicação" : officialState;
         const appHref = deployUrls.frontend || "#";
         const adminHref = deployUrls.admin || "#";
+        const apiHref = deployUrls.api ? deployUrls.api + "/health" : "";
+        const release = deploy && deploy.latestRelease ? deploy.latestRelease : deploy && deploy.releases && deploy.releases[0] ? deploy.releases[0] : null;
+        const online = deployProject && deployProject.status === "online" && appHref !== "#";
+        const events = currentExecution && currentExecution.events ? currentExecution.events : [];
+        const hasTests = events.some(function(event) { return event.eventType === "test_passed"; });
+        const hasBuild = events.some(function(event) { return event.eventType === "build_completed"; });
+        const draftSummary = (hasTests && hasBuild)
+          ? "✓ Build aprovado · ✓ Testes aprovados · Status: aguardando publicação automática ou nova tentativa."
+          : "A YARA ainda está preparando ou validando este sistema.";
         return [
           '<article class="system-builder-card" data-system-card="' + escapeHtml(system.id) + '">',
-          '<div><h3>Sistema criado</h3><p class="muted">' + escapeHtml(system.name) + '</p></div>',
+          '<div><h3>' + (online ? "Sistema online" : "Sistema criado") + '</h3><p class="muted">' + escapeHtml(system.name) + '</p></div>',
           '<div class="system-builder-status"><span><span class="dot"></span>' + escapeHtml(statusLabel) + '</span><span>' + escapeHtml(system.type || "Sistema") + '</span></div>',
-          '<p class="muted">' + escapeHtml(system.objective || "") + '</p>',
-          features.length ? '<ul class="system-summary-list">' + features.map(function(feature) { return '<li>' + escapeHtml(feature) + '</li>'; }).join("") + '</ul>' : "",
+          online ? '<div class="system-result-url"><strong>URL funcional validada</strong><span>' + escapeHtml(appHref) + '</span></div>' : '<p class="muted">' + escapeHtml(draftSummary) + '</p>',
+          online ? '<div class="system-final-meta"><span>Painel: ' + escapeHtml(adminHref || "indisponível") + '</span><span>API: ' + escapeHtml(apiHref || "indisponível") + '</span><span>Versão: ' + escapeHtml(release ? release.version : "v1") + '</span><span>Última publicação: ' + escapeHtml(release ? release.deployedAt : (deployProject.updatedAt || deployProject.createdAt || "")) + '</span></div>' : "",
           '<div class="system-card-actions">',
-          deployProject ? '<a class="primary-action system-open-main" href="' + escapeHtml(appHref) + '" target="_blank" rel="noreferrer">${icon("share")}Abrir Sistema</a>' : '<button class="primary-action system-open-main" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}Abrir Sistema</button>',
-          deployProject ? '<a class="button" href="' + escapeHtml(adminHref) + '" target="_blank" rel="noreferrer">${icon("settings")}Abrir Painel</a>' : '<button class="button" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("settings")}Abrir Painel</button>',
-          '<button class="button" data-continue-system="' + escapeHtml(system.id) + '" type="button">${icon("sparkles")}Atualizar</button>',
-          '<button class="primary-action" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}' + (deployProject ? "Publicar nova versão" : "Publicar Sistema") + '</button>',
-          '<button class="button" data-deploy-panel="' + escapeHtml(deployProject ? deployProject.id : "") + '" type="button">${icon("history")}Logs</button>',
-          '<button class="button" data-system-panel="details" type="button">${icon("dots")}Ver detalhes</button>',
+          online ? '<a class="primary-action system-open-main" href="' + escapeHtml(appHref) + '" target="_blank" rel="noreferrer">${icon("share")}ABRIR SISTEMA</a>' : '<button class="primary-action system-open-main" data-publish-system="' + escapeHtml(system.id) + '" type="button">${icon("share")}Publicar e abrir</button>',
+          '<div class="system-secondary-actions">',
+          online ? '<a class="button" href="' + escapeHtml(adminHref) + '" target="_blank" rel="noreferrer">${icon("settings")}Abrir painel</a>' : "",
+          '<button class="button" data-continue-system="' + escapeHtml(system.id) + '" type="button">${icon("sparkles")}Atualizar pela conversa</button>',
+          '<button class="button" data-execution-logs="' + escapeHtml(activeSystemExecutionId || "") + '" type="button">${icon("history")}Ver atividade</button>',
+          '<button class="button" data-system-panel="details" type="button">${icon("dots")}Mais opções</button>',
+          '</div>',
           '</div>',
           '</article>'
         ].join("");
@@ -6243,10 +6417,67 @@ ${logoYaraStyles()}
         }
       }
 
+      function groupExecutionEvents(events, commandLogs) {
+        const groups = {
+          planning: { title: "Planejamento", items: [] },
+          file: { title: "Arquivos", items: [] },
+          command: { title: "Comandos", items: [] },
+          test: { title: "Testes", items: [] },
+          build: { title: "Build", items: [] },
+          deploy: { title: "Deploy", items: [] },
+          validation: { title: "Validação", items: [] },
+          error: { title: "Erros", items: [] },
+          completion: { title: "Conclusão", items: [] }
+        };
+        (events || []).forEach(function(event) {
+          const key = groups[event.category] ? event.category : event.status === "error" ? "error" : "planning";
+          groups[key].items.push(event);
+        });
+        (commandLogs || []).forEach(function(log) {
+          groups.command.items.push({
+            title: log.commandLabel || "Comando",
+            summary: (log.status || "") + (log.exitCode !== null && log.exitCode !== undefined ? " · exit " + log.exitCode : ""),
+            details: { stdout: log.stdout || "", stderr: log.stderr || "", durationMs: log.durationMs },
+            status: log.status === "success" ? "completed" : log.status || "pending",
+            createdAt: log.startedAt || ""
+          });
+        });
+        return Object.values(groups).filter(function(group) { return group.items.length; });
+      }
+
+      function renderExecutionLogModal(detail, commandLogs) {
+        const events = detail && detail.events ? detail.events : [];
+        const groups = groupExecutionEvents(events, commandLogs || []);
+        if (!groups.length) {
+          return '<p class="muted">Nenhum evento ou comando foi registrado para esta atividade.</p>';
+        }
+        return '<div class="activity-log-modal">' + groups.map(function(group) {
+          return '<details class="activity-group" open><summary>' + escapeHtml(group.title) + ' · ' + group.items.length + '</summary>' + group.items.map(function(item) {
+            return '<article class="system-activity-row" data-status="' + escapeHtml(item.status || "pending") + '"><div class="system-activity-main"><div class="system-activity-status"><span class="system-activity-dot" aria-hidden="true"></span><strong>' + escapeHtml(item.title || item.eventType || "Evento") + '</strong></div>' + (item.summary ? '<p class="muted">' + escapeHtml(item.summary) + '</p>' : "") + renderExecutionDetails(item.details) + '</div><span class="muted">' + escapeHtml(String(item.finishedAt || item.createdAt || "").slice(11, 16)) + '</span></article>';
+          }).join("") + '</details>';
+        }).join("") + '</div>';
+      }
+
       async function openExecutionLogs(executionId) {
-        const detail = await api("/api/systems/executions/" + encodeURIComponent(executionId));
-        rememberSystemExecution(detail.session, detail.events || []);
-        openModal("Atividade da YARA", "Eventos reais registrados pelo backend.", renderSystemExecutionActivity(systemExecutionStates[executionId]));
+        executionId = executionId || activeSystemExecutionId;
+        if (!executionId) return showToast("Nenhuma atividade encontrada para este sistema.");
+        openModal("Atividade da YARA", "Carregando eventos e comandos reais...", '<p class="muted">Buscando logs...</p>');
+        try {
+          const detail = await api("/api/systems/executions/" + encodeURIComponent(executionId));
+          rememberSystemExecution(detail.session, detail.events || []);
+          const jobIds = Array.from(new Set((detail.events || []).map(function(event) {
+            return event.metadata && event.metadata.jobId ? event.metadata.jobId : null;
+          }).filter(Boolean)));
+          const logs = [];
+          for (const jobId of jobIds) {
+            const data = await api("/api/execution/logs/" + encodeURIComponent(jobId)).catch(function() { return { logs: [] }; });
+            (data.logs || []).forEach(function(item) { logs.push(item); });
+            (data.commands || []).forEach(function(item) { logs.push(item); });
+          }
+          openModal("Atividade da YARA", "Eventos e comandos reais registrados pelo backend.", renderExecutionLogModal(detail, logs));
+        } catch (error) {
+          openModal("Atividade da YARA", "Não foi possível carregar esta atividade.", '<p class="muted">' + escapeHtml(error.message || "Execução não encontrada.") + '</p>');
+        }
       }
 
       async function cancelSystemExecution(executionId) {
@@ -6270,8 +6501,7 @@ ${logoYaraStyles()}
         if (data.deploy && data.deploy.project) selectedSystem.deploy = data.deploy;
         renderSystemChatMessages();
         await loadSystems();
-        if (data.deploy && data.deploy.project) await openDeployPanel(data.deploy.project.id);
-        showToast("Sistema online. URLs geradas.");
+        showToast(data.deploy && data.deploy.project && data.deploy.project.status === "online" ? "Sistema online e URL validada." : "Publicação processada.");
       }
 
       async function duplicateSelectedSystem() {
@@ -6394,7 +6624,12 @@ ${logoYaraStyles()}
         const history = await api("/api/systems/chat/history").catch(function() {
           return { sessions: [], messages: [] };
         });
-        systemChatSessionId = history.sessions && history.sessions[0] ? history.sessions[0].id : systemChatSessionId;
+        const latestSession = history.sessions && history.sessions[0] ? history.sessions[0] : null;
+        systemChatSessionId = latestSession ? latestSession.id : systemChatSessionId;
+        if (!selectedSystem && latestSession && latestSession.systemId) {
+          selectedSystem = systems.find(function(system) { return system.id === latestSession.systemId; }) || null;
+          await attachDeployStatusToSelectedSystem();
+        }
         systemChatMessages = history.messages || [];
         await loadLatestSystemExecutions();
         renderSystemChatMessages();
@@ -8320,8 +8555,8 @@ ${logoYaraStyles()}
               return runCapturedAction("logout", event, control, function() {
                 stopSpeech(false);
                 stopDictation();
-                localStorage.removeItem("yaraToken");
-                localStorage.removeItem("yaraUser");
+                safeStorage.remove("yaraToken");
+                safeStorage.remove("yaraUser");
                 window.location.href = "/";
               });
             }
@@ -8823,8 +9058,8 @@ ${logoYaraStyles()}
           await loadConversations();
           await loadAiStatus().catch(function() {});
         } catch {
-          localStorage.removeItem("yaraToken");
-          localStorage.removeItem("yaraUser");
+          safeStorage.remove("yaraToken");
+          safeStorage.remove("yaraUser");
           window.location.href = "/?auth=login";
         }
       }
@@ -10103,8 +10338,8 @@ ${logoYaraStyles()}
       on("logoutButton", "click", function() {
         stopSpeech(false);
         stopDictation();
-        localStorage.removeItem("yaraToken");
-        localStorage.removeItem("yaraUser");
+        safeStorage.remove("yaraToken");
+        safeStorage.remove("yaraUser");
         window.location.href = "/";
       });
 

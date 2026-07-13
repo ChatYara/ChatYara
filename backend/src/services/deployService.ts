@@ -119,6 +119,37 @@ function domainsForSlug(slug: string) {
   };
 }
 
+async function fetchWithTimeout(url: string, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal, redirect: "follow" });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function validatePublishedUrls(urls: { frontend: string | null; api: string | null }) {
+  if (!urls.frontend || !urls.api) throw new Error("URLs de publicação indisponíveis.");
+  const frontend = await fetchWithTimeout(urls.frontend);
+  const html = await frontend.text().catch(() => "");
+  if (!frontend.ok || !/<!doctype html|<html/i.test(html) || /Rota nao encontrada|Aplicação não encontrada|error/i.test(html.slice(0, 1200))) {
+    throw new Error(`URL principal não respondeu como aplicação válida. HTTP ${frontend.status}.`);
+  }
+  const healthUrl = `${urls.api.replace(/\/+$/, "")}/health`;
+  const health = await fetchWithTimeout(healthUrl);
+  const body = await health.text().catch(() => "");
+  if (!health.ok || !/"ok"\s*:\s*true/.test(body)) {
+    throw new Error(`Health check do sistema publicado falhou. HTTP ${health.status}.`);
+  }
+  return {
+    frontendStatus: frontend.status,
+    healthStatus: health.status,
+    healthUrl,
+    htmlBytes: html.length
+  };
+}
+
 function uniqueSlug(name: string) {
   const db = getDatabase();
   const base = slugify(name);
@@ -387,7 +418,7 @@ export function buildDeployProject(userId: string, projectId: string, options: D
   return publicBuild(getDatabase().prepare("select * from deploy_builds where id = ?").get(buildId) as DeployBuildRow);
 }
 
-export function deployProject(userId: string, projectId: string, options: DeployOptions = {}) {
+export async function deployProject(userId: string, projectId: string, options: DeployOptions = {}) {
   const project = getProjectRow(userId, projectId);
   recordExecutionEvent(userId, options.executionSessionId, {
     eventType: "deploy_started",
@@ -412,26 +443,52 @@ export function deployProject(userId: string, projectId: string, options: Deploy
     )
     .run(releaseId, userId, projectId, buildId, version, JSON.stringify({ runtime: "yara-managed-runtime" }));
   getDatabase()
-    .prepare("update deploy_projects set status = 'online', updated_at = current_timestamp where id = ? and user_id = ?")
+    .prepare("update deploy_projects set status = 'validating', updated_at = current_timestamp where id = ? and user_id = ?")
     .run(projectId, userId);
-  logDeploy(userId, projectId, `Deploy publicado: ${version}.`, { buildId, version });
-  const published = getDeployProject(userId, projectId);
+  const pending = getDeployProject(userId, projectId);
   recordExecutionEvent(userId, options.executionSessionId, {
     eventType: "deploy_completed",
     category: "deploy",
     title: "Deploy concluído",
     summary: `Versão ${version} publicada.`,
-    details: { version, urls: published.project.urls },
+    details: { version, urls: pending.project.urls },
     status: "completed",
     progress: 94,
     metadata: { projectId, buildId, version }
   });
+  let validation: Awaited<ReturnType<typeof validatePublishedUrls>>;
+  try {
+    validation = await validatePublishedUrls({
+      frontend: pending.project.urls.frontend,
+      api: pending.project.urls.api
+    });
+  } catch (error) {
+    getDatabase()
+      .prepare("update deploy_projects set status = 'failed', updated_at = current_timestamp where id = ? and user_id = ?")
+      .run(projectId, userId);
+    logDeploy(userId, projectId, "Validação de URL falhou.", { buildId, version, error: error instanceof Error ? error.message : "Falha desconhecida" }, "error");
+    recordExecutionEvent(userId, options.executionSessionId, {
+      eventType: "deploy_validation_failed",
+      category: "validation",
+      title: "URL não validada",
+      summary: error instanceof Error ? error.message : "A URL publicada não respondeu corretamente.",
+      status: "error",
+      progress: 98,
+      metadata: { projectId, buildId, version }
+    });
+    throw error;
+  }
+  getDatabase()
+    .prepare("update deploy_projects set status = 'online', updated_at = current_timestamp where id = ? and user_id = ?")
+    .run(projectId, userId);
+  logDeploy(userId, projectId, `Deploy publicado e validado: ${version}.`, { buildId, version, validation });
+  const published = getDeployProject(userId, projectId);
   recordExecutionEvent(userId, options.executionSessionId, {
     eventType: "url_validated",
     category: "validation",
     title: "URL validada",
-    summary: "As URLs públicas foram ativadas no backend da YARA.",
-    details: published.project.urls,
+    summary: "A URL principal e o health check responderam corretamente.",
+    details: { urls: published.project.urls, validation },
     status: "completed",
     progress: 100,
     metadata: { projectId, slug: published.project.slug }
@@ -454,13 +511,13 @@ export function createAndDeploySystem(userId: string, systemId: string, options:
   return deployProject(userId, created.project.id, options);
 }
 
-export function redeployProject(userId: string, projectId: string, options: DeployOptions = {}) {
+export async function redeployProject(userId: string, projectId: string, options: DeployOptions = {}) {
   buildDeployProject(userId, projectId, options);
   logDeploy(userId, projectId, "Redeploy solicitado.", {});
   return deployProject(userId, projectId, options);
 }
 
-export function redeploySystemIfDeployed(userId: string, systemId: string, options: DeployOptions = {}) {
+export async function redeploySystemIfDeployed(userId: string, systemId: string, options: DeployOptions = {}) {
   const project = findProjectBySystem(userId, systemId);
   if (!project || project.status !== "online") return null;
   return redeployProject(userId, project.id, options);
@@ -521,7 +578,7 @@ export function listDeployLogs(userId: string, input: { projectId?: string; limi
 
 export function findPublicDeployBySlug(slug: string) {
   return getDatabase()
-    .prepare("select * from deploy_projects where slug = ? and status = 'online'")
+    .prepare("select * from deploy_projects where slug = ? and status in ('online', 'validating')")
     .get(slug) as DeployProjectRow | undefined;
 }
 
@@ -539,6 +596,8 @@ export function renderPublicDeployPage(slug: string, mode: "app" | "admin" | "do
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
+    <link rel="manifest" href="/deploy/apps/${escapeHtml(slug)}/manifest.webmanifest" />
+    <meta name="theme-color" content="#081120" />
     <style>
       body{margin:0;font-family:Inter,Arial,sans-serif;background:#081120;color:#fff}
       main{min-height:100vh;padding:40px clamp(18px,5vw,72px);background:radial-gradient(circle at top right,rgba(56,189,248,.18),transparent 34%),#081120}
@@ -565,9 +624,41 @@ export function renderPublicDeployPage(slug: string, mode: "app" | "admin" | "do
         <article><h2>Telas</h2><ul>${screens}</ul></article>
         <article><h2>APIs</h2><ul>${apis}</ul></article>
       </section>
+      <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/deploy/apps/${escapeHtml(slug)}/service-worker.js').catch(function(){});}</script>
     </main>
   </body>
 </html>`;
+}
+
+export function publicDeployManifest(slug: string) {
+  const project = findPublicDeployBySlug(slug);
+  if (!project) return null;
+  const system = getSystemDetails(project.user_id, project.system_id);
+  return {
+    name: system.name,
+    short_name: system.name.slice(0, 24),
+    start_url: `/deploy/apps/${project.slug}`,
+    scope: `/deploy/apps/${project.slug}`,
+    display: "standalone",
+    background_color: "#081120",
+    theme_color: "#0A84FF",
+    description: system.objective,
+    icons: []
+  };
+}
+
+export function publicDeployServiceWorker(slug: string) {
+  const project = findPublicDeployBySlug(slug);
+  if (!project) return null;
+  return [
+    "self.addEventListener('install', function(event) { self.skipWaiting(); });",
+    "self.addEventListener('activate', function(event) { event.waitUntil(self.clients.claim()); });",
+    "self.addEventListener('fetch', function(event) {",
+    "  event.respondWith(fetch(event.request).catch(function() {",
+    "    return new Response('Aplicação temporariamente offline.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });",
+    "  }));",
+    "});"
+  ].join("\n");
 }
 
 export function publicDeployApiStatus(slug: string) {

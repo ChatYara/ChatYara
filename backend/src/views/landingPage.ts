@@ -1312,9 +1312,33 @@ ${logoYaraStyles()}
         return data;
       }
 
+      const safeStorage = {
+        get(key) {
+          try {
+            if (typeof localStorage !== "undefined") return localStorage.getItem(key);
+          } catch (error) {
+            console.warn("[YARA UI] localStorage indisponivel", error);
+          }
+          const match = document.cookie.match(new RegExp("(?:^|; )" + key.replace(/[.$?*|{}()[\\]\\\\/\\+^]/g, "\\\\$&") + "=([^;]*)"));
+          return match ? decodeURIComponent(match[1]) : null;
+        },
+        set(key, value) {
+          try {
+            if (typeof localStorage !== "undefined") {
+              localStorage.setItem(key, value);
+              return;
+            }
+          } catch (error) {
+            console.warn("[YARA UI] nao foi possivel salvar no localStorage", error);
+          }
+          const secure = window.location.protocol === "https:" ? "; Secure" : "";
+          document.cookie = key + "=" + encodeURIComponent(value) + "; Max-Age=604800; Path=/; SameSite=Lax" + secure;
+        }
+      };
+
       for (const button of document.querySelectorAll("[data-open-auth]")) {
         button.addEventListener("click", () => {
-          if (localStorage.getItem("yaraToken")) {
+          if (safeStorage.get("yaraToken")) {
             window.location.href = "/app";
             return;
           }
@@ -1340,8 +1364,8 @@ ${logoYaraStyles()}
             identifier: String(form.get("identifier") || ""),
             password: String(form.get("password") || "")
           });
-          localStorage.setItem("yaraToken", data.token);
-          localStorage.setItem("yaraUser", JSON.stringify(data.user));
+          safeStorage.set("yaraToken", data.token);
+          safeStorage.set("yaraUser", JSON.stringify(data.user));
           window.location.href = "/app";
         } catch (error) {
           setAuthMessage(error.message, true);
@@ -1366,8 +1390,8 @@ ${logoYaraStyles()}
             password: String(form.get("password") || ""),
             confirmPassword: String(form.get("confirmPassword") || "")
           });
-          localStorage.setItem("yaraToken", data.token);
-          localStorage.setItem("yaraUser", JSON.stringify(data.user));
+          safeStorage.set("yaraToken", data.token);
+          safeStorage.set("yaraUser", JSON.stringify(data.user));
           window.location.href = "/app";
         } catch (error) {
           setAuthMessage(error.message, true);

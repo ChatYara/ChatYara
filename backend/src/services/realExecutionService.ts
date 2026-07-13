@@ -439,8 +439,10 @@ async function createRunnableProject(job: ExecutionJobRow, workspacePath: string
       "const data = describeSystem();",
       "mkdirSync('dist', { recursive: true });",
       "const features = data.features.map((item) => `<li>${String(item).replace(/[&<>]/g, '')}</li>`).join('');",
-      "writeFileSync('dist/index.html', `<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>${data.name}</title><style>body{font-family:Inter,Arial,sans-serif;margin:0;background:#081120;color:#fff;padding:40px}main{max-width:980px;margin:auto}.card{border:1px solid #1e40af;border-radius:18px;padding:24px;background:#0f172a}li{margin:8px 0;color:#dbeafe}</style></head><body><main><div class=\"card\"><h1>${data.name}</h1><p>${data.objective}</p><p>${data.architecture} · ${data.stack}</p><ul>${features}</ul></div></main></body></html>`);",
+      "writeFileSync('dist/index.html', `<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>${data.name}</title><link rel=\"manifest\" href=\"manifest.webmanifest\"><meta name=\"theme-color\" content=\"#081120\"><style>body{font-family:Inter,Arial,sans-serif;margin:0;background:#081120;color:#fff;padding:40px}main{max-width:980px;margin:auto}.card{border:1px solid #1e40af;border-radius:18px;padding:24px;background:#0f172a}li{margin:8px 0;color:#dbeafe}@media(max-width:640px){body{padding:16px}.card{padding:18px}}</style></head><body><main><div class=\"card\"><h1>${data.name}</h1><p>${data.objective}</p><p>${data.architecture} · ${data.stack}</p><ul>${features}</ul></div></main><script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{});</script></body></html>`);",
       "writeFileSync('dist/manifest.json', JSON.stringify(data, null, 2));",
+      "writeFileSync('dist/manifest.webmanifest', JSON.stringify({ name: data.name, short_name: data.name.slice(0, 24), start_url: './', display: 'standalone', background_color: '#081120', theme_color: '#0A84FF', icons: [] }, null, 2));",
+      "writeFileSync('dist/service-worker.js', \"self.addEventListener('install', event => self.skipWaiting());\\nself.addEventListener('fetch', event => event.respondWith(fetch(event.request).catch(() => new Response('Offline', { status: 503 }))));\\n\");",
       "writeFileSync('dist/api-health.json', JSON.stringify({ ok: true, name: data.name }, null, 2));",
       "copyFileSync('src/data/system.json', 'dist/system.json');",
       "console.log(`Build gerado em dist para ${data.name}.`);"
@@ -859,6 +861,38 @@ export function getExecutionArtifacts(userId: string, jobId: string) {
     .prepare("select * from execution_artifacts where job_id = ? and user_id = ? order by datetime(created_at) asc")
     .all(jobId, userId) as ExecutionArtifactRow[];
   return { artifacts: artifacts.map(publicArtifact) };
+}
+
+export function listSystemExecutionArtifacts(userId: string, systemId: string) {
+  getSystemDetails(userId, systemId);
+  const artifacts = getDatabase()
+    .prepare(
+      `select execution_artifacts.*
+       from execution_artifacts
+       join execution_jobs on execution_jobs.id = execution_artifacts.job_id
+       where execution_jobs.user_id = ? and execution_jobs.system_id = ?
+       order by datetime(execution_artifacts.created_at) desc
+       limit 80`
+    )
+    .all(userId, systemId) as ExecutionArtifactRow[];
+  return { artifacts: artifacts.map(publicArtifact) };
+}
+
+export function resolveSystemExecutionArtifactPath(userId: string, systemId: string, artifactId: string) {
+  getSystemDetails(userId, systemId);
+  const artifact = getDatabase()
+    .prepare(
+      `select execution_artifacts.*
+       from execution_artifacts
+       join execution_jobs on execution_jobs.id = execution_artifacts.job_id
+       where execution_artifacts.id = ? and execution_jobs.user_id = ? and execution_jobs.system_id = ?`
+    )
+    .get(artifactId, userId, systemId) as ExecutionArtifactRow | undefined;
+  if (!artifact) throw new Error("Artefato não encontrado.");
+  const resolved = path.resolve(artifact.path);
+  const root = path.resolve(artifactRoot());
+  if (!resolved.startsWith(root + path.sep) && resolved !== root) throw new Error("Artefato inválido.");
+  return { artifact: publicArtifact(artifact), path: resolved };
 }
 
 export function assertLatestRealExecutionPassed(userId: string, systemId: string) {

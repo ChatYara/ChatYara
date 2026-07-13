@@ -11,6 +11,8 @@ import {
   listDeployLogs,
   listDeployProjects,
   publicDeployApiStatus,
+  publicDeployManifest,
+  publicDeployServiceWorker,
   redeployProject,
   renderPublicDeployPage,
   restartProject,
@@ -44,7 +46,7 @@ deployRoutes.post("/deploy/create", async (req, res) => {
   try {
     const realExecution = parsed.data.autoDeploy ? await runRealExecutionPipeline(req.user!.id, parsed.data.systemId) : null;
     const result = parsed.data.autoDeploy
-      ? createAndDeploySystem(req.user!.id, parsed.data.systemId)
+      ? await createAndDeploySystem(req.user!.id, parsed.data.systemId)
       : createDeployProject(req.user!.id, parsed.data.systemId);
     return res.status(201).json({ ...result, realExecution });
   } catch (error) {
@@ -70,7 +72,7 @@ deployRoutes.post("/deploy/deploy", async (req, res) => {
   try {
     const project = getDeployProject(req.user!.id, parsed.data.projectId);
     const realExecution = await runRealExecutionPipeline(req.user!.id, project.project.systemId);
-    return res.json({ ...deployProject(req.user!.id, parsed.data.projectId), realExecution });
+    return res.json({ ...(await deployProject(req.user!.id, parsed.data.projectId)), realExecution });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível publicar.");
   }
@@ -82,7 +84,7 @@ deployRoutes.post("/deploy/redeploy", async (req, res) => {
   try {
     const project = getDeployProject(req.user!.id, parsed.data.projectId);
     const realExecution = await runRealExecutionPipeline(req.user!.id, project.project.systemId);
-    return res.json({ ...redeployProject(req.user!.id, parsed.data.projectId), realExecution });
+    return res.json({ ...(await redeployProject(req.user!.id, parsed.data.projectId)), realExecution });
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : "Não foi possível republicar.");
   }
@@ -129,6 +131,16 @@ deployRoutes.get("/deploy/status", (req, res) => {
 publicDeployRoutes.get("/deploy/apps/:slug", (req, res) => {
   const html = renderPublicDeployPage(req.params.slug, "app");
   return html ? res.type("html").send(html) : sendError(res, 404, "Aplicação não encontrada ou ainda não publicada.");
+});
+
+publicDeployRoutes.get("/deploy/apps/:slug/manifest.webmanifest", (req, res) => {
+  const manifest = publicDeployManifest(req.params.slug);
+  return manifest ? res.type("application/manifest+json").json(manifest) : sendError(res, 404, "Manifest não encontrado.");
+});
+
+publicDeployRoutes.get("/deploy/apps/:slug/service-worker.js", (req, res) => {
+  const worker = publicDeployServiceWorker(req.params.slug);
+  return worker ? res.type("application/javascript").send(worker) : sendError(res, 404, "Service worker não encontrado.");
 });
 
 publicDeployRoutes.get("/deploy/admin/:slug", (req, res) => {

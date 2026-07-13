@@ -3,7 +3,7 @@ import { z } from "zod";
 import { authRequired } from "../middleware/auth";
 import { recordAudit, requestAuditContext } from "../services/auditService";
 import { createAndDeploySystem, redeploySystemIfDeployed } from "../services/deployService";
-import { runRealExecutionPipeline } from "../services/realExecutionService";
+import { listSystemExecutionArtifacts, resolveSystemExecutionArtifactPath, runRealExecutionPipeline } from "../services/realExecutionService";
 import {
   cancelExecutionSession,
   createExecutionSession,
@@ -33,6 +33,10 @@ import { sendError } from "../utils/http";
 export const systemsRoutes = Router();
 
 systemsRoutes.use(authRequired);
+
+function autoPublishSystems() {
+  return process.env.AUTO_PUBLISH_GENERATED_SYSTEMS?.trim().toLowerCase() !== "false";
+}
 
 systemsRoutes.post("/systems/generate", (req, res) => {
   const parsed = z.object({ prompt: z.string().min(8).max(4000) }).safeParse(req.body);
@@ -124,6 +128,9 @@ systemsRoutes.post("/systems/executions/:sessionId/cancel", (req, res) => {
   try {
     return res.json({ session: cancelExecutionSession(req.user!.id, req.params.sessionId) });
   } catch (error) {
+    if (error instanceof Error && error.message.includes("já foi encerrada")) {
+      return sendError(res, 400, error.message);
+    }
     return sendError(res, 404, error instanceof Error ? error.message : "Não foi possível cancelar a atividade.");
   }
 });
@@ -156,7 +163,11 @@ systemsRoutes.post("/systems/chat", async (req, res) => {
     const realExecution = result.system?.id && !result.file
       ? await runRealExecutionPipeline(req.user!.id, result.system.id, { executionSessionId: executionSession.id, operationType: parsed.data.systemId ? "system_update" : "system_create" })
       : null;
-    const deploy = result.system?.id && realExecution ? redeploySystemIfDeployed(req.user!.id, result.system.id, { executionSessionId: executionSession.id }) : null;
+    const deploy = result.system?.id && realExecution
+      ? autoPublishSystems()
+        ? await createAndDeploySystem(req.user!.id, result.system.id, { executionSessionId: executionSession.id })
+        : await redeploySystemIfDeployed(req.user!.id, result.system.id, { executionSessionId: executionSession.id })
+      : null;
     const finalExecutionSession = finishExecutionSession(req.user!.id, executionSession.id, "completed");
     recordAudit({
       userId: req.user!.id,
@@ -181,6 +192,23 @@ systemsRoutes.get("/systems/:id/executions", (req, res) => {
     return res.json(listExecutionsForSystem(req.user!.id, req.params.id));
   } catch (error) {
     return sendError(res, 404, error instanceof Error ? error.message : "Histórico de execução não encontrado.");
+  }
+});
+
+systemsRoutes.get("/systems/:id/artifacts", (req, res) => {
+  try {
+    return res.json(listSystemExecutionArtifacts(req.user!.id, req.params.id));
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Artefatos não encontrados.");
+  }
+});
+
+systemsRoutes.get("/systems/:id/artifacts/:artifactId/download", (req, res) => {
+  try {
+    const result = resolveSystemExecutionArtifactPath(req.user!.id, req.params.id, req.params.artifactId);
+    return res.download(result.path, result.artifact.name);
+  } catch (error) {
+    return sendError(res, 404, error instanceof Error ? error.message : "Artefato não encontrado.");
   }
 });
 
@@ -210,7 +238,7 @@ systemsRoutes.post("/systems/:id/publish", async (req, res) => {
       : createExecutionSession(req.user!.id, { systemId: req.params.id, operationType: "system_publish" });
     const realExecution = await runRealExecutionPipeline(req.user!.id, req.params.id, { executionSessionId: executionSession.id, operationType: "system_publish" });
     const system = publishSystem(req.user!.id, req.params.id);
-    const deploy = createAndDeploySystem(req.user!.id, req.params.id, { executionSessionId: executionSession.id });
+    const deploy = await createAndDeploySystem(req.user!.id, req.params.id, { executionSessionId: executionSession.id });
     const finalExecutionSession = finishExecutionSession(req.user!.id, executionSession.id, "completed");
     recordAudit({
       userId: req.user!.id,

@@ -84,8 +84,9 @@ export function createApp() {
     res.type("html").send(renderLandingPage());
   });
 
-  app.get("/app", (_req, res) => {
-    res.type("html").send(renderPlatformPage());
+  app.get("/app", (req, res) => {
+    const localDevToken = process.env.NODE_ENV !== "production" && typeof req.query.localToken === "string" ? req.query.localToken : "";
+    res.type("html").send(renderPlatformPage(localDevToken));
   });
 
   app.get("/health", (_req, res) => {
