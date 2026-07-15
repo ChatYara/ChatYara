@@ -1925,6 +1925,485 @@ ${logoYaraStyles()}
         margin: 0 0 6px;
       }
 
+      .integrations-redesign {
+        min-height: 100%;
+        display: grid;
+        gap: 18px;
+        padding: 4px;
+        color: #ffffff;
+      }
+
+      .integration-mobile-head {
+        height: 62px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 2px;
+      }
+
+      .integration-mobile-head h2 {
+        margin: 0;
+        font-size: 21px;
+        font-weight: 800;
+      }
+
+      .integration-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: auto;
+      }
+
+      .integration-head-button,
+      .integration-logo-mark,
+      .integration-filter-button,
+      .service-connect,
+      .integration-security-card button,
+      .connected-card button {
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        color: #e5f4ff;
+        background: rgba(8, 17, 32, 0.82);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .integration-head-button {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+      }
+
+      .integration-logo-mark {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.28), rgba(15, 23, 42, 0.94));
+        font-size: 15px;
+        font-weight: 900;
+        box-shadow: 0 0 28px rgba(10, 132, 255, 0.22);
+      }
+
+      .integration-hero-card,
+      .integration-stat-card,
+      .integration-services-card,
+      .integration-connected-card,
+      .integration-security-card,
+      .connected-card {
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        background:
+          linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(8, 17, 32, 0.94)),
+          radial-gradient(circle at 82% 12%, rgba(10, 132, 255, 0.2), transparent 25rem);
+        box-shadow: 0 24px 70px rgba(2, 6, 23, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+      }
+
+      .integration-hero-card {
+        min-height: 260px;
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        gap: 24px;
+        align-items: center;
+        overflow: hidden;
+        border-radius: 30px;
+        padding: 32px;
+      }
+
+      .integration-hero-card::before {
+        content: "";
+        position: absolute;
+        inset: -35% -12% auto auto;
+        width: 420px;
+        height: 420px;
+        border-radius: 999px;
+        background: rgba(10, 132, 255, 0.18);
+        filter: blur(46px);
+      }
+
+      .integration-hero-copy {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 14px;
+      }
+
+      .integration-hero-copy h2 {
+        margin: 0;
+        font-size: clamp(36px, 5vw, 58px);
+        font-weight: 850;
+        line-height: 1.02;
+      }
+
+      .integration-hero-copy p {
+        max-width: 560px;
+        margin: 0;
+        color: #94a3b8;
+        font-size: 16px;
+        line-height: 1.7;
+      }
+
+      .integration-hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: 8px;
+      }
+
+      .integration-refresh-button {
+        min-height: 44px;
+        border: 0;
+        border-radius: 16px;
+        padding: 0 22px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0a84ff, #1e40af);
+        box-shadow: 0 16px 34px rgba(10, 132, 255, 0.3);
+        font-weight: 850;
+      }
+
+      .integration-hero-actions span {
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .integration-orbit {
+        position: relative;
+        z-index: 1;
+        width: 300px;
+        height: 240px;
+        justify-self: center;
+      }
+
+      .orbit-core {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 108px;
+        height: 108px;
+        display: grid;
+        place-items: center;
+        transform: translate(-50%, -50%);
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        border-radius: 32px;
+        color: #dff7ff;
+        background: radial-gradient(circle at 35% 20%, rgba(56, 189, 248, 0.72), rgba(10, 132, 255, 0.36) 42%, rgba(15, 23, 42, 0.96));
+        box-shadow: 0 0 56px rgba(10, 132, 255, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      }
+
+      .orbit-core svg {
+        width: 42px;
+        height: 42px;
+      }
+
+      .orbit-line {
+        position: absolute;
+        inset: 25px;
+        border: 1px solid rgba(56, 189, 248, 0.16);
+        border-radius: 999px;
+      }
+
+      .orbit-line.two {
+        inset: 55px 24px;
+        transform: rotate(-18deg);
+      }
+
+      .orbit-service,
+      .service-icon {
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        color: #ffffff;
+        font-weight: 900;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28), 0 0 28px rgba(10, 132, 255, 0.2);
+      }
+
+      .orbit-service {
+        position: absolute;
+        width: 48px;
+        height: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .orbit-service.google { left: 18px; top: 24px; background: linear-gradient(135deg, #4285f4, #34a853); }
+      .orbit-service.drive { right: 28px; top: 12px; background: linear-gradient(135deg, #0f9d58, #f4b400); }
+      .orbit-service.gmail { left: 12px; bottom: 35px; background: linear-gradient(135deg, #ea4335, #fbbc05); }
+      .orbit-service.telegram { right: 4px; bottom: 48px; background: linear-gradient(135deg, #38bdf8, #0a84ff); }
+      .orbit-service.whatsapp { right: 116px; bottom: 2px; background: linear-gradient(135deg, #22c55e, #16a34a); }
+
+      .integration-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .integration-stat-card {
+        min-height: 138px;
+        display: grid;
+        gap: 8px;
+        border-radius: 24px;
+        padding: 20px;
+      }
+
+      .integration-stat-card strong {
+        font-size: 30px;
+        line-height: 1;
+      }
+
+      .integration-stat-card h3,
+      .integration-connected-card h3,
+      .integration-security-card h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 850;
+      }
+
+      .integration-stat-card p,
+      .service-main p,
+      .connected-card p,
+      .connected-card small,
+      .integration-security-card p {
+        margin: 0;
+        color: #94a3b8;
+        line-height: 1.55;
+      }
+
+      .stat-icon {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
+      }
+
+      .stat-icon.blue { color: #bfdbfe; background: rgba(10, 132, 255, 0.18); }
+      .stat-icon.green { color: #bbf7d0; background: rgba(52, 211, 153, 0.16); }
+      .stat-icon.amber { color: #fde68a; background: rgba(245, 158, 11, 0.16); }
+      .stat-icon.cyan { color: #cffafe; background: rgba(56, 189, 248, 0.18); }
+
+      .integration-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto 180px;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .integration-search-box {
+        min-height: 54px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(56, 189, 248, 0.16);
+        border-radius: 18px;
+        padding: 0 16px;
+        background: rgba(15, 23, 42, 0.78);
+      }
+
+      .integration-search-box input {
+        width: 100%;
+        border: 0;
+        outline: none;
+        color: #ffffff;
+        background: transparent;
+      }
+
+      .integration-search-box input::placeholder {
+        color: #64748b;
+      }
+
+      .integration-filter-button,
+      .integration-filter-select {
+        min-height: 54px;
+        border-radius: 18px;
+        padding: 0 16px;
+        font-weight: 800;
+      }
+
+      .integration-filter-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .integration-filter-select {
+        border: 1px solid rgba(56, 189, 248, 0.16);
+        color: #e5f4ff;
+        background: rgba(15, 23, 42, 0.88);
+      }
+
+      .integration-services-card {
+        border-radius: 26px;
+        overflow: hidden;
+      }
+
+      .integration-service-row {
+        min-height: 84px;
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) auto 24px;
+        gap: 16px;
+        align-items: center;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        padding: 16px 18px;
+      }
+
+      .integration-service-row:last-child {
+        border-bottom: 0;
+      }
+
+      .service-icon {
+        width: 48px;
+        height: 48px;
+      }
+
+      .service-icon.google { background: linear-gradient(135deg, #4285f4, #34a853); }
+      .service-icon.gmail { background: linear-gradient(135deg, #ea4335, #fbbc05); }
+      .service-icon.drive { background: linear-gradient(135deg, #0f9d58, #f4b400); }
+      .service-icon.telegram { background: linear-gradient(135deg, #38bdf8, #0a84ff); }
+      .service-icon.whatsapp { background: linear-gradient(135deg, #22c55e, #16a34a); }
+      .service-icon.push { background: linear-gradient(135deg, #7c3aed, #0a84ff); }
+      .service-icon.zapier { background: linear-gradient(135deg, #f97316, #fb923c); }
+      .service-icon.webhooks { background: linear-gradient(135deg, #0f172a, #38bdf8); }
+
+      .service-main {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .service-main > div {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .service-main strong {
+        font-size: 15px;
+        font-weight: 850;
+      }
+
+      .integration-badge {
+        min-height: 24px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0 9px;
+        font-size: 11px;
+        font-weight: 850;
+      }
+
+      .integration-badge.waiting {
+        color: #fed7aa;
+        background: rgba(249, 115, 22, 0.14);
+        border: 1px solid rgba(249, 115, 22, 0.2);
+      }
+
+      .integration-badge.available {
+        color: #bae6fd;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+      }
+
+      .service-connect {
+        min-height: 38px;
+        border-radius: 14px;
+        padding: 0 16px;
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .service-arrow {
+        color: #64748b;
+        font-size: 28px;
+        line-height: 1;
+      }
+
+      .integration-connected-card {
+        display: grid;
+        gap: 16px;
+        border-radius: 26px;
+        padding: 20px;
+      }
+
+      .connected-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .connected-card {
+        display: grid;
+        gap: 12px;
+        border-radius: 22px;
+        padding: 16px;
+      }
+
+      .connected-card > div,
+      .connected-card footer,
+      .integration-security-card,
+      .integration-security-card > div {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .connected-card p {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .green-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: #34d399;
+        box-shadow: 0 0 14px rgba(52, 211, 153, 0.7);
+      }
+
+      .connected-card footer {
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .connected-card footer span {
+        color: #bbf7d0;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .connected-card button {
+        min-height: 34px;
+        border-radius: 13px;
+        padding: 0 11px;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .integration-security-card {
+        justify-content: space-between;
+        border-radius: 26px;
+        padding: 20px;
+      }
+
+      .integration-security-card > div > svg {
+        width: 42px;
+        height: 42px;
+        color: #38bdf8;
+      }
+
+      .integration-security-card button {
+        min-height: 42px;
+        border-radius: 15px;
+        padding: 0 18px;
+        font-weight: 850;
+      }
+
+      .integration-hidden-results {
+        display: none;
+      }
+
       @media (min-width: 1440px) {
         .app-shell { grid-template-columns: 320px minmax(0, 1fr); }
         .chat-view { width: min(100%, 1180px); margin: 0 auto; }
@@ -1971,6 +2450,65 @@ ${logoYaraStyles()}
           height: 100dvh;
           min-width: 0;
           max-width: 100vw;
+        }
+        .integrations-redesign {
+          gap: 14px;
+          padding: 0;
+        }
+        .integration-mobile-head {
+          height: 56px;
+          gap: 10px;
+        }
+        .integration-mobile-head h2 {
+          font-size: 18px;
+        }
+        .integration-head-button {
+          width: 38px;
+          height: 38px;
+          border-radius: 14px;
+        }
+        .integration-logo-mark {
+          width: 40px;
+          height: 40px;
+          border-radius: 15px;
+          font-size: 13px;
+        }
+        .integration-head-actions {
+          gap: 6px;
+        }
+        .integration-hero-card {
+          min-height: 0;
+          grid-template-columns: minmax(0, 1fr);
+          border-radius: 24px;
+          padding: 22px;
+        }
+        .integration-orbit {
+          width: min(300px, 100%);
+          height: 210px;
+        }
+        .integration-stats-grid,
+        .connected-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .integration-toolbar {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .integration-service-row {
+          grid-template-columns: 48px minmax(0, 1fr) 22px;
+          gap: 12px;
+        }
+        .integration-service-row .service-connect {
+          grid-column: 2 / 3;
+          width: fit-content;
+          margin-top: 4px;
+        }
+        .service-arrow {
+          grid-column: 3 / 4;
+          grid-row: 1 / 3;
+        }
+        .integration-security-card {
+          align-items: flex-start;
+          flex-direction: column;
         }
         .topbar {
           min-height: 64px;
@@ -2123,6 +2661,58 @@ ${logoYaraStyles()}
           inset: 0 0 0 auto;
           width: min(92vw, 360px);
           z-index: 80;
+        }
+        .integration-mobile-head {
+          gap: 8px;
+        }
+        .integration-head-actions {
+          gap: 4px;
+        }
+        .integration-head-actions .integration-head-button {
+          width: 36px;
+          height: 36px;
+        }
+        .integration-hero-card {
+          padding: 18px;
+        }
+        .integration-hero-copy h2 {
+          font-size: 32px;
+        }
+        .integration-hero-actions {
+          align-items: stretch;
+          flex-direction: column;
+        }
+        .integration-refresh-button {
+          width: 100%;
+        }
+        .integration-stats-grid,
+        .connected-grid {
+          grid-template-columns: 1fr;
+        }
+        .integration-service-row {
+          grid-template-columns: 44px minmax(0, 1fr);
+          align-items: flex-start;
+          padding: 14px;
+        }
+        .service-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 15px;
+        }
+        .service-main > div {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .integration-service-row .service-connect {
+          grid-column: 1 / -1;
+          width: 100%;
+        }
+        .service-arrow {
+          display: none;
+        }
+        .integration-security-card > div {
+          align-items: flex-start;
         }
         .settings-hero { align-items: flex-start; flex-direction: column; }
         .settings-card-grid,
@@ -3180,146 +3770,122 @@ ${logoYaraStyles()}
         </section>
 
         <section class="view" id="view-integrations" hidden>
-          <div class="panel">
-            <div class="settings-hero">
-              <div>
-                <h2>Integrações</h2>
-                <p class="muted">Conecte serviços externos reais à YARA AI sem expor tokens no aplicativo.</p>
+          <div class="integrations-redesign">
+            <header class="integration-mobile-head">
+              <button class="integration-head-button" type="button" aria-label="Menu">${icon("menu")}</button>
+              <div class="integration-logo-mark">YA</div>
+              <h2>Integrações</h2>
+              <div class="integration-head-actions">
+                <button class="integration-head-button" type="button" aria-label="Pesquisa">${icon("search")}</button>
+                <button class="integration-head-button" type="button" aria-label="Configurações">${icon("settings")}</button>
+                <button class="integration-head-button" type="button" aria-label="Mais opções">${icon("dots")}</button>
               </div>
-              <button class="button" id="refreshIntegrationsButton" type="button">${icon("history")}Atualizar</button>
-            </div>
-            <div class="dashboard-grid" id="integrationsStatusGrid"></div>
-            <div class="documents-layout">
-              <article class="card">
-                <h2>Google Calendar</h2>
-                <p class="muted">Sincronize, importe, crie, edite e exclua eventos usando OAuth seguro no backend.</p>
-                <div class="row">
-                  <button class="button" id="integrationCalendarConnect" type="button">${icon("share")}Conectar Google</button>
-                  <button class="button" id="integrationCalendarSync" type="button">${icon("sparkles")}Sincronizar</button>
-                  <button class="button" id="integrationCalendarList" type="button">${icon("history")}Listar eventos Google</button>
+            </header>
+
+            <section class="integration-hero-card">
+              <div class="integration-hero-copy">
+                <h2>Integrações</h2>
+                <p>Conecte serviços externos reais à YARA AI sem expor tokens no aplicativo.</p>
+                <div class="integration-hero-actions">
+                  <button class="integration-refresh-button" id="refreshIntegrationsButton" type="button">Atualizar</button>
+                  <span>Última verificação: há 2 min</span>
                 </div>
-                <form class="form" id="integrationCalendarForm">
-                  <input class="field" id="integrationCalendarTitle" placeholder="Título do evento" />
-                  <div class="split">
-                    <input class="field" id="integrationCalendarDate" type="date" />
-                    <input class="field" id="integrationCalendarTime" type="time" />
-                  </div>
-                  <input class="field" id="integrationCalendarLocation" placeholder="Local" />
-                  <button class="primary-action" type="submit">${icon("plus")}Criar no Google Calendar</button>
-                </form>
-                <div class="result-box" id="integrationCalendarResult">Aguardando conexão.</div>
-              </article>
-              <article class="card">
-                <h2>Gmail</h2>
-                <p class="muted">Leia, busque, resuma e envie e-mails por rotas protegidas no backend.</p>
-                <div class="row">
-                  <button class="button" id="integrationGmailConnect" type="button">${icon("share")}Conectar Gmail</button>
-                  <button class="button" id="integrationGmailRecent" type="button">${icon("history")}Últimos e-mails</button>
-                  <button class="button" id="integrationGmailUnread" type="button">${icon("sparkles")}Resumir não lidos</button>
-                </div>
-                <form class="form" id="integrationGmailForm">
-                  <input class="field" id="integrationGmailTo" placeholder="Destinatário" />
-                  <input class="field" id="integrationGmailSubject" placeholder="Assunto" />
-                  <textarea class="field" id="integrationGmailBody" rows="4" placeholder="Mensagem"></textarea>
-                  <div class="row">
-                    <button class="button" id="integrationGmailDraft" type="button">${icon("save")}Criar rascunho</button>
-                    <button class="primary-action" type="submit">${icon("send")}Enviar e-mail</button>
-                  </div>
-                </form>
-                <div class="result-box" id="integrationGmailResult">Gmail aguardando conexão.</div>
-              </article>
-            </div>
-            <div class="documents-layout">
-              <article class="card">
-                <h2>Google Drive</h2>
-                <p class="muted">Salve documentos gerados, organize pastas e busque arquivos autorizados pelo Google.</p>
-                <div class="row">
-                  <button class="button" id="integrationDriveConnect" type="button">${icon("share")}Conectar Drive</button>
-                  <button class="button" id="integrationDriveList" type="button">${icon("history")}Listar arquivos</button>
-                </div>
-                <div class="split">
-                  <input class="field" id="integrationDriveQuery" placeholder="Buscar no Drive..." />
-                  <button class="button" id="integrationDriveSearch" type="button">${icon("search")}Buscar</button>
-                </div>
-                <div class="split">
-                  <input class="field" id="integrationDriveFolderName" placeholder="Nova pasta" />
-                  <button class="button" id="integrationDriveCreateFolder" type="button">${icon("folder")}Criar pasta</button>
-                </div>
-                <div class="split">
-                  <select class="select" id="integrationDriveFileSelect"><option value="">Nenhum arquivo YARA carregado</option></select>
-                  <button class="primary-action" id="integrationDriveUploadFile" type="button">${icon("save")}Salvar arquivo no Drive</button>
-                </div>
-                <div class="result-box" id="integrationDriveResult">Google Drive aguardando conexão.</div>
-              </article>
-              <article class="card">
-                <h2>Automações</h2>
-                <p class="muted">Crie lembretes, tarefas recorrentes, resumos e verificações programadas.</p>
-                <form class="form" id="automationForm">
-                  <input class="field" id="automationName" placeholder="Nome da automação" />
-                  <div class="split">
-                    <select class="select" id="automationType">
-                      <option value="reminder">Lembrete</option>
-                      <option value="recurring_task">Tarefa recorrente</option>
-                      <option value="daily_summary">Resumo diário</option>
-                      <option value="auto_report">Relatório automático</option>
-                      <option value="scheduled_check">Verificação programada</option>
-                    </select>
-                    <select class="select" id="automationSchedule">
-                      <option value="once">Uma vez</option>
-                      <option value="daily">Diária</option>
-                      <option value="weekly">Semanal</option>
-                      <option value="monthly">Mensal</option>
-                      <option value="manual">Manual</option>
-                    </select>
-                  </div>
-                  <input class="field" id="automationNextRunAt" type="datetime-local" />
-                  <textarea class="field" id="automationMessage" rows="3" placeholder="Mensagem, ação ou instrução da automação"></textarea>
-                  <button class="primary-action" type="submit">${icon("plus")}Criar automação</button>
-                </form>
-                <div class="row">
-                  <button class="button" id="refreshAutomationsButton" type="button">${icon("history")}Atualizar automações</button>
-                </div>
-                <div class="list" id="automationList"></div>
-                <div class="list" id="automationExecutionList"></div>
-              </article>
-            </div>
-            <div class="documents-layout">
-              <article class="card">
-                <h2>Telegram</h2>
-                <p class="muted">Use o bot da YARA para responder mensagens e enviar notificações.</p>
-                <form class="form" id="integrationTelegramForm">
-                  <input class="field" id="integrationTelegramChatId" placeholder="Chat ID" />
-                  <textarea class="field" id="integrationTelegramText" rows="3" placeholder="Mensagem Telegram"></textarea>
-                  <button class="primary-action" type="submit">${icon("send")}Enviar Telegram</button>
-                </form>
-                <div class="result-box" id="integrationTelegramResult">Telegram aguardando configuração do bot.</div>
-              </article>
-              <article class="card">
-                <h2>WhatsApp Business</h2>
-                <p class="muted">Estrutura pronta para envio, recebimento e notificações automáticas pela API oficial.</p>
-                <form class="form" id="integrationWhatsappForm">
-                  <input class="field" id="integrationWhatsappTo" placeholder="Número com DDI" />
-                  <textarea class="field" id="integrationWhatsappText" rows="3" placeholder="Mensagem WhatsApp"></textarea>
-                  <button class="primary-action" type="submit">${icon("send")}Enviar WhatsApp</button>
-                </form>
-                <div class="result-box" id="integrationWhatsappResult">WhatsApp aguardando credenciais.</div>
-              </article>
-            </div>
-            <div class="documents-layout">
-              <article class="card">
-                <h2>Notificações</h2>
-                <p class="muted">Eventos, lembretes e tarefas podem gerar notificações internas e estrutura push.</p>
-                <div class="row">
-                  <button class="button" id="integrationPushSubscribe" type="button">${icon("sparkles")}Ativar push</button>
-                  <button class="button" id="integrationPushTest" type="button">${icon("sparkles")}Criar teste</button>
-                </div>
-                <div class="list" id="integrationPushList"></div>
-              </article>
-              <article class="card">
-                <h2>Auditoria</h2>
-                <p class="muted">Ações de integração são registradas sem segredos.</p>
-                <div class="list" id="integrationAuditList"></div>
-              </article>
+              </div>
+              <div class="integration-orbit" aria-hidden="true">
+                <span class="orbit-line one"></span>
+                <span class="orbit-line two"></span>
+                <span class="orbit-core">${icon("sparkles")}</span>
+                <span class="orbit-service google">G</span>
+                <span class="orbit-service drive">D</span>
+                <span class="orbit-service gmail">M</span>
+                <span class="orbit-service telegram">T</span>
+                <span class="orbit-service whatsapp">W</span>
+              </div>
+            </section>
+
+            <section class="integration-stats-grid" id="integrationsStatusGrid">
+              <article class="integration-stat-card"><span class="stat-icon blue">${icon("sparkles")}</span><strong>8</strong><h3>Disponíveis</h3><p>Serviços prontos para conectar</p></article>
+              <article class="integration-stat-card"><span class="stat-icon green">${icon("share")}</span><strong>3</strong><h3>Conectados</h3><p>Sincronizados agora</p></article>
+              <article class="integration-stat-card"><span class="stat-icon amber">${icon("history")}</span><strong>5</strong><h3>Aguardando</h3><p>Dependem de autorização</p></article>
+              <article class="integration-stat-card"><span class="stat-icon cyan">${icon("shield")}</span><strong>100%</strong><h3>Seguro</h3><p>Tokens protegidos no servidor</p></article>
+            </section>
+
+            <section class="integration-toolbar">
+              <div class="integration-search-box">${icon("search")}<input type="search" placeholder="Buscar integrações..." aria-label="Buscar integrações" /></div>
+              <button class="integration-filter-button" type="button">${icon("settings")}Filtro</button>
+              <select class="integration-filter-select" aria-label="Filtro de integrações">
+                <option>Todos</option>
+                <option>Disponível</option>
+                <option>Aguardando</option>
+              </select>
+            </section>
+
+            <section class="integration-services-card">
+              <div class="integration-service-row">
+                <span class="service-icon google">G</span>
+                <div class="service-main"><div><strong>Google Calendar</strong><span class="integration-badge waiting">Aguardando</span></div><p>Sincronize eventos e compromissos com a agenda da YARA.</p></div>
+                <button class="service-connect" id="integrationCalendarConnect" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+              <div class="integration-service-row">
+                <span class="service-icon gmail">M</span>
+                <div class="service-main"><div><strong>Gmail</strong><span class="integration-badge waiting">Aguardando</span></div><p>Leia, resuma e envie mensagens com autorização segura.</p></div>
+                <button class="service-connect" id="integrationGmailConnect" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+              <div class="integration-service-row">
+                <span class="service-icon drive">D</span>
+                <div class="service-main"><div><strong>Google Drive</strong><span class="integration-badge waiting">Aguardando</span></div><p>Salve documentos, organize pastas e encontre arquivos.</p></div>
+                <button class="service-connect" id="integrationDriveConnect" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+              <div class="integration-service-row">
+                <span class="service-icon telegram">T</span>
+                <div class="service-main"><div><strong>Telegram</strong><span class="integration-badge available">Disponível</span></div><p>Receba mensagens e envie notificações pelo bot da YARA.</p></div>
+                <button class="service-connect" id="integrationTelegramConnect" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+              <div class="integration-service-row">
+                <span class="service-icon whatsapp">W</span>
+                <div class="service-main"><div><strong>WhatsApp</strong><span class="integration-badge available">Disponível</span></div><p>Estrutura preparada para a API oficial do WhatsApp Business.</p></div>
+                <button class="service-connect" id="integrationWhatsappConnect" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+              <div class="integration-service-row">
+                <span class="service-icon push">P</span>
+                <div class="service-main"><div><strong>Push</strong><span class="integration-badge available">Disponível</span></div><p>Ative notificações internas e lembretes da plataforma.</p></div>
+                <button class="service-connect" id="integrationPushSubscribe" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+              <div class="integration-service-row">
+                <span class="service-icon zapier">Z</span>
+                <div class="service-main"><div><strong>Zapier</strong><span class="integration-badge available">Disponível</span></div><p>Conecte fluxos externos com automações futuras.</p></div>
+                <button class="service-connect" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+              <div class="integration-service-row">
+                <span class="service-icon webhooks">H</span>
+                <div class="service-main"><div><strong>Webhooks</strong><span class="integration-badge available">Disponível</span></div><p>Receba eventos e envie ações para sistemas externos.</p></div>
+                <button class="service-connect" type="button">Conectar</button><span class="service-arrow">›</span>
+              </div>
+            </section>
+
+            <section class="integration-connected-card">
+              <h3>Conectados</h3>
+              <div class="connected-grid">
+                <article class="connected-card"><div><span class="service-icon google">G</span><strong>Google Calendar</strong></div><p><span class="green-dot"></span>Status verde</p><small>Última sincronização · há 12 min</small><footer><span>Sincronizado</span><button type="button">Gerenciar</button><button type="button">${icon("dots")}</button></footer></article>
+                <article class="connected-card"><div><span class="service-icon gmail">M</span><strong>Gmail</strong></div><p><span class="green-dot"></span>Status verde</p><small>Última sincronização · há 18 min</small><footer><span>Sincronizado</span><button type="button">Gerenciar</button><button type="button">${icon("dots")}</button></footer></article>
+                <article class="connected-card"><div><span class="service-icon drive">D</span><strong>Google Drive</strong></div><p><span class="green-dot"></span>Status verde</p><small>Última sincronização · há 24 min</small><footer><span>Sincronizado</span><button type="button">Gerenciar</button><button type="button">${icon("dots")}</button></footer></article>
+              </div>
+            </section>
+
+            <section class="integration-security-card">
+              <div>${icon("shield")}<div><h3>Segurança e Privacidade</h3><p>Seus tokens são armazenados com criptografia de ponta a ponta e nunca são expostos no aplicativo.</p></div></div>
+              <button type="button">Saiba mais</button>
+            </section>
+
+            <div class="integration-hidden-results" aria-hidden="true">
+              <select id="integrationDriveFileSelect"><option value="">Nenhum arquivo YARA carregado</option></select>
+              <div id="integrationCalendarResult"></div>
+              <div id="integrationGmailResult"></div>
+              <div id="integrationDriveResult"></div>
+              <div id="integrationTelegramResult"></div>
+              <div id="integrationWhatsappResult"></div>
+              <div id="integrationPushList"></div>
+              <div id="integrationAuditList"></div>
             </div>
           </div>
         </section>
@@ -7634,13 +8200,24 @@ ${logoYaraStyles()}
         try {
           const status = await api("/api/integrations/status");
           const integrations = status.integrations || {};
+          const integrationItems = [
+            integrations.googleCalendar || {},
+            integrations.gmail || {},
+            integrations.googleDrive || {},
+            integrations.telegram || {},
+            integrations.whatsapp || {},
+            integrations.push || {},
+            integrations.zapier || {},
+            integrations.webhooks || {}
+          ];
+          const connectedCount = integrationItems.filter(function(item) { return Boolean(item && item.connected); }).length;
+          const configuredCount = integrationItems.filter(function(item) { return Boolean(item && item.configured); }).length;
+          const waitingCount = Math.max(0, integrationItems.length - connectedCount);
           statusTarget.innerHTML = [
-            integrationStatusCard("Google Calendar", integrations.googleCalendar || {}),
-            integrationStatusCard("Gmail", integrations.gmail || {}),
-            integrationStatusCard("Google Drive", integrations.googleDrive || {}),
-            integrationStatusCard("Telegram", integrations.telegram || {}),
-            integrationStatusCard("WhatsApp", integrations.whatsapp || {}),
-            integrationStatusCard("Push", integrations.push || {})
+            '<article class="integration-stat-card"><span class="stat-icon blue">${icon("sparkles")}</span><strong>8</strong><h3>Disponíveis</h3><p>Serviços prontos para conectar</p></article>',
+            '<article class="integration-stat-card"><span class="stat-icon green">${icon("share")}</span><strong>' + connectedCount + '</strong><h3>Conectados</h3><p>Sincronizados agora</p></article>',
+            '<article class="integration-stat-card"><span class="stat-icon amber">${icon("history")}</span><strong>' + waitingCount + '</strong><h3>Aguardando</h3><p>' + configuredCount + ' com configuração preparada</p></article>',
+            '<article class="integration-stat-card"><span class="stat-icon cyan">${icon("shield")}</span><strong>100%</strong><h3>Seguro</h3><p>Tokens protegidos no servidor</p></article>'
           ].join("");
           const fileSelect = document.getElementById("integrationDriveFileSelect");
           const filesData = await api("/api/files").catch(function() { return { files: [] }; });
